@@ -1,6 +1,7 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -150,7 +151,7 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             shape = RoundedCornerShape(14.dp)
         )
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth().horizontalScrollCompat(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             statuses.forEach { s ->
                 FilterChip(selected = filter == s, onClick = { filter = s }, label = { Text(s) })
             }
@@ -253,6 +254,7 @@ fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -> Unit) {
     var tab by remember { mutableStateOf("Payments") }
@@ -520,5 +522,3 @@ fun GmuField(value: String, onValueChange: (String) -> Unit, label: String) {
     )
 }
 
-private fun Modifier.horizontalScrollCompat(): Modifier =
-    this.then(androidx.compose.foundation.horizontalScroll(rememberScrollState()))
