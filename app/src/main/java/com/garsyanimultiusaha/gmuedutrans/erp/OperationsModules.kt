@@ -73,9 +73,27 @@ fun OperationsScreen(vm: MainViewModel, session: SessionState, onNotice: (String
             userId = session.userId,
             onDismiss = { if (!vm.actionBusy) quickAdd = false },
             onSave = { table, values, message ->
-                vm.insert(table, values, message) { ok, msg ->
-                    onNotice(msg)
-                    if (ok) quickAdd = false
+                val bookingId = values["booking_id"]?.toString().orEmpty()
+                val existing = when (table) {
+                    "trips", "operation_sheets" ->
+                        vm.table(table).firstOrNull { it.text("booking_id") == bookingId }
+                    "attendance" ->
+                        vm.table("attendance").firstOrNull {
+                            it.text("booking_id") == bookingId &&
+                                it.text("manifest_id") == values["manifest_id"]?.toString().orEmpty()
+                        }
+                    else -> null
+                }
+                if (existing != null) {
+                    vm.update(table, existing.id, values, message.replace("dibuat", "diperbarui").replace("ditambahkan", "diperbarui")) { ok, msg ->
+                        onNotice(msg)
+                        if (ok) quickAdd = false
+                    }
+                } else {
+                    vm.insert(table, values, message) { ok, msg ->
+                        onNotice(msg)
+                        if (ok) quickAdd = false
+                    }
                 }
             }
         )
