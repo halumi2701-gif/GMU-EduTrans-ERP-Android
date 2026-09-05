@@ -94,6 +94,7 @@ enum class AppPage {
     SOP,
     REPORTS,
     CLOSING,
+    TEAM_HR,
     USERS,
     AUDIT,
     PROFILE

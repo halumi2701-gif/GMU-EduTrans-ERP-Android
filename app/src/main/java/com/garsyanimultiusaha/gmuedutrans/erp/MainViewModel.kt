@@ -187,6 +187,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             wanted += "profiles" to "created_at.desc"
         }
 
+        if (role in listOf("Owner", "Manager")) {
+            wanted += "staff_attendance" to "attendance_date.desc"
+            wanted += "staff_assignments" to "created_at.desc"
+            wanted += "staff_kpis" to "created_at.desc"
+            wanted += "staff_reviews" to "reviewed_at.desc"
+            wanted += "staff_leave" to "created_at.desc"
+            wanted += "staff_warnings" to "created_at.desc"
+            wanted += "staff_training" to "training_date.desc"
+            wanted += "staff_contracts" to "created_at.desc"
+            wanted += "staff_offboarding" to "created_at.desc"
+        }
+
         return wanted.distinctBy { it.first }
     }
 

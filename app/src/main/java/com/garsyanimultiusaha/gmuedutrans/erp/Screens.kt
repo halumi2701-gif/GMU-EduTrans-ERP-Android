@@ -282,6 +282,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 AppPage.SOP -> SopScreen(vm)
                 AppPage.REPORTS -> ReportsScreen(vm, session, onNotice = { notice = it })
                 AppPage.CLOSING -> ClosingScreen(vm, session, onNotice = { notice = it })
+                AppPage.TEAM_HR -> HrScreen(vm, session, onNotice = { notice = it })
                 AppPage.USERS -> UsersScreen(vm, session, onNotice = { notice = it })
                 AppPage.AUDIT -> AuditScreen(vm)
                 AppPage.PROFILE -> MoreProfileScreen(vm, session)
@@ -364,6 +365,7 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
         AppPage.SOP to "SOP Deadline",
         AppPage.REPORTS to "Report & Evaluation",
         AppPage.CLOSING to "Trip Closing",
+        AppPage.TEAM_HR to "Team & HR",
         AppPage.USERS to "User & Role",
         AppPage.AUDIT to "Audit Trail"
     ).filter { it.first in allowed }
