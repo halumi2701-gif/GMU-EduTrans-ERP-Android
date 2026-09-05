@@ -5,5 +5,13 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/gmu_dark</item>
         <item name="android:navigationBarColor">@color/gmu_dark</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="Theme.GMUEduTransERP.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/gmu_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_gmu</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/white</item>
+        <item name="postSplashScreenTheme">@style/Theme.GMUEduTransERP</item>
     </style>
 </resources>
