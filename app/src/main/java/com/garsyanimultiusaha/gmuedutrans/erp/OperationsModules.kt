@@ -25,7 +25,7 @@ fun OperationsScreen(vm: MainViewModel, session: SessionState, onNotice: (String
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             SectionTitle("Trip Operation", "Control center untuk persiapan & pelaksanaan")
-            if (session.profile.role in listOf("Owner", "Manager", "Operation", "TL")) {
+            if (session.profile.role in listOf("Owner", "Manager", "Operation", "TL") && tab != "Attendance") {
                 TextButton(onClick = { quickAdd = true }) { Text("+ Tambah") }
             }
         }
@@ -60,7 +60,7 @@ fun OperationsScreen(vm: MainViewModel, session: SessionState, onNotice: (String
                 subtitle = { row -> bookingLabel(vm, row.text("booking_id")) + " • " + row.text("location") + " • PIC " + row.text("pic") },
                 status = { "Timeline" }
             )
-            "Attendance" -> AttendanceList(vm)
+            "Attendance" -> AttendanceList(vm, session, onNotice)
             else -> OperationSheetList(vm)
         }
     }
@@ -126,26 +126,62 @@ private fun TripList(vm: MainViewModel) {
 }
 
 @Composable
-private fun AttendanceList(vm: MainViewModel) {
+private fun AttendanceList(vm: MainViewModel, session: SessionState, onNotice: (String) -> Unit) {
     val attendance = vm.table("attendance")
-    val manifests = vm.table("manifests").associateBy { it.id }
+    val manifests = vm.table("manifests")
+    val attendanceByManifest = attendance.associateBy { it.text("manifest_id") }
     val present = attendance.count { it.bool("present") }
+
     Column {
         Card(colors = CardDefaults.cardColors(containerColor = GmuSoft), shape = RoundedCornerShape(18.dp)) {
-            Text(present.toString() + " / " + attendance.size + " Present", Modifier.fillMaxWidth().padding(16.dp), fontWeight = FontWeight.Black, color = GmuDark)
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(present.toString() + " / " + manifests.size + " Present", fontWeight = FontWeight.Black, color = GmuDark)
+                Text("Tap Hadir / Absen untuk mencatat langsung dari manifest.", fontSize = 11.sp, color = Color.Gray)
+            }
         }
         Spacer(Modifier.height(8.dp))
         LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (attendance.isEmpty()) item { EmptyCard("Absensi belum tersedia.") }
-            items(attendance, key = { it.id }) { a ->
-                val m = manifests[a.text("manifest_id")]
+            if (manifests.isEmpty()) item { EmptyCard("Tambahkan peserta pada Manifest terlebih dahulu.") }
+            items(manifests, key = { it.id }) { m ->
+                val a = attendanceByManifest[m.id]
                 Card(shape = RoundedCornerShape(16.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(Modifier.weight(1f)) {
-                            Text(m?.text("participant_name").orEmpty().ifBlank { "Participant" }, fontWeight = FontWeight.Bold)
-                            Text(bookingLabel(vm, a.text("booking_id")), fontSize = 11.sp, color = Color.Gray)
+                    Column(Modifier.padding(14.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(Modifier.weight(1f)) {
+                                Text(m.text("participant_name").ifBlank { "Participant" }, fontWeight = FontWeight.Bold)
+                                Text(bookingLabel(vm, m.text("booking_id")) + " • " + m.text("class_or_age"), fontSize = 11.sp, color = Color.Gray)
+                            }
+                            StatusChip(if (a == null) "Belum" else if (a.bool("present")) "Present" else "Absent")
                         }
-                        StatusChip(if (a.bool("present")) "Present" else "Absent")
+                        Spacer(Modifier.height(8.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = {
+                                val values = mapOf(
+                                    "booking_id" to m.text("booking_id"),
+                                    "manifest_id" to m.id,
+                                    "present" to false,
+                                    "checked_by" to session.userId
+                                )
+                                if (a == null) {
+                                    vm.insert("attendance", values, "Absensi dicatat: Absent.") { _, msg -> onNotice(msg) }
+                                } else {
+                                    vm.update("attendance", a.id, values, "Absensi diperbarui: Absent.") { _, msg -> onNotice(msg) }
+                                }
+                            }) { Text("Absen", color = GmuDanger) }
+                            Button(onClick = {
+                                val values = mapOf(
+                                    "booking_id" to m.text("booking_id"),
+                                    "manifest_id" to m.id,
+                                    "present" to true,
+                                    "checked_by" to session.userId
+                                )
+                                if (a == null) {
+                                    vm.insert("attendance", values, "Absensi dicatat: Hadir.") { _, msg -> onNotice(msg) }
+                                } else {
+                                    vm.update("attendance", a.id, values, "Absensi diperbarui: Hadir.") { _, msg -> onNotice(msg) }
+                                }
+                            }) { Text("Hadir") }
+                        }
                     }
                 }
             }
