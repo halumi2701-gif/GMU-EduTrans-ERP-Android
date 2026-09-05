@@ -8,6 +8,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -205,10 +208,20 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                     }
                 },
                 actions = {
-                    TextButton(onClick = { showNotifications = true }) {
-                        Text(if (pendingApprovals > 0) "🔔 " + pendingApprovals else "🔔")
+                    BadgedBox(
+                        badge = {
+                            if (pendingApprovals > 0) {
+                                Badge { Text(pendingApprovals.toString()) }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = { showNotifications = true }) {
+                            Icon(Icons.Rounded.Notifications, contentDescription = "Notifications", tint = GmuDark)
+                        }
                     }
-                    TextButton(onClick = { vm.navigate(AppPage.PROFILE) }) { Text("👤") }
+                    IconButton(onClick = { vm.navigate(AppPage.PROFILE) }) {
+                        Icon(Icons.Rounded.AccountCircle, contentDescription = "Profile", tint = GmuDark)
+                    }
                 }
             )
         },
@@ -216,13 +229,13 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
             NavigationBar(containerColor = Color.White) {
                 BottomTab(
                     selected = currentTab == MainTab.HOME,
-                    icon = "⌂",
+                    icon = Icons.Rounded.Home,
                     label = "Home",
                     onClick = { vm.navigate(AppPage.DASHBOARD) }
                 )
                 BottomTab(
                     selected = currentTab == MainTab.BOOKING,
-                    icon = "▣",
+                    icon = Icons.Rounded.EventNote,
                     label = "Booking",
                     enabled = AppPage.BOOKINGS in allowed || AppPage.CUSTOMERS in allowed,
                     onClick = {
@@ -232,7 +245,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 )
                 BottomTab(
                     selected = currentTab == MainTab.TRIP,
-                    icon = "✦",
+                    icon = Icons.Rounded.Luggage,
                     label = "Trip",
                     enabled = AppPage.OPERATIONS in allowed || AppPage.TRIP_FOLDER in allowed,
                     onClick = {
@@ -242,14 +255,14 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 )
                 BottomTab(
                     selected = currentTab == MainTab.FINANCE,
-                    icon = "Rp",
+                    icon = Icons.Rounded.AccountBalanceWallet,
                     label = "Finance",
                     enabled = AppPage.FINANCE in allowed,
                     onClick = { vm.navigate(AppPage.FINANCE) }
                 )
                 BottomTab(
                     selected = currentTab == MainTab.MORE,
-                    icon = "•••",
+                    icon = Icons.Rounded.GridView,
                     label = "More",
                     onClick = { vm.navigate(AppPage.PROFILE) }
                 )
@@ -299,7 +312,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
 @Composable
 private fun RowScope.BottomTab(
     selected: Boolean,
-    icon: String,
+    icon: ImageVector,
     label: String,
     enabled: Boolean = true,
     onClick: () -> Unit
@@ -308,7 +321,7 @@ private fun RowScope.BottomTab(
         selected = selected,
         onClick = onClick,
         enabled = enabled,
-        icon = { Text(icon, fontWeight = FontWeight.Black) },
+        icon = { Icon(icon, contentDescription = label) },
         label = { Text(label) }
     )
 }

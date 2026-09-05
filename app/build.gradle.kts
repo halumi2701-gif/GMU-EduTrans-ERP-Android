@@ -11,8 +11,8 @@ android {
         applicationId = "com.garsyanimultiusaha.gmuedutrans.erp"
         minSdk = 23
         targetSdk = 35
-        versionCode = 102
-        versionName = "1.0.0-rc2"
+        versionCode = 500
+        versionName = "5.0.0-alpha1"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://gtgnwasijweewmaubvyg.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW\"")
@@ -48,6 +48,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")

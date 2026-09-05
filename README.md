@@ -1,25 +1,28 @@
-# GMU EduTrans ERP — Android Native All-in-One
+# GMU EduTrans ERP — Android Native v5 Startup Preview
 
-Aplikasi ERP Android native GMU EduTrans. **Tidak menggunakan WebView.**
+GMU EduTrans ERP berkembang menjadi **GMU EduTrans OS**: operating system mobile untuk educational trip operations.
 
-## Release Candidate
-- Native Kotlin + Jetpack Compose
-- Splash screen native + branding GMU EduTrans
-- Supabase Auth, PostgreSQL, RLS, Storage/Edge integration
-- Encrypted local session storage
-- Dashboard role-aware
-- Booking + detail
-- Customer + history
+## v5 Startup Preview
+- Native Kotlin + Jetpack Compose, tanpa WebView
+- Startup-style Home dashboard
+- Hero KPI dan business snapshot
+- Needs Attention / action-oriented dashboard
+- Next Trip dengan operation readiness
+- Quick Actions
+- Performance Insights
+- Modern icon navigation
+- Native splash + exact GMU EduTrans branding
+- Booking workspace + Customer 360
 - Finance + profitability
-- Trip Operation, Manifest, Rundown, Attendance, Operation Sheet
+- Trip Control Center, Manifest, Attendance, Rundown, Operation Sheet
 - Vendor + PO Vendor
-- GMU Trip Folder & Documents
-- Workflow + Approval
-- SOP Deadline
-- Trip Report + Evaluation + Closing
-- User & Role Owner-only
-- Audit Trail + Notification Center
-- Owner / Manager / Admin / Sales / Finance / Operation / TL
-- Package: `com.garsyanimultiusaha.gmuedutrans.erp`
+- Trip Folder & Documents
+- Workflow + Approval + SOP
+- Reports + Evaluation + Closing
+- Owner-only Team & Access
+- Audit Trail + Notifications
+- Encrypted session storage
+- Role-aware data and UI
 
-Build target: Android SDK 35, minSdk 23, JDK 17.
+Package: `com.garsyanimultiusaha.gmuedutrans.erp`
+Version: `5.0.0-alpha1`
