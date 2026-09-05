@@ -254,8 +254,8 @@ private fun ReportEvaluationDialog(
 ) {
     var booking by remember { mutableStateOf(bookings.firstOrNull()) }
     var menu by remember { mutableStateOf(false) }
-    var a by remember { mutableStateOf("") }
-    var b by remember { mutableStateOf("") }
+    var a by remember(mode) { mutableStateOf(if (mode == "Evaluation") "Customer" else "") }
+    var b by remember(mode) { mutableStateOf(if (mode == "Evaluation") "5" else "") }
     var c by remember { mutableStateOf("") }
     var d by remember { mutableStateOf("") }
 
@@ -290,8 +290,15 @@ private fun ReportEvaluationDialog(
             }
         },
         confirmButton = {
+            val valid = if (mode == "Trip Report") {
+                a.isNotBlank()
+            } else {
+                a in listOf("Customer", "Vendor", "TL") &&
+                    (b.toIntOrNull() ?: 0) in 1..5 &&
+                    c.isNotBlank()
+            }
             Button(
-                enabled = !busy && booking != null && a.isNotBlank(),
+                enabled = !busy && booking != null && valid,
                 onClick = {
                     if (mode == "Trip Report") {
                         onSave(
