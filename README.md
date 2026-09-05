@@ -25,4 +25,10 @@ GMU EduTrans ERP berkembang menjadi **GMU EduTrans OS**: operating system mobile
 - Role-aware data and UI
 
 Package: `com.garsyanimultiusaha.gmuedutrans.erp`
-Version: `5.0.0-alpha1`
+Version: `5.0.0-alpha2`
+
+
+## Financial Privacy
+- Hanya **Owner** dan **Manager** yang dapat melihat omzet, harga/pax, pembayaran, piutang, RAB, biaya aktual, laba, margin, profitability, dan nominal PO.
+- Admin, Sales, Finance, Operation, dan TL mendapatkan tampilan operasional tanpa angka keuangan.
+- Data finansial tidak dimuat ke state aplikasi untuk role selain Owner/Manager; harga booking juga di-redact menjadi 0 pada runtime non-financial.

@@ -398,7 +398,9 @@ fun VendorsScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                             }
                             Text(vendor + " • " + bookingLabel(vm, po.text("booking_id")), fontSize = 11.sp, color = Color.Gray)
                             Text(po.text("description"), fontSize = 12.sp)
-                            Text(rupiah(po.number("amount")), fontSize = 17.sp, fontWeight = FontWeight.Black, color = GmuGreen)
+                            if (FinancialAccess.canView(session.profile.role)) {
+                                Text(rupiah(po.number("amount")), fontSize = 17.sp, fontWeight = FontWeight.Black, color = GmuGreen)
+                            }
                         }
                     }
                 }
@@ -412,6 +414,7 @@ fun VendorsScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             bookings = vm.bookings,
             vendors = vendors,
             userId = session.userId,
+            canSeeFinancials = FinancialAccess.canView(session.profile.role),
             busy = vm.actionBusy,
             onDismiss = { if (!vm.actionBusy) add = false },
             onSave = { table, values, msg ->
@@ -430,6 +433,7 @@ private fun VendorDialog(
     bookings: List<Booking>,
     vendors: List<ErpRow>,
     userId: String,
+    canSeeFinancials: Boolean,
     busy: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, Map<String, Any?>, String) -> Unit
@@ -467,7 +471,9 @@ private fun VendorDialog(
                         }
                     }
                     GmuField(a, { a = it }, "Deskripsi *")
-                    GmuField(b, { b = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Amount")
+                    if (canSeeFinancials) {
+                        GmuField(b, { b = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Amount")
+                    }
                     GmuField(c, { c = it }, "Due Date YYYY-MM-DD")
                     GmuField(d, { d = it }, "Status (Draft/Pending)")
                 }
@@ -490,7 +496,7 @@ private fun VendorDialog(
                                 "booking_id" to booking!!.id,
                                 "vendor_id" to vendor!!.id,
                                 "description" to a,
-                                "amount" to (b.toDoubleOrNull() ?: 0.0),
+                                "amount" to if (canSeeFinancials) (b.toDoubleOrNull() ?: 0.0) else 0.0,
                                 "due_date" to c.ifBlank { null },
                                 "status" to d.ifBlank { "Draft" }
                             ),

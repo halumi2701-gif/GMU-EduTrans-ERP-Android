@@ -25,7 +25,7 @@ fun WorkflowScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             SectionTitle("Workflow & Approval", "Review approval sesuai kewenangan backend")
-            if (session.profile.role in listOf("Owner", "Manager", "Finance", "Operation", "Admin")) {
+            if (session.profile.role in listOf("Owner", "Manager", "Operation", "Admin")) {
                 TextButton(onClick = { add = true }) { Text("+ Request") }
             }
         }
@@ -48,8 +48,7 @@ fun WorkflowScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
                         if (a.text("notes").isNotBlank()) Text(a.text("notes"), fontSize = 11.sp)
                         val canApprove = when (session.profile.role) {
                             "Owner" -> true
-                            "Manager" -> a.text("approval_type") in listOf("Operation Sheet", "PO Vendor")
-                            "Finance" -> a.text("approval_type") == "Invoice"
+                            "Manager" -> a.text("approval_type") in listOf("Operation Sheet", "PO Vendor", "Invoice")
                             else -> false
                         }
                         if (a.text("status") == "Pending" && canApprove) {

@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun DashboardScreen(vm: MainViewModel, session: SessionState) {
     val s = vm.dashboardStats()
-    val financeVisible = session.profile.role in listOf("Owner", "Manager", "Finance")
+    val financeVisible = FinancialAccess.canView(session.profile.role)
     val needsAttention = buildList {
         val approvalCount = vm.table("approvals").count { it.text("status") == "Pending" }
         if (approvalCount > 0) add(approvalCount.toString() + " approval menunggu")
@@ -362,7 +362,9 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                         Text(b.customerName, fontSize = 12.sp, color = Color.Gray)
                         Spacer(Modifier.height(8.dp))
                         Text(b.tripDate + " • " + b.pax + " pax", fontSize = 12.sp)
-                        Text("Harga/Pax " + rupiah(b.pricePerPax) + " • Omzet " + rupiah(b.omzet), fontSize = 12.sp, color = GmuGreen)
+                        if (FinancialAccess.canView(session.profile.role)) {
+                            Text("Harga/Pax " + rupiah(b.pricePerPax) + " • Omzet " + rupiah(b.omzet), fontSize = 12.sp, color = GmuGreen)
+                        }
                         if (b.meetingPoint.isNotBlank()) Text("Titik kumpul: " + b.meetingPoint, fontSize = 11.sp, color = Color.Gray)
                     }
                 }
@@ -373,6 +375,7 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
     if (add) {
         AddBookingDialog(
             customers = vm.customers,
+            canSeeFinancials = FinancialAccess.canView(session.profile.role),
             busy = vm.actionBusy,
             onDismiss = { if (!vm.actionBusy) add = false },
             onSave = { customerId, program, date, pax, price, status, group, meeting ->
@@ -439,7 +442,15 @@ fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
                         Text(c.type, color = Color.Gray, fontSize = 11.sp)
                         if (c.pic.isNotBlank()) Text("PIC: " + c.pic, fontSize = 12.sp)
                         if (c.whatsapp.isNotBlank()) Text("WA: " + c.whatsapp, fontSize = 12.sp)
-                        Text(history.size.toString() + " Booking • " + rupiah(history.sumOf { it.omzet }), color = GmuGreen, fontSize = 11.sp)
+                        Text(
+                            if (FinancialAccess.canView(session.profile.role)) {
+                                history.size.toString() + " Booking • " + rupiah(history.sumOf { it.omzet })
+                            } else {
+                                history.size.toString() + " Booking"
+                            },
+                            color = GmuGreen,
+                            fontSize = 11.sp
+                        )
                     }
                 }
             }
@@ -463,6 +474,7 @@ fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
         CustomerDetailDialog(
             vm = vm,
             customer = customer,
+            canSeeFinancials = FinancialAccess.canView(session.profile.role),
             onDismiss = { selectedCustomer = null }
         )
     }
@@ -479,7 +491,13 @@ private fun BookingDetailDialog(
 ) {
     var tab by remember(booking.id) { mutableStateOf("Overview") }
     var status by remember(booking.id, booking.status) { mutableStateOf(booking.status) }
-    val tabs = listOf("Overview", "Finance", "Operation", "Documents", "Activity")
+    val tabs = buildList {
+        add("Overview")
+        if (FinancialAccess.canView(session.profile.role)) add("Finance")
+        add("Operation")
+        add("Documents")
+        add("Activity")
+    }
 
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -508,8 +526,10 @@ private fun BookingDetailDialog(
                         DetailLine("Customer", booking.customerName)
                         DetailLine("Tanggal Trip", booking.tripDate)
                         DetailLine("Pax", booking.pax.toString())
-                        DetailLine("Harga / Pax", rupiah(booking.pricePerPax))
-                        DetailLine("Omzet", rupiah(booking.omzet))
+                        if (FinancialAccess.canView(session.profile.role)) {
+                            DetailLine("Harga / Pax", rupiah(booking.pricePerPax))
+                            DetailLine("Omzet", rupiah(booking.omzet))
+                        }
                         DetailLine("Grup Peserta", booking.participantGroup)
                         DetailLine("Titik Kumpul", booking.meetingPoint)
                         DetailLine("Fasilitas", booking.facilities)
@@ -611,6 +631,7 @@ private fun BookingDetailDialog(
 private fun CustomerDetailDialog(
     vm: MainViewModel,
     customer: Customer,
+    canSeeFinancials: Boolean,
     onDismiss: () -> Unit
 ) {
     val history = vm.bookings.filter { it.customerId == customer.id }
@@ -631,14 +652,30 @@ private fun CustomerDetailDialog(
                 DetailLine("Catatan", customer.notes)
                 Spacer(Modifier.height(10.dp))
                 Text("Histori Booking", fontWeight = FontWeight.Black, color = GmuDark)
-                Text(history.size.toString() + " booking • " + rupiah(history.sumOf { it.omzet }), fontSize = 11.sp, color = GmuGreen)
+                Text(
+                    if (canSeeFinancials) {
+                        history.size.toString() + " booking • " + rupiah(history.sumOf { it.omzet })
+                    } else {
+                        history.size.toString() + " booking"
+                    },
+                    fontSize = 11.sp,
+                    color = GmuGreen
+                )
                 Spacer(Modifier.height(6.dp))
                 if (history.isEmpty()) {
                     Text("Belum ada histori booking.", color = Color.Gray, fontSize = 12.sp)
                 } else {
                     history.take(12).forEach { b ->
                         Text(b.bookingNo + " • " + b.programName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text(b.tripDate + " • " + b.pax + " pax • " + rupiah(b.omzet), fontSize = 11.sp, color = Color.Gray)
+                        Text(
+                            if (canSeeFinancials) {
+                                b.tripDate + " • " + b.pax + " pax • " + rupiah(b.omzet)
+                            } else {
+                                b.tripDate + " • " + b.pax + " pax"
+                            },
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
                         HorizontalDivider(Modifier.padding(vertical = 6.dp))
                     }
                 }
@@ -829,6 +866,7 @@ private fun AddCustomerDialog(
 @Composable
 private fun AddBookingDialog(
     customers: List<Customer>,
+    canSeeFinancials: Boolean,
     busy: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, String, String, Int, Double, String, String, String) -> Unit
@@ -861,7 +899,9 @@ private fun AddBookingDialog(
                 GmuField(program, { program = it }, "Program *")
                 GmuField(date, { date = it }, "Tanggal Trip (YYYY-MM-DD) *")
                 GmuField(pax, { pax = it.filter(Char::isDigit) }, "Pax *")
-                GmuField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Harga/Pax *")
+                if (canSeeFinancials) {
+                    GmuField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Harga/Pax")
+                }
                 Spacer(Modifier.height(8.dp))
                 GmuSelect(
                     value = status,
@@ -875,7 +915,7 @@ private fun AddBookingDialog(
         },
         confirmButton = {
             val p = pax.toIntOrNull() ?: 0
-            val pr = price.toDoubleOrNull() ?: 0.0
+            val pr = if (canSeeFinancials) (price.toDoubleOrNull() ?: 0.0) else 0.0
             Button(
                 onClick = { onSave(selected!!.id, program, date, p, pr, status, group, meeting) },
                 enabled = !busy && selected != null && program.isNotBlank() && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && p > 0

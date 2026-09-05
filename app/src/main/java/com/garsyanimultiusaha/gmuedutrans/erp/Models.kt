@@ -101,6 +101,10 @@ enum class AppPage {
 
 enum class MainTab { HOME, BOOKING, TRIP, FINANCE, MORE }
 
+object FinancialAccess {
+    fun canView(role: String): Boolean = role == "Owner" || role == "Manager"
+}
+
 object RoleAccess {
     fun pages(role: String): Set<AppPage> = when (role) {
         "Owner" -> AppPage.entries.toSet()
@@ -114,8 +118,7 @@ object RoleAccess {
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.CUSTOMERS, AppPage.PROFILE
         )
         "Finance" -> setOf(
-            AppPage.DASHBOARD, AppPage.FINANCE, AppPage.WORKFLOW,
-            AppPage.CLOSING, AppPage.AUDIT, AppPage.PROFILE
+            AppPage.DASHBOARD, AppPage.PROFILE
         )
         "Operation" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.OPERATIONS,

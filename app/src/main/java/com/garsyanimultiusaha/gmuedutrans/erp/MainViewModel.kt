@@ -115,7 +115,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val cs = runCatching { api.getCustomers(session.accessToken) }.getOrElse { emptyList() }
-                val bs = runCatching { api.getBookings(session.accessToken, cs) }.getOrElse { emptyList() }
+                val rawBookings = runCatching { api.getBookings(session.accessToken, cs) }.getOrElse { emptyList() }
+                val canSeeFinancials = FinancialAccess.canView(session.profile.role)
+                val bs = if (canSeeFinancials) rawBookings else rawBookings.map { it.copy(pricePerPax = 0.0) }
                 customers = cs
                 bookings = bs
 
@@ -124,7 +126,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var firstError: String? = null
                 for ((name, order) in wanted) {
                     try {
-                        loaded[name] = api.getRows(session.accessToken, name, order)
+                        val loadedRows = api.getRows(session.accessToken, name, order)
+                        loaded[name] = if (!FinancialAccess.canView(session.profile.role) && name == "vendor_pos") {
+                            loadedRows.map { row ->
+                                row.copy(data = row.data - "amount" - "approved_by" - "approved_at")
+                            }
+                        } else loadedRows
                     } catch (e: Exception) {
                         loaded[name] = emptyList()
                         if (firstError == null) firstError = e.message
@@ -142,7 +149,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun tablesForRole(role: String): List<Pair<String, String?>> {
         val wanted = mutableListOf<Pair<String, String?>>()
 
-        if (role in listOf("Owner", "Manager", "Finance")) {
+        if (FinancialAccess.canView(role)) {
             wanted += "payments" to "payment_date.desc"
             wanted += "trip_costs" to "created_at.desc"
         }
@@ -164,11 +171,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             wanted += "vendor_pos" to "created_at.desc"
         }
 
-        if (role in listOf("Owner", "Manager", "Finance", "Operation", "Admin")) {
+        if (role in listOf("Owner", "Manager", "Operation", "Admin")) {
             wanted += "approvals" to "requested_at.desc"
         }
 
-        if (role in listOf("Owner", "Manager", "Finance")) {
+        if (FinancialAccess.canView(role)) {
             wanted += "trip_closings" to "closed_at.desc"
         }
 
