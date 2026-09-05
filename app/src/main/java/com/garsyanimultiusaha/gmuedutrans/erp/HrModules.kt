@@ -378,10 +378,12 @@ private fun HrEntryDialog(
 
 @Composable
 private fun HrFields(type: String, v: MutableMap<String, String>) {
+    @Composable
     fun field(key: String, label: String, default: String = "") {
         if (!v.containsKey(key)) v[key] = default
         GmuField(v[key].orEmpty(), { v[key] = it }, label)
     }
+    @Composable
     fun select(key: String, label: String, options: List<String>, default: String) {
         if (!v.containsKey(key)) v[key] = default
         Spacer(Modifier.height(8.dp))
