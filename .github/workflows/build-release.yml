@@ -31,6 +31,13 @@ jobs:
           curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"             -o app/src/main/res/drawable/ic_launcher_gmu.jpg
           file app/src/main/res/drawable/ic_launcher_gmu.jpg
 
+      - name: Reject WebView usage
+        run: |
+          if grep -R "android.webkit.WebView\|<WebView" -n app/src/main; then
+            echo "WebView is forbidden in GMU EduTrans Native ERP"
+            exit 1
+          fi
+
       - name: Build unsigned release APK
         run: gradle --no-daemon assembleRelease
 
@@ -52,7 +59,7 @@ jobs:
       - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-ERP-v1.0.0-unsigned
+          name: GMU-EduTrans-ERP-AllInOne-v1.0.0-RC2-unsigned
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 14
