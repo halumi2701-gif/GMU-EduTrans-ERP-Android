@@ -7,7 +7,7 @@
         android:icon="@drawable/ic_launcher_gmu"
         android:roundIcon="@drawable/ic_launcher_gmu"
         android:supportsRtl="true"
-        android:theme="@style/Theme.GMUEduTransERP">
+        android:theme="@style/Theme.GMUEduTransERP.Starting">
         <activity
             android:name=".MainActivity"
             android:exported="true">
