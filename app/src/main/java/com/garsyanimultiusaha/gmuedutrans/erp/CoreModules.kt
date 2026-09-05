@@ -522,7 +522,18 @@ private fun FinanceEntryDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(booking!!.id, values.toMap()) }, enabled = !busy && booking != null) { Text("Simpan") }
+            val isPayment = title.contains("Payment", ignoreCase = true)
+            val valid = if (isPayment) {
+                (values["Jumlah"]?.toDoubleOrNull() ?: 0.0) > 0.0 &&
+                    values["Tanggal"].orEmpty().matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+            } else {
+                values["Kategori"].orEmpty().isNotBlank() &&
+                    values["Deskripsi"].orEmpty().isNotBlank()
+            }
+            Button(
+                onClick = { onSave(booking!!.id, values.toMap()) },
+                enabled = !busy && booking != null && valid
+            ) { Text("Simpan") }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
     )
