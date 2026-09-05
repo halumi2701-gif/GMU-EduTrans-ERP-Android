@@ -47,22 +47,24 @@ fun DashboardScreen(vm: MainViewModel, session: SessionState) {
                 MetricCard("Pax", s.pax.toString(), Modifier.weight(1f))
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard("Omzet", rupiah(s.omzet), Modifier.weight(1f), accent = true)
-                MetricCard("Piutang", rupiah(s.receivable), Modifier.weight(1f))
+        if (session.profile.role in listOf("Owner", "Manager", "Finance")) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Omzet", rupiah(s.omzet), Modifier.weight(1f), accent = true)
+                    MetricCard("Piutang", rupiah(s.receivable), Modifier.weight(1f))
+                }
             }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard("Kas / Terbayar", rupiah(s.paid), Modifier.weight(1f))
-                MetricCard("Biaya Aktual", rupiah(s.actualCost), Modifier.weight(1f))
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Kas / Terbayar", rupiah(s.paid), Modifier.weight(1f))
+                    MetricCard("Biaya Aktual", rupiah(s.actualCost), Modifier.weight(1f))
+                }
             }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard("Laba", rupiah(s.profit), Modifier.weight(1f), accent = true)
-                MetricCard("Margin", String.format("%.1f%%", s.margin), Modifier.weight(1f))
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Laba", rupiah(s.profit), Modifier.weight(1f), accent = true)
+                    MetricCard("Margin", String.format("%.1f%%", s.margin), Modifier.weight(1f))
+                }
             }
         }
         item {
