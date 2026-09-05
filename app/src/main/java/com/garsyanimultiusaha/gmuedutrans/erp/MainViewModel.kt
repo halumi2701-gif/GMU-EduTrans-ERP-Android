@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import java.text.SimpleDateFormat\nimport java.util.Date\nimport java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SupabaseApi()
@@ -141,7 +141,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun dashboardStats(): DashboardStats {
-        val today = LocalDate.now().toString()
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val pax = bookings.sumOf { it.pax }
         val omzet = bookings.sumOf { it.omzet }
         val upcoming = bookings.count { it.tripDate >= today && it.status !in listOf("Completed", "Closed") }
