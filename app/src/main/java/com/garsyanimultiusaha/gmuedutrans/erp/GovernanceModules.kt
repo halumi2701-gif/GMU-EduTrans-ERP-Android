@@ -276,7 +276,13 @@ private fun ReportEvaluationDialog(
                     GmuField(c, { c = it }, "Achievements")
                     GmuField(d, { d = it }, "Follow-up")
                 } else {
-                    GmuField(a, { a = it }, "Type Customer/Vendor/TL *")
+                    Spacer(Modifier.height(8.dp))
+                    GmuSelect(
+                        value = a.ifBlank { "Customer" },
+                        label = "Evaluation Type",
+                        options = listOf("Customer", "Vendor", "TL"),
+                        onSelect = { a = it }
+                    )
                     GmuField(b, { b = it.filter(Char::isDigit) }, "Score 1-5 *")
                     GmuField(c, { c = it }, "Feedback *")
                     GmuField(d, { d = it }, "Corrective Action")
@@ -481,7 +487,13 @@ private fun AddStaffDialog(
                 GmuField(name, { name = it }, "Nama *")
                 GmuField(email, { email = it }, "Email *")
                 GmuField(phone, { phone = it }, "WhatsApp")
-                GmuField(role, { role = it }, "Role Manager/Admin/Sales/Finance/Operation/TL")
+                Spacer(Modifier.height(8.dp))
+                GmuSelect(
+                    value = role,
+                    label = "Role",
+                    options = listOf("Manager", "Admin", "Sales", "Finance", "Operation", "TL"),
+                    onSelect = { role = it }
+                )
                 GmuField(password, { password = it }, "Password awal min. 8 karakter")
             }
         },
@@ -510,7 +522,13 @@ private fun ManageStaffDialog(
         title = { Text("Manage " + row.text("full_name")) },
         text = {
             Column {
-                GmuField(role, { role = it }, "Role")
+                Spacer(Modifier.height(8.dp))
+                GmuSelect(
+                    value = role,
+                    label = "Role",
+                    options = listOf("Manager", "Admin", "Sales", "Finance", "Operation", "TL"),
+                    onSelect = { role = it }
+                )
                 GmuField(password, { password = it }, "Password baru (opsional)")
                 Text("Role valid: Manager, Admin, Sales, Finance, Operation, TL.", fontSize = 10.sp, color = Color.Gray)
             }
