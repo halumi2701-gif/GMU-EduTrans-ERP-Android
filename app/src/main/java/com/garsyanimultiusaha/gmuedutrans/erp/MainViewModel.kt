@@ -130,34 +130,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun tablesForRole(role: String): List<Pair<String, String?>> {
-        val common = mutableListOf<Pair<String, String?>>(
-            "payments" to "payment_date.desc",
-            "trip_costs" to "created_at.desc",
-            "trips" to "updated_at.desc",
-            "operation_sheets" to "updated_at.desc",
-            "vendor_pos" to "created_at.desc",
-            "manifests" to null,
-            "attendance" to null,
-            "rundown_items" to null,
-            "documents" to "generated_at.desc",
-            "trip_reports" to "created_at.desc",
-            "evaluations" to "created_at.desc",
-            "trip_closings" to "closed_at.desc",
-            "approvals" to "requested_at.desc",
-            "sop_deadlines" to null
-        )
+        val wanted = mutableListOf<Pair<String, String?>>()
+
+        if (role in listOf("Owner", "Manager", "Finance")) {
+            wanted += "payments" to "payment_date.desc"
+            wanted += "trip_costs" to "created_at.desc"
+        }
+
+        if (role in listOf("Owner", "Manager", "Admin", "Operation", "TL")) {
+            wanted += "trips" to "updated_at.desc"
+            wanted += "operation_sheets" to "updated_at.desc"
+            wanted += "manifests" to null
+            wanted += "attendance" to null
+            wanted += "rundown_items" to null
+            wanted += "documents" to "generated_at.desc"
+            wanted += "trip_reports" to "created_at.desc"
+            wanted += "evaluations" to "created_at.desc"
+            wanted += "sop_deadlines" to null
+        }
+
         if (role in listOf("Owner", "Manager", "Operation")) {
-            common += "vendors" to "created_at.desc"
+            wanted += "vendors" to "created_at.desc"
+            wanted += "vendor_pos" to "created_at.desc"
         }
+
+        if (role in listOf("Owner", "Manager", "Finance", "Operation", "Admin")) {
+            wanted += "approvals" to "requested_at.desc"
+        }
+
+        if (role in listOf("Owner", "Manager", "Finance")) {
+            wanted += "trip_closings" to "closed_at.desc"
+        }
+
         if (role in listOf("Owner", "Manager", "Admin", "Finance", "Operation")) {
-            common += "audit_logs" to "created_at.desc"
+            wanted += "audit_logs" to "created_at.desc"
         }
-        if (role in listOf("Owner", "Manager", "Admin", "Operation")) {
-            common += "profiles" to "created_at.desc"
-        } else if (role == "Owner") {
-            common += "profiles" to "created_at.desc"
+
+        if (role in listOf("Owner", "Manager", "Operation")) {
+            wanted += "profiles" to "created_at.desc"
         }
-        return common.distinctBy { it.first }
+
+        return wanted.distinctBy { it.first }
     }
 
     fun createCustomer(name: String, type: String, pic: String, wa: String, email: String, done: (Boolean, String) -> Unit) {
