@@ -624,7 +624,13 @@ private fun AddCustomerDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 GmuField(name, { name = it }, "Nama *")
-                GmuField(type, { type = it }, "Tipe")
+                Spacer(Modifier.height(8.dp))
+                GmuSelect(
+                    value = type,
+                    label = "Tipe Customer",
+                    options = listOf("Sekolah", "Instansi", "Komunitas", "Partner", "Other"),
+                    onSelect = { type = it }
+                )
                 GmuField(pic, { pic = it }, "PIC")
                 GmuField(wa, { wa = it }, "WhatsApp")
                 GmuField(email, { email = it }, "Email")

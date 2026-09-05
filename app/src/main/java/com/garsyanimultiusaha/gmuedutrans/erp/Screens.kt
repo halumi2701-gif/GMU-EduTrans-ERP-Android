@@ -198,7 +198,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                     Column {
                         Text("GMU EduTrans ERP", fontWeight = FontWeight.Black, color = GmuDark)
                         Text(
-                            session.profile.fullName + " • " + session.profile.role + " • RC 1.0",
+                            session.profile.fullName + " • " + session.profile.role + " • " + BuildConfig.VERSION_NAME,
                             fontSize = 11.sp,
                             color = Color.Gray
                         )
@@ -382,7 +382,7 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
         Card(colors = CardDefaults.cardColors(containerColor = GmuSoft), shape = RoundedCornerShape(18.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Text("GMU EduTrans ERP", fontWeight = FontWeight.Black, color = GmuDark)
-                Text("Native All-in-One • Release Candidate 1.0", fontSize = 12.sp, color = Color.Gray)
+                Text("Native All-in-One • " + BuildConfig.VERSION_NAME, fontSize = 12.sp, color = Color.Gray)
                 if (session.profile.phone.isNotBlank()) Text(session.profile.phone, fontSize = 12.sp)
             }
         }

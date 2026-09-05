@@ -1,12 +1,13 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
 import android.app.Application
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -15,7 +16,16 @@ import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SupabaseApi()
-    private val prefs = application.getSharedPreferences("gmu_native_session", Context.MODE_PRIVATE)
+    private val masterKey = MasterKey.Builder(application)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+    private val prefs = EncryptedSharedPreferences.create(
+        application,
+        "gmu_native_session_secure",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     var state by mutableStateOf<AppState>(AppState.Splash)
         private set
