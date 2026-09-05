@@ -455,7 +455,13 @@ private fun AddBookingDialog(
                 GmuField(date, { date = it }, "Tanggal Trip (YYYY-MM-DD) *")
                 GmuField(pax, { pax = it.filter(Char::isDigit) }, "Pax *")
                 GmuField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Harga/Pax *")
-                GmuField(status, { status = it }, "Status")
+                Spacer(Modifier.height(8.dp))
+                GmuSelect(
+                    value = status,
+                    label = "Status",
+                    options = listOf("Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed"),
+                    onSelect = { status = it }
+                )
                 GmuField(group, { group = it }, "Kelas / Usia / Grup")
                 GmuField(meeting, { meeting = it }, "Titik Kumpul")
             }
@@ -501,7 +507,17 @@ private fun FinanceEntryDialog(
                     }
                 }
                 fields.forEach { (label, _) ->
-                    GmuField(values[label].orEmpty(), { values[label] = it }, label)
+                    if (title.contains("Payment", ignoreCase = true) && label == "Jenis") {
+                        Spacer(Modifier.height(8.dp))
+                        GmuSelect(
+                            value = values[label].orEmpty().ifBlank { "DP" },
+                            label = label,
+                            options = listOf("DP", "Pelunasan", "Tambahan", "Refund"),
+                            onSelect = { values[label] = it }
+                        )
+                    } else {
+                        GmuField(values[label].orEmpty(), { values[label] = it }, label)
+                    }
                 }
             }
         },
