@@ -15,18 +15,13 @@ class SupabaseApi {
     private val key = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     suspend fun signIn(email: String, password: String): SessionState = withContext(Dispatchers.IO) {
-        val payload = JSONObject()
-            .put("email", email.trim())
-            .put("password", password)
-            .toString()
-        val auth = JSONObject(request("POST", "/auth/v1/token?grant_type=password", payload, null))
-        sessionFromAuth(auth)
+        val payload = JSONObject().put("email", email.trim()).put("password", password).toString()
+        sessionFromAuth(JSONObject(request("POST", "/auth/v1/token?grant_type=password", payload, null)))
     }
 
     suspend fun refresh(refreshToken: String): SessionState = withContext(Dispatchers.IO) {
         val payload = JSONObject().put("refresh_token", refreshToken).toString()
-        val auth = JSONObject(request("POST", "/auth/v1/token?grant_type=refresh_token", payload, null))
-        sessionFromAuth(auth)
+        sessionFromAuth(JSONObject(request("POST", "/auth/v1/token?grant_type=refresh_token", payload, null)))
     }
 
     private fun sessionFromAuth(auth: JSONObject): SessionState {
@@ -42,10 +37,10 @@ class SupabaseApi {
         withContext(Dispatchers.IO) { fetchProfileBlocking(accessToken, userId) }
 
     private fun fetchProfileBlocking(accessToken: String, userId: String): StaffProfile {
-        val encoded = URLEncoder.encode(userId, "UTF-8")
+        val encodedId = URLEncoder.encode(userId, "UTF-8")
         val body = request(
             "GET",
-            "/rest/v1/profiles?select=id,full_name,role,is_active&id=eq.$encoded&limit=1",
+            "/rest/v1/profiles?select=id,full_name,role,is_active,phone&id=eq." + encodedId + "&limit=1",
             null,
             accessToken
         )
@@ -56,7 +51,8 @@ class SupabaseApi {
             id = p.getString("id"),
             fullName = p.optString("full_name", "Staff GMU"),
             role = p.optString("role", "Sales"),
-            active = p.optBoolean("is_active", false)
+            active = p.optBoolean("is_active", false),
+            phone = p.optString("phone", "")
         )
     }
 
@@ -66,28 +62,68 @@ class SupabaseApi {
     }
 
     suspend fun getCustomers(accessToken: String): List<Customer> = withContext(Dispatchers.IO) {
-        val body = request(
-            "GET",
-            "/rest/v1/customers?select=id,customer_code,name,customer_type,pic_name,whatsapp,email&order=created_at.desc",
-            null,
-            accessToken
-        )
-        val arr = JSONArray(body)
+        val arr = JSONArray(request("GET", "/rest/v1/customers?select=*&order=created_at.desc", null, accessToken))
         buildList {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
-                add(Customer(
-                    id = x.getString("id"),
-                    code = x.optString("customer_code", "-"),
-                    name = x.optString("name", "-"),
-                    type = x.optString("customer_type", "-"),
-                    pic = x.optString("pic_name", ""),
-                    whatsapp = x.optString("whatsapp", ""),
-                    email = x.optString("email", "")
-                ))
+                add(
+                    Customer(
+                        id = x.getString("id"),
+                        code = x.optString("customer_code", "-"),
+                        name = x.optString("name", "-"),
+                        type = x.optString("customer_type", "-"),
+                        pic = x.optString("pic_name", ""),
+                        whatsapp = x.optString("whatsapp", ""),
+                        email = x.optString("email", ""),
+                        address = x.optString("address", ""),
+                        notes = x.optString("notes", "")
+                    )
+                )
             }
         }
     }
+
+    suspend fun getBookings(accessToken: String, customers: List<Customer>): List<Booking> = withContext(Dispatchers.IO) {
+        val customerMap = customers.associateBy { it.id }
+        val arr = JSONArray(request("GET", "/rest/v1/bookings?select=*&order=trip_date.asc", null, accessToken))
+        buildList {
+            for (i in 0 until arr.length()) {
+                val x = arr.getJSONObject(i)
+                val customerId = x.optString("customer_id", "")
+                add(
+                    Booking(
+                        id = x.getString("id"),
+                        bookingNo = x.optString("booking_no", "-"),
+                        customerId = customerId,
+                        customerName = customerMap[customerId]?.name ?: "-",
+                        salesId = x.optString("sales_id", ""),
+                        programName = x.optString("program_name", "-"),
+                        tripDate = x.optString("trip_date", ""),
+                        pax = x.optInt("pax", 0),
+                        pricePerPax = x.optDouble("price_per_pax", 0.0),
+                        status = x.optString("status", "Lead"),
+                        participantGroup = x.optString("participant_group", ""),
+                        meetingPoint = x.optString("meeting_point", ""),
+                        facilities = x.optString("facilities", ""),
+                        specialRequirements = x.optString("special_requirements", ""),
+                        notes = x.optString("notes", "")
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun getRows(accessToken: String, table: String, order: String? = null): List<ErpRow> =
+        withContext(Dispatchers.IO) {
+            val suffix = if (order.isNullOrBlank()) "" else "&order=$order"
+            val arr = JSONArray(request("GET", "/rest/v1/$table?select=*$suffix", null, accessToken))
+            buildList {
+                for (i in 0 until arr.length()) {
+                    val obj = arr.getJSONObject(i)
+                    add(jsonToRow(table, obj))
+                }
+            }
+        }
 
     suspend fun createCustomer(
         accessToken: String,
@@ -103,43 +139,12 @@ class SupabaseApi {
             .put("customer_code", code)
             .put("name", name.trim())
             .put("customer_type", type.trim().ifBlank { "Sekolah" })
-            .put("pic_name", pic.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL)
-            .put("whatsapp", whatsapp.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL)
-            .put("email", email.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("pic_name", nullable(pic))
+            .put("whatsapp", nullable(whatsapp))
+            .put("email", nullable(email))
             .put("created_by", userId)
-            .toString()
-        request("POST", "/rest/v1/customers", payload, accessToken, preferReturn = true)
-        audit(accessToken, userId, "CREATE_CUSTOMER", "customers", code, "Customer $name dibuat dari Android Native v0.2")
-    }
-
-    suspend fun getBookings(accessToken: String, customers: List<Customer>): List<Booking> = withContext(Dispatchers.IO) {
-        val customerMap = customers.associateBy { it.id }
-        val body = request(
-            "GET",
-            "/rest/v1/bookings?select=id,booking_no,customer_id,program_name,trip_date,pax,price_per_pax,status,participant_group,meeting_point&order=trip_date.asc",
-            null,
-            accessToken
-        )
-        val arr = JSONArray(body)
-        buildList {
-            for (i in 0 until arr.length()) {
-                val x = arr.getJSONObject(i)
-                val customerId = x.optString("customer_id", "")
-                add(Booking(
-                    id = x.getString("id"),
-                    bookingNo = x.optString("booking_no", "-"),
-                    customerId = customerId,
-                    customerName = customerMap[customerId]?.name ?: "-",
-                    programName = x.optString("program_name", "-"),
-                    tripDate = x.optString("trip_date", ""),
-                    pax = x.optInt("pax", 0),
-                    pricePerPax = x.optDouble("price_per_pax", 0.0),
-                    status = x.optString("status", "Lead"),
-                    participantGroup = x.optString("participant_group", ""),
-                    meetingPoint = x.optString("meeting_point", "")
-                ))
-            }
-        }
+        insertRowBlocking(accessToken, "customers", payload)
+        audit(accessToken, userId, "CREATE_CUSTOMER", "customers", code, "Customer $name dibuat dari Android Native RC")
     }
 
     suspend fun createBooking(
@@ -164,20 +169,106 @@ class SupabaseApi {
             .put("pax", pax)
             .put("price_per_pax", pricePerPax)
             .put("status", status)
-            .put("participant_group", participantGroup.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL)
-            .put("meeting_point", meetingPoint.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("participant_group", nullable(participantGroup))
+            .put("meeting_point", nullable(meetingPoint))
             .put("created_by", userId)
         if (role == "Sales") payload.put("sales_id", userId)
-        request("POST", "/rest/v1/bookings", payload.toString(), accessToken, preferReturn = true)
-        audit(accessToken, userId, "CREATE_BOOKING", "bookings", bookingNo, "Booking $bookingNo dibuat dari Android Native v0.2")
+        insertRowBlocking(accessToken, "bookings", payload)
+        audit(accessToken, userId, "CREATE_BOOKING", "bookings", bookingNo, "Booking $bookingNo dibuat dari Android Native RC")
     }
 
-    private fun rpcText(accessToken: String, function: String): String {
-        val body = request("POST", "/rest/v1/rpc/$function", "{}", accessToken)
-        return body.trim().trim('"')
+    suspend fun insertRow(accessToken: String, table: String, values: Map<String, Any?>): ErpRow? =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+            values.forEach { (k, v) -> payload.put(k, v ?: JSONObject.NULL) }
+            val body = insertRowBlocking(accessToken, table, payload)
+            val arr = JSONArray(body)
+            if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
+        }
+
+    suspend fun updateRow(accessToken: String, table: String, id: String, values: Map<String, Any?>): ErpRow? =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+            values.forEach { (k, v) -> payload.put(k, v ?: JSONObject.NULL) }
+            val encodedId = URLEncoder.encode(id, "UTF-8")
+            val body = request(
+                "PATCH",
+                "/rest/v1/$table?id=eq." + encodedId,
+                payload.toString(),
+                accessToken,
+                preferReturn = true
+            )
+            val arr = JSONArray(body)
+            if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
+        }
+
+    suspend fun updateProfile(accessToken: String, id: String, role: String? = null, active: Boolean? = null) =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+            if (role != null) payload.put("role", role)
+            if (active != null) payload.put("is_active", active)
+            val encodedId = URLEncoder.encode(id, "UTF-8")
+            request(
+                "PATCH",
+                "/rest/v1/profiles?id=eq." + encodedId,
+                payload.toString(),
+                accessToken,
+                preferReturn = true
+            )
+        }
+
+    suspend fun createStaff(
+        accessToken: String,
+        fullName: String,
+        email: String,
+        phone: String,
+        role: String,
+        password: String
+    ): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("full_name", fullName.trim())
+            .put("email", email.trim())
+            .put("phone", phone.trim())
+            .put("role", role)
+            .put("password", password)
+            .toString()
+        request("POST", "/functions/v1/create-staff-user", payload, accessToken)
     }
 
-    private fun audit(accessToken: String, userId: String, action: String, table: String, recordId: String, message: String) {
+    suspend fun resetStaffPassword(accessToken: String, userId: String, password: String): String =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject().put("user_id", userId).put("password", password).toString()
+            request("POST", "/functions/v1/reset-staff-password", payload, accessToken)
+        }
+
+    suspend fun approve(
+        accessToken: String,
+        approvalId: String,
+        userId: String,
+        approved: Boolean,
+        notes: String
+    ) = withContext(Dispatchers.IO) {
+        updateRow(
+            accessToken,
+            "approvals",
+            approvalId,
+            mapOf(
+                "status" to if (approved) "Approved" else "Rejected",
+                "approved_by" to userId,
+                "approved_at" to java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX").format(java.util.Date()),
+                "notes" to notes
+            )
+        )
+    }
+
+    suspend fun audit(
+        accessToken: String,
+        userId: String,
+        action: String,
+        table: String,
+        recordId: String,
+        message: String
+    ) = withContext(Dispatchers.IO) {
         runCatching {
             val payload = JSONObject()
                 .put("user_id", userId)
@@ -185,9 +276,28 @@ class SupabaseApi {
                 .put("table_name", table)
                 .put("record_id", recordId)
                 .put("message", message)
-                .toString()
-            request("POST", "/rest/v1/audit_logs", payload, accessToken)
+            insertRowBlocking(accessToken, "audit_logs", payload)
         }
+        Unit
+    }
+
+    private fun insertRowBlocking(accessToken: String, table: String, payload: JSONObject): String =
+        request("POST", "/rest/v1/$table", payload.toString(), accessToken, preferReturn = true)
+
+    private fun jsonToRow(table: String, obj: JSONObject): ErpRow {
+        val map = linkedMapOf<String, String>()
+        obj.keys().forEach { key ->
+            val v = obj.opt(key)
+            map[key] = if (v == null || v == JSONObject.NULL) "" else v.toString()
+        }
+        return ErpRow(table, obj.optString("id", obj.optString("code", "")), map)
+    }
+
+    private fun nullable(value: String): Any = value.trim().takeIf { it.isNotBlank() } ?: JSONObject.NULL
+
+    private fun rpcText(accessToken: String, function: String): String {
+        val body = request("POST", "/rest/v1/rpc/$function", "{}", accessToken)
+        return body.trim().trim('"')
     }
 
     private fun request(
@@ -200,7 +310,7 @@ class SupabaseApi {
         val conn = (URL(base + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = 15000
-            readTimeout = 20000
+            readTimeout = 25000
             setRequestProperty("apikey", key)
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Content-Type", "application/json")
@@ -217,12 +327,9 @@ class SupabaseApi {
         conn.disconnect()
         if (status !in 200..299) {
             val msg = runCatching {
-                val j: JSONObject? = if (text.trim().startsWith("[")) JSONArray(text).optJSONObject(0) else JSONObject(text)
-                if (j == null) "API gagal ($status)"
-                else j.optString(
-                    "message",
-                    j.optString("msg", j.optString("error_description", "API gagal ($status)"))
-                )
+                val j = if (text.trim().startsWith("[")) JSONArray(text).optJSONObject(0) else JSONObject(text)
+                j?.optString("message", j.optString("msg", j.optString("error_description", "API gagal ($status)")))
+                    ?: "API gagal ($status)"
             }.getOrDefault("API gagal ($status)")
             throw IllegalStateException(msg)
         }
