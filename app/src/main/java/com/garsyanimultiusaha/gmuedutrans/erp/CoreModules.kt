@@ -129,6 +129,7 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
     var add by remember { mutableStateOf(false) }
+    var selectedBooking by remember { mutableStateOf<Booking?>(null) }
     val statuses = listOf("All", "Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed")
     val filtered = vm.bookings.filter {
         (filter == "All" || it.status == filter) &&
@@ -162,7 +163,10 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
         LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (filtered.isEmpty()) item { EmptyCard("Belum ada booking.") }
             items(filtered, key = { it.id }) { b ->
-                Card(shape = RoundedCornerShape(18.dp)) {
+                Card(
+                    onClick = { selectedBooking = b },
+                    shape = RoundedCornerShape(18.dp)
+                ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(b.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
@@ -194,12 +198,24 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             }
         )
     }
+
+    selectedBooking?.let { booking ->
+        BookingDetailDialog(
+            vm = vm,
+            booking = booking,
+            session = session,
+            busy = vm.actionBusy,
+            onDismiss = { selectedBooking = null },
+            onNotice = onNotice
+        )
+    }
 }
 
 @Composable
 fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     var add by remember { mutableStateOf(false) }
+    var selectedCustomer by remember { mutableStateOf<Customer?>(null) }
     val filtered = vm.customers.filter {
         query.isBlank() || it.name.contains(query, true) || it.code.contains(query, true) || it.pic.contains(query, true)
     }
@@ -226,7 +242,10 @@ fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
             if (filtered.isEmpty()) item { EmptyCard("Belum ada customer.") }
             items(filtered, key = { it.id }) { c ->
                 val history = vm.bookings.filter { it.customerId == c.id }
-                Card(shape = RoundedCornerShape(18.dp)) {
+                Card(
+                    onClick = { selectedCustomer = c },
+                    shape = RoundedCornerShape(18.dp)
+                ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(c.name, fontWeight = FontWeight.Black, color = GmuDark, fontSize = 16.sp)
@@ -253,6 +272,203 @@ fun CustomerScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
                 }
             }
         )
+    }
+
+    selectedCustomer?.let { customer ->
+        CustomerDetailDialog(
+            vm = vm,
+            customer = customer,
+            onDismiss = { selectedCustomer = null }
+        )
+    }
+}
+
+@Composable
+private fun BookingDetailDialog(
+    vm: MainViewModel,
+    booking: Booking,
+    session: SessionState,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onNotice: (String) -> Unit
+) {
+    var tab by remember(booking.id) { mutableStateOf("Overview") }
+    var status by remember(booking.id, booking.status) { mutableStateOf(booking.status) }
+    val tabs = listOf("Overview", "Finance", "Operation", "Documents", "Activity")
+
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = {
+            Column {
+                Text(booking.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
+                Text(booking.programName, fontSize = 13.sp, color = Color.Gray)
+            }
+        },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    tabs.forEach { item ->
+                        FilterChip(selected = tab == item, onClick = { tab = item }, label = { Text(item) })
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
+                when (tab) {
+                    "Overview" -> {
+                        StatusChip(booking.status)
+                        Spacer(Modifier.height(10.dp))
+                        DetailLine("Customer", booking.customerName)
+                        DetailLine("Tanggal Trip", booking.tripDate)
+                        DetailLine("Pax", booking.pax.toString())
+                        DetailLine("Harga / Pax", rupiah(booking.pricePerPax))
+                        DetailLine("Omzet", rupiah(booking.omzet))
+                        DetailLine("Grup Peserta", booking.participantGroup)
+                        DetailLine("Titik Kumpul", booking.meetingPoint)
+                        DetailLine("Fasilitas", booking.facilities)
+                        DetailLine("Kebutuhan Khusus", booking.specialRequirements)
+
+                        if (session.profile.role in listOf("Owner", "Manager", "Admin", "Sales")) {
+                            Spacer(Modifier.height(12.dp))
+                            GmuSelect(
+                                value = status,
+                                label = "Update Status",
+                                options = listOf("Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed"),
+                                onSelect = { status = it }
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    vm.update(
+                                        "bookings",
+                                        booking.id,
+                                        mapOf("status" to status),
+                                        "Status booking diperbarui menjadi " + status
+                                    ) { ok, msg ->
+                                        onNotice(msg)
+                                        if (ok) onDismiss()
+                                    }
+                                },
+                                enabled = !busy && status != booking.status,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Simpan Status") }
+                        }
+                    }
+
+                    "Finance" -> {
+                        val paid = vm.paidForBooking(booking.id)
+                        val rab = vm.rabForBooking(booking.id)
+                        val actual = vm.actualCostForBooking(booking.id)
+                        val profit = booking.omzet - actual
+                        val margin = if (booking.omzet > 0) profit / booking.omzet * 100 else 0.0
+                        DetailLine("Omzet", rupiah(booking.omzet))
+                        DetailLine("Terbayar", rupiah(paid))
+                        DetailLine("Piutang", rupiah((booking.omzet - paid).coerceAtLeast(0.0)))
+                        DetailLine("RAB", rupiah(rab))
+                        DetailLine("Biaya Aktual", rupiah(actual))
+                        DetailLine("Laba Bersih", rupiah(profit))
+                        DetailLine("Margin", String.format("%.1f%%", margin))
+                        DetailLine("Laba / Pax", rupiah(if (booking.pax > 0) profit / booking.pax else 0.0))
+                        DetailLine("Selisih RAB", rupiah(rab - actual))
+                    }
+
+                    "Operation" -> {
+                        val trip = vm.table("trips").firstOrNull { it.text("booking_id") == booking.id }
+                        val sheet = vm.table("operation_sheets").firstOrNull { it.text("booking_id") == booking.id }
+                        val manifests = vm.table("manifests").filter { it.text("booking_id") == booking.id }
+                        val attendance = vm.table("attendance").filter { it.text("booking_id") == booking.id }
+                        val rundown = vm.table("rundown_items").filter { it.text("booking_id") == booking.id }
+                        DetailLine("Readiness", (trip?.int("operational_progress") ?: 0).toString() + "%")
+                        DetailLine("Operation Sheet", sheet?.text("readiness_status").orEmpty().ifBlank { "Belum dibuat" })
+                        DetailLine("Manifest", manifests.size.toString() + " peserta")
+                        DetailLine("Attendance", attendance.count { it.bool("present") }.toString() + " / " + attendance.size)
+                        DetailLine("Rundown", rundown.size.toString() + " item")
+                    }
+
+                    "Documents" -> {
+                        val docs = vm.table("documents").filter { it.text("booking_id") == booking.id }
+                        val expected = listOf("Booking Form", "Quotation", "Invoice", "PO Vendor", "Manifest", "Rundown", "Operation Sheet", "Absensi", "Laporan Trip", "Evaluasi")
+                        expected.forEach { type ->
+                            val row = docs.firstOrNull { it.text("document_type") == type }
+                            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(type, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                StatusChip(row?.text("status").orEmpty().ifBlank { "Belum" })
+                            }
+                        }
+                    }
+
+                    else -> {
+                        val logs = vm.table("audit_logs").filter {
+                            it.text("record_id") == booking.id ||
+                                it.text("record_id") == booking.bookingNo ||
+                                it.text("message").contains(booking.bookingNo, true)
+                        }
+                        if (logs.isEmpty()) {
+                            Text("Belum ada activity untuk booking ini.", color = Color.Gray, fontSize = 12.sp)
+                        } else {
+                            logs.take(20).forEach { log ->
+                                Text(log.text("action"), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = GmuDark)
+                                Text(log.text("message"), fontSize = 11.sp, color = Color.Gray)
+                                HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") } }
+    )
+}
+
+@Composable
+private fun CustomerDetailDialog(
+    vm: MainViewModel,
+    customer: Customer,
+    onDismiss: () -> Unit
+) {
+    val history = vm.bookings.filter { it.customerId == customer.id }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(customer.name, fontWeight = FontWeight.Black, color = GmuDark)
+                Text(customer.code + " • " + customer.type, fontSize = 12.sp, color = Color.Gray)
+            }
+        },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                DetailLine("PIC", customer.pic)
+                DetailLine("WhatsApp", customer.whatsapp)
+                DetailLine("Email", customer.email)
+                DetailLine("Alamat", customer.address)
+                DetailLine("Catatan", customer.notes)
+                Spacer(Modifier.height(10.dp))
+                Text("Histori Booking", fontWeight = FontWeight.Black, color = GmuDark)
+                Text(history.size.toString() + " booking • " + rupiah(history.sumOf { it.omzet }), fontSize = 11.sp, color = GmuGreen)
+                Spacer(Modifier.height(6.dp))
+                if (history.isEmpty()) {
+                    Text("Belum ada histori booking.", color = Color.Gray, fontSize = 12.sp)
+                } else {
+                    history.take(12).forEach { b ->
+                        Text(b.bookingNo + " • " + b.programName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(b.tripDate + " • " + b.pax + " pax • " + rupiah(b.omzet), fontSize = 11.sp, color = Color.Gray)
+                        HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Tutup") } }
+    )
+}
+
+@Composable
+private fun DetailLine(label: String, value: String) {
+    if (value.isBlank()) return
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, fontSize = 11.sp, color = Color.Gray, modifier = Modifier.weight(.42f))
+        Text(value, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(.58f))
     }
 }
 
