@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -82,6 +82,41 @@ fun GmuGradientHeader(content: @Composable ColumnScope.() -> Unit) {
             .padding(horizontal = 20.dp, vertical = 22.dp),
         content = content
     )
+}
+
+@Composable
+fun GmuSelect(
+    value: String,
+    label: String,
+    options: List<String>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(modifier) {
+        Text(label, fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(start = 2.dp, bottom = 4.dp))
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(value.ifBlank { "Pilih " + label }, modifier = Modifier.weight(1f))
+                Text("⌄")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            onSelect(option)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
 
 fun bookingLabel(vm: MainViewModel, bookingId: String): String {
