@@ -46,7 +46,13 @@ fun WorkflowScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
                         }
                         Text(bookingLabel(vm, a.text("booking_id")), fontSize = 11.sp, color = Color.Gray)
                         if (a.text("notes").isNotBlank()) Text(a.text("notes"), fontSize = 11.sp)
-                        if (a.text("status") == "Pending") {
+                        val canApprove = when (session.profile.role) {
+                            "Owner" -> true
+                            "Manager" -> a.text("approval_type") in listOf("Operation Sheet", "PO Vendor")
+                            "Finance" -> a.text("approval_type") == "Invoice"
+                            else -> false
+                        }
+                        if (a.text("status") == "Pending" && canApprove) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 TextButton(onClick = {
                                     vm.approve(a.id, false, "Rejected from Android RC") { _, msg -> onNotice(msg) }
@@ -55,6 +61,13 @@ fun WorkflowScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
                                     vm.approve(a.id, true, "Approved from Android RC") { _, msg -> onNotice(msg) }
                                 }) { Text("Approve") }
                             }
+                        } else if (a.text("status") == "Pending") {
+                            Text(
+                                "Menunggu approver yang berwenang.",
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
                         }
                     }
                 }
