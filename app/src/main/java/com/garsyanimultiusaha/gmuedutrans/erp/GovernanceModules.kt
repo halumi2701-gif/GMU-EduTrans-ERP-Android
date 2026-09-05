@@ -235,9 +235,20 @@ fun ReportsScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             onDismiss = { add = false },
             onSave = { table, values, msg ->
                 val withUser = values + ("created_by" to session.userId)
-                vm.insert(table, withUser, msg) { ok, message ->
-                    onNotice(message)
-                    if (ok) add = false
+                val bookingId = values["booking_id"]?.toString().orEmpty()
+                val existing = if (table == "trip_reports") {
+                    vm.table("trip_reports").firstOrNull { it.text("booking_id") == bookingId }
+                } else null
+                if (existing != null) {
+                    vm.update(table, existing.id, withUser, "Trip Report berhasil diperbarui.") { ok, message ->
+                        onNotice(message)
+                        if (ok) add = false
+                    }
+                } else {
+                    vm.insert(table, withUser, msg) { ok, message ->
+                        onNotice(message)
+                        if (ok) add = false
+                    }
                 }
             }
         )
