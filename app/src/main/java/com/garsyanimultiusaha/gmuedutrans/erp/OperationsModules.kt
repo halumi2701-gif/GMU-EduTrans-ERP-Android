@@ -103,22 +103,102 @@ fun OperationsScreen(vm: MainViewModel, session: SessionState, onNotice: (String
 @Composable
 private fun TripList(vm: MainViewModel) {
     val trips = vm.table("trips")
-    LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val sheets = vm.table("operation_sheets")
+    val manifests = vm.table("manifests")
+    val rundowns = vm.table("rundown_items")
+    val pos = vm.table("vendor_pos")
+    val docs = vm.table("documents")
+
+    LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Card(
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = GmuSoft)
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Trip Control Center", fontWeight = FontWeight.Black, fontSize = 18.sp, color = GmuDark)
+                    Text("Satu layar untuk memantau readiness seluruh trip.", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        }
+
         if (vm.bookings.isEmpty()) item { EmptyCard("Belum ada booking trip.") }
+
         items(vm.bookings, key = { it.id }) { booking ->
             val trip = trips.firstOrNull { it.text("booking_id") == booking.id }
-            val progress = trip?.int("operational_progress") ?: 0
-            Card(shape = RoundedCornerShape(18.dp)) {
-                Column(Modifier.padding(16.dp)) {
+            val sheetReady = sheets.any { it.text("booking_id") == booking.id }
+            val manifestReady = manifests.any { it.text("booking_id") == booking.id }
+            val rundownReady = rundowns.any { it.text("booking_id") == booking.id }
+            val vendorReady = pos.any { it.text("booking_id") == booking.id }
+            val docsCount = docs.count { it.text("booking_id") == booking.id }
+            val checklist = listOf(
+                "Operation Sheet" to sheetReady,
+                "Manifest" to manifestReady,
+                "Rundown" to rundownReady,
+                "Vendor" to vendorReady,
+                "Documents" to (docsCount >= 5)
+            )
+            val calculated = (checklist.count { it.second } * 100 / checklist.size)
+            val stored = trip?.int("operational_progress") ?: 0
+            val progress = maxOf(calculated, stored).coerceIn(0, 100)
+
+            Card(
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(Modifier.padding(17.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(booking.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
+                        Column(Modifier.weight(1f)) {
+                            Text(booking.programName, fontWeight = FontWeight.Black, fontSize = 17.sp, color = GmuDark)
+                            Text(booking.bookingNo + " • " + booking.customerName, fontSize = 11.sp, color = Color.Gray)
+                        }
                         StatusChip(booking.status)
                     }
-                    Text(booking.programName, fontWeight = FontWeight.Bold)
-                    Text(booking.customerName + " • " + booking.tripDate + " • " + booking.pax + " pax", fontSize = 11.sp, color = Color.Gray)
+
                     Spacer(Modifier.height(10.dp))
-                    Text("Operation Readiness " + progress + "%", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    LinearProgressIndicator(progress = { progress.coerceIn(0, 100) / 100f }, modifier = Modifier.fillMaxWidth())
+                    Text(booking.tripDate + " • " + booking.pax + " pax", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+
+                    Spacer(Modifier.height(14.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Operation readiness", fontSize = 11.sp, color = Color.Gray)
+                        Text(progress.toString() + "%", fontWeight = FontWeight.Black, color = if (progress >= 80) GmuGreen else GmuWarn)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { progress / 100f },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        color = if (progress >= 80) GmuGreen else GmuGold,
+                        trackColor = GmuSoft
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        checklist.forEach { (label, ready) ->
+                            Surface(
+                                color = if (ready) Color(0xFFEAF7EF) else Color(0xFFFFF7E8),
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    (if (ready) "✓ " else "• ") + label,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (ready) GmuGreen else GmuWarn
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        if (progress >= 80) "Ready for execution" else "Needs operational attention",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (progress >= 80) GmuGreen else GmuWarn
+                    )
                 }
             }
         }

@@ -313,9 +313,10 @@ private fun RankingCard(title: String, values: List<Pair<String, Double>>) {
 fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("All") }
+    var viewMode by remember { mutableStateOf("Pipeline") }
     var add by remember { mutableStateOf(false) }
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
-    val statuses = listOf("All", "Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed")
+    val stages = listOf("Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed")
     val filtered = vm.bookings.filter {
         (filter == "All" || it.status == filter) &&
             (query.isBlank() || it.bookingNo.contains(query, true) || it.programName.contains(query, true) || it.customerName.contains(query, true))
@@ -324,49 +325,102 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            SectionTitle("Booking", "Lead sampai Closed")
+            SectionTitle("Booking Pipeline", "Lead → Quotation → DP → Trip → Closed")
             if (session.profile.role in listOf("Owner", "Manager", "Admin", "Sales")) {
                 Button(onClick = { add = true }, shape = RoundedCornerShape(14.dp)) { Text("+ Baru") }
             }
         }
+
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = viewMode == "Pipeline", onClick = { viewMode = "Pipeline" }, label = { Text("Pipeline") })
+            FilterChip(selected = viewMode == "List", onClick = { viewMode = "List" }, label = { Text("List") })
+        }
+
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Cari booking / program / customer") },
+            label = { Text("Cari booking, program, customer") },
             singleLine = true,
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(16.dp)
         )
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            statuses.forEach { s ->
-                FilterChip(selected = filter == s, onClick = { filter = s }, label = { Text(s) })
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (filtered.isEmpty()) item { EmptyCard("Belum ada booking.") }
-            items(filtered, key = { it.id }) { b ->
-                Card(
-                    onClick = { selectedBooking = b },
-                    shape = RoundedCornerShape(18.dp)
+        Spacer(Modifier.height(10.dp))
+
+        if (viewMode == "Pipeline") {
+            Column {
+                Text("Sales pipeline", fontWeight = FontWeight.Black, fontSize = 15.sp, color = GmuDark)
+                Text("Tap stage untuk membuka daftar booking pada tahap tersebut.", fontSize = 11.sp, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(b.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
-                            StatusChip(b.status)
+                    stages.forEach { stage ->
+                        val stageBookings = vm.bookings.filter { it.status == stage }
+                        Card(
+                            onClick = {
+                                filter = stage
+                                viewMode = "List"
+                            },
+                            modifier = Modifier.width(150.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (stage == "Closed") GmuSoft else Color.White
+                            )
+                        ) {
+                            Column(Modifier.padding(15.dp)) {
+                                StatusChip(stage)
+                                Spacer(Modifier.height(14.dp))
+                                Text(stageBookings.size.toString(), fontSize = 28.sp, fontWeight = FontWeight.Black, color = GmuDark)
+                                Text("booking", fontSize = 11.sp, color = Color.Gray)
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    stageBookings.sumOf { it.pax }.toString() + " pax",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = GmuGreen
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(b.programName, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text(b.customerName, fontSize = 12.sp, color = Color.Gray)
-                        Spacer(Modifier.height(8.dp))
-                        Text(b.tripDate + " • " + b.pax + " pax", fontSize = 12.sp)
-                        if (FinancialAccess.canView(session.profile.role)) {
-                            Text("Harga/Pax " + rupiah(b.pricePerPax) + " • Omzet " + rupiah(b.omzet), fontSize = 12.sp, color = GmuGreen)
-                        }
-                        if (b.meetingPoint.isNotBlank()) Text("Titik kumpul: " + b.meetingPoint, fontSize = 11.sp, color = Color.Gray)
                     }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text("Recent pipeline", fontWeight = FontWeight.Black, fontSize = 15.sp, color = GmuDark)
+                Spacer(Modifier.height(8.dp))
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 110.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    val recent = vm.bookings
+                        .filter { query.isBlank() || it.bookingNo.contains(query, true) || it.programName.contains(query, true) || it.customerName.contains(query, true) }
+                        .take(12)
+                    if (recent.isEmpty()) item { EmptyCard("Belum ada booking pada pipeline.") }
+                    items(recent, key = { it.id }) { b ->
+                        StartupBookingCard(b, session, onClick = { selectedBooking = b })
+                    }
+                }
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf("All") .plus(stages).forEach { stage ->
+                    FilterChip(
+                        selected = filter == stage,
+                        onClick = { filter = stage },
+                        label = { Text(stage) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (filtered.isEmpty()) item { EmptyCard("Belum ada booking.") }
+                items(filtered, key = { it.id }) { b ->
+                    StartupBookingCard(b, session, onClick = { selectedBooking = b })
                 }
             }
         }
@@ -396,6 +450,34 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             onDismiss = { selectedBooking = null },
             onNotice = onNotice
         )
+    }
+}
+
+@Composable
+private fun StartupBookingCard(booking: Booking, session: SessionState, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(booking.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
+                StatusChip(booking.status)
+            }
+            Spacer(Modifier.height(5.dp))
+            Text(booking.programName, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(booking.customerName, fontSize = 12.sp, color = Color.Gray)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(booking.tripDate, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(booking.pax.toString() + " pax", fontSize = 12.sp, color = GmuGreen, fontWeight = FontWeight.Bold)
+            }
+            if (FinancialAccess.canView(session.profile.role)) {
+                Spacer(Modifier.height(6.dp))
+                Text("Omzet " + rupiah(booking.omzet), fontSize = 11.sp, color = Color.Gray)
+            }
+        }
     }
 }
 
@@ -697,33 +779,114 @@ private fun DetailLine(label: String, value: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -> Unit) {
-    var tab by remember { mutableStateOf("Payments") }
+    if (!FinancialAccess.canView(session.profile.role)) {
+        Box(Modifier.fillMaxSize().padding(18.dp)) {
+            EmptyCard("Financial Health hanya tersedia untuk Owner dan Manager.")
+        }
+        return
+    }
+
+    var tab by remember { mutableStateOf("Overview") }
     var addPayment by remember { mutableStateOf(false) }
     var addCost by remember { mutableStateOf(false) }
     val payments = vm.table("payments")
     val costs = vm.table("trip_costs")
+    val stats = vm.dashboardStats()
+    val collectionRate = if (stats.omzet > 0) stats.paid / stats.omzet * 100.0 else 0.0
+    val health = when {
+        stats.margin >= 25 && collectionRate >= 80 -> "Healthy"
+        stats.margin >= 15 && collectionRate >= 60 -> "Watch"
+        else -> "Attention"
+    }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            SectionTitle("Finance", "Payment, cost & profitability")
-            if (session.profile.role in listOf("Owner", "Manager", "Finance")) {
+            SectionTitle("Financial Health", "Cash, receivable, cost & profitability")
+            if (tab == "Payments" || tab == "Costs") {
                 TextButton(onClick = { if (tab == "Payments") addPayment = true else addCost = true }) { Text("+ Tambah") }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            listOf("Payments", "Costs", "Profitability").forEachIndexed { i, label ->
-                SegmentedButton(
-                    selected = tab == label,
-                    onClick = { tab = label },
-                    shape = SegmentedButtonDefaults.itemShape(i, 3)
-                ) { Text(label, fontSize = 11.sp) }
+
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard("Omzet", rupiah(stats.omzet), Modifier.weight(1f), accent = true)
+            MetricCard("Net Profit", rupiah(stats.profit), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard("Receivable", rupiah(stats.receivable), Modifier.weight(1f))
+            MetricCard("Margin", String.format("%.1f%%", stats.margin), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = when (health) {
+                    "Healthy" -> Color(0xFFEAF7EF)
+                    "Watch" -> Color(0xFFFFF7E8)
+                    else -> Color(0xFFFFEEEE)
+                }
+            )
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Financial health", fontSize = 11.sp, color = Color.Gray)
+                        Text(health, fontSize = 20.sp, fontWeight = FontWeight.Black, color = GmuDark)
+                    }
+                    StatusChip(health)
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("Collection rate " + String.format("%.1f%%", collectionRate), fontSize = 11.sp, color = Color.Gray)
+                Spacer(Modifier.height(5.dp))
+                LinearProgressIndicator(
+                    progress = { (collectionRate.coerceIn(0.0, 100.0) / 100.0).toFloat() },
+                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                    color = GmuGreen,
+                    trackColor = Color.White.copy(alpha = .7f)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            listOf("Overview", "Payments", "Costs", "Profitability").forEach { label ->
+                FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
             }
         }
         Spacer(Modifier.height(10.dp))
 
         when (tab) {
+            "Overview" -> LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                item {
+                    Text("Outstanding receivables", fontWeight = FontWeight.Black, color = GmuDark)
+                }
+                val outstanding = vm.bookings.map { b ->
+                    val paid = vm.paidForBooking(b.id)
+                    b to (b.omzet - paid).coerceAtLeast(0.0)
+                }.filter { it.second > 0 }.sortedByDescending { it.second }
+                if (outstanding.isEmpty()) item { EmptyCard("Tidak ada piutang aktif.") }
+                items(outstanding.take(10), key = { it.first.id }) { (b, due) ->
+                    Card(shape = RoundedCornerShape(18.dp)) {
+                        Column(Modifier.padding(15.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(b.bookingNo, fontWeight = FontWeight.Black, color = GmuDark)
+                                StatusChip(b.status)
+                            }
+                            Text(b.customerName + " • " + b.programName, fontSize = 11.sp, color = Color.Gray)
+                            Spacer(Modifier.height(6.dp))
+                            Text(rupiah(due), fontSize = 18.sp, fontWeight = FontWeight.Black, color = GmuWarn)
+                            Text("Outstanding", fontSize = 10.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+
             "Payments" -> LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 if (payments.isEmpty()) item { EmptyCard("Belum ada pembayaran.") }
                 items(payments, key = { it.id }) { p ->
@@ -739,6 +902,7 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                     }
                 }
             }
+
             "Costs" -> LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 if (costs.isEmpty()) item { EmptyCard("Belum ada biaya trip.") }
                 items(costs, key = { it.id }) { c ->
@@ -751,6 +915,7 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                     }
                 }
             }
+
             else -> LazyColumn(contentPadding = PaddingValues(bottom = 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (vm.bookings.isEmpty()) item { EmptyCard("Belum ada booking untuk dihitung.") }
                 items(vm.bookings, key = { it.id }) { b ->
@@ -761,7 +926,10 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                     val margin = if (b.omzet > 0) profit / b.omzet * 100 else 0.0
                     Card(shape = RoundedCornerShape(18.dp)) {
                         Column(Modifier.padding(15.dp)) {
-                            Text(b.bookingNo + " • " + b.programName, fontWeight = FontWeight.Black, color = GmuDark)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(b.bookingNo + " • " + b.programName, fontWeight = FontWeight.Black, color = GmuDark, modifier = Modifier.weight(1f))
+                                StatusChip(if (margin >= 25) "Healthy" else "Low Margin")
+                            }
                             Text("Omzet " + rupiah(b.omzet) + " • Terbayar " + rupiah(paid), fontSize = 11.sp)
                             Text("RAB " + rupiah(rab) + " • Aktual " + rupiah(actual), fontSize = 11.sp)
                             HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -801,6 +969,7 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             }
         )
     }
+
     if (addCost) {
         FinanceEntryDialog(
             title = "Tambah Biaya Trip",

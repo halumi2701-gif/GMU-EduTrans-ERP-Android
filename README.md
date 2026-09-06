@@ -25,7 +25,7 @@ GMU EduTrans ERP berkembang menjadi **GMU EduTrans OS**: operating system mobile
 - Role-aware data and UI
 
 Package: `com.garsyanimultiusaha.gmuedutrans.erp`
-Version: `5.0.0-alpha3`
+Version: `5.0.0-alpha4`
 
 
 ## Financial Privacy
@@ -48,3 +48,13 @@ Khusus Owner & Manager:
 - Offboarding
 
 Payroll/kompensasi tidak dibuka ke role lain. Aturan finansial tetap hanya Owner dan Manager.
+
+
+## Startup Alpha 4
+- Booking Pipeline ala CRM dengan stage cards dan List View
+- Financial Health dashboard khusus Owner/Manager
+- Outstanding Receivables dan Collection Rate
+- Trip Control Center dengan visual readiness checklist
+- More/Workspace berbentuk startup app grid
+- Team & HR tetap terintegrasi
+- Financial privacy tetap ketat: hanya Owner & Manager
