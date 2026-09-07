@@ -397,13 +397,13 @@ private fun MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
             NavItem("home", "Beranda", Icons.Outlined.Home),
             NavItem("command", "Command", Icons.Outlined.Dashboard),
             NavItem("inbox", "Inbox", Icons.Outlined.Notifications),
-            NavItem("residents", "Warga", Icons.Outlined.People),
+            NavItem("digitalStaff", "ID Digital", Icons.Outlined.QrCode2),
             NavItem("more", "Lainnya", Icons.Outlined.GridView)
         )
         "RT" -> listOf(
             NavItem("home", "Beranda", Icons.Outlined.Home),
             NavItem("complaints", "Laporan", Icons.Outlined.Campaign),
-            NavItem("residents", "Warga", Icons.Outlined.People),
+            NavItem("digitalStaff", "ID Digital", Icons.Outlined.QrCode2),
             NavItem("letters", "Surat", Icons.Outlined.Assignment),
             NavItem("more", "Lainnya", Icons.Outlined.GridView)
         )
@@ -479,6 +479,7 @@ private fun MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
             when (target) {
                 "home" -> HomeScreen(vm)
                 "digital" -> DigitalIdScreen(vm)
+                "digitalStaff" -> StaffDigitalIdScreen(vm)
                 "letters" -> LettersScreen(vm)
                 "complaints" -> ComplaintsScreen(vm)
                 "residents" -> ResidentsScreen(vm)
