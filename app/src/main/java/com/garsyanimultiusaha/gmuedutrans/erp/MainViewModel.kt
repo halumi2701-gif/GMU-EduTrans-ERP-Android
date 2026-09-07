@@ -47,6 +47,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var managementError by mutableStateOf<String?>(null)
         private set
+    var planningDashboard by mutableStateOf<PlanningDashboard?>(null)
+        private set
+    var planningScenario by mutableStateOf<PlanningScenarioResult?>(null)
+        private set
+    var planningError by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -151,9 +157,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         managementDashboard = null
                         managementError = e.message ?: "Management Control gagal dimuat."
                     }
+                    try {
+                        planningDashboard = api.getPlanningDashboard(session.accessToken)
+                        planningError = null
+                    } catch (e: Exception) {
+                        planningDashboard = null
+                        planningError = e.message ?: "Planning & Business Control gagal dimuat."
+                    }
                 } else {
                     managementDashboard = null
                     managementError = null
+                    planningDashboard = null
+                    planningScenario = null
+                    planningError = null
                 }
             } catch (e: Exception) {
                 dataError = e.message ?: "Gagal memuat data ERP."
@@ -204,6 +220,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (role in listOf("Owner", "Manager")) {
+            wanted += "programs" to "sort_order.asc"
             wanted += "staff_attendance" to "attendance_date.desc"
             wanted += "staff_assignments" to "created_at.desc"
             wanted += "staff_kpis" to "created_at.desc"
@@ -401,6 +418,150 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun savePlanningTarget(
+        targetId: String?,
+        periodMonth: String,
+        scopeType: String,
+        salesId: String?,
+        programId: String?,
+        targetRevenue: Double,
+        targetBookings: Int,
+        targetPax: Int,
+        targetProfit: Double,
+        targetMarginPct: Double,
+        targetCashIn: Double,
+        notes: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.savePlanningTarget(
+                    session.accessToken,targetId,periodMonth,scopeType,salesId,programId,
+                    targetRevenue,targetBookings,targetPax,targetProfit,targetMarginPct,targetCashIn,notes
+                )
+                planningDashboard = api.getPlanningDashboard(session.accessToken)
+                planningError = null
+                done(true, "Target planning berhasil disimpan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Target planning gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun savePlanningBudget(
+        budgetId: String?,
+        periodMonth: String,
+        budgetType: String,
+        category: String,
+        programId: String?,
+        amount: Double,
+        notes: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.savePlanningBudget(session.accessToken,budgetId,periodMonth,budgetType,category,programId,amount,notes)
+                planningDashboard = api.getPlanningDashboard(session.accessToken)
+                planningError = null
+                done(true, "Budget planning berhasil disimpan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Budget planning gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun deletePlanningBudget(budgetId: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.deletePlanningBudget(session.accessToken,budgetId)
+                planningDashboard = api.getPlanningDashboard(session.accessToken)
+                done(true, "Budget planning dihapus.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Budget planning gagal dihapus.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun setPlanningPipelineWeight(
+        status: String,
+        probabilityPct: Double,
+        notes: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.setPlanningPipelineWeight(session.accessToken,status,probabilityPct,notes)
+                planningDashboard = api.getPlanningDashboard(session.accessToken)
+                done(true, "Bobot pipeline diperbarui.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Bobot pipeline gagal diperbarui.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun runPlanningScenario(
+        bookingId: String,
+        pax: Int?,
+        pricePerPax: Double?,
+        vendorIncreasePct: Double,
+        transportIncreasePct: Double,
+        discountPct: Double,
+        variableCostSharePct: Double,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Scenario Simulator hanya tersedia untuk Owner dan Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                planningScenario = api.runPlanningScenario(
+                    session.accessToken,bookingId,pax,pricePerPax,vendorIncreasePct,
+                    transportIncreasePct,discountPct,variableCostSharePct
+                )
+                done(true, "Scenario berhasil dihitung.")
+            } catch (e: Exception) {
+                planningScenario = null
+                done(false, e.message ?: "Scenario gagal dihitung.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun clearPlanningScenario() {
+        planningScenario = null
+    }
+
     fun dashboardStats(): DashboardStats {
         val management = managementDashboard
         if (management != null) {
@@ -501,6 +662,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rows = emptyMap()
         managementDashboard = null
         managementError = null
+        planningDashboard = null
+        planningScenario = null
+        planningError = null
         state = AppState.LoggedOut
         if (session != null) viewModelScope.launch { api.signOut(session.accessToken) }
     }

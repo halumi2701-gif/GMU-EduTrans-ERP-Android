@@ -275,6 +275,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice = { notice = it })
                 AppPage.CUSTOMERS -> CustomerScreen(vm, session, onNotice = { notice = it })
                 AppPage.FINANCE -> FinanceScreen(vm, session, onNotice = { notice = it })
+                AppPage.PLANNING -> PlanningScreen(vm, session, onNotice = { notice = it })
                 AppPage.OPERATIONS -> OperationsScreen(vm, session, onNotice = { notice = it })
                 AppPage.VENDORS -> VendorsScreen(vm, session, onNotice = { notice = it })
                 AppPage.TRIP_FOLDER -> TripFolderScreen(vm, session, onNotice = { notice = it })
@@ -359,6 +360,7 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
     val allowed = RoleAccess.pages(session.profile.role)
     val allMenus = listOf(
         Triple(AppPage.CUSTOMERS, "Customer", Icons.Rounded.Groups),
+        Triple(AppPage.PLANNING, "Planning & Control", Icons.Rounded.Assessment),
         Triple(AppPage.VENDORS, "Vendor & PO", Icons.Rounded.Storefront),
         Triple(AppPage.TRIP_FOLDER, "Trip Folder", Icons.Rounded.Folder),
         Triple(AppPage.WORKFLOW, "Approval", Icons.Rounded.Approval),

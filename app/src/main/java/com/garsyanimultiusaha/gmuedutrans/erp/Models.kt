@@ -87,6 +87,7 @@ enum class AppPage {
     BOOKINGS,
     CUSTOMERS,
     FINANCE,
+    PLANNING,
     OPERATIONS,
     VENDORS,
     TRIP_FOLDER,
