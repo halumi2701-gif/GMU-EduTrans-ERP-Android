@@ -85,6 +85,7 @@ sealed interface AppState {
 enum class AppPage {
     DASHBOARD,
     BOOKINGS,
+    BOOKING_REQUESTS,
     CUSTOMERS,
     FINANCE,
     PLANNING,
