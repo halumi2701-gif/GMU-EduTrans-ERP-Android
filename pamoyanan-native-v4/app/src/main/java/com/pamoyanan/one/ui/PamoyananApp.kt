@@ -242,8 +242,7 @@ private fun StartupSplash() {
 @Composable
 private fun BrandMark(size: androidx.compose.ui.unit.Dp = 48.dp) {
     Box(
-        Modifier.size(size).clip(RoundedCornerShape(size / 3))
-            .background(Brush.linearGradient(listOf(BrandDark, Brand))),
+        Modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
         Icon(painter = painterResource(R.drawable.logo_rw01), contentDescription = "Logo RW 01", tint = Color.Unspecified, modifier = Modifier.size(size))
