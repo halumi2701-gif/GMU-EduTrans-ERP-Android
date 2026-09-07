@@ -7,8 +7,8 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher"
+        android:icon="@drawable/logo_rw01"
+        android:roundIcon="@drawable/logo_rw01"
         android:label="PAMOYANAN ONE"
         android:supportsRtl="true"
         android:theme="@style/Theme.PamoyananOne">
