@@ -87,6 +87,9 @@ enum class AppPage {
     BOOKINGS,
     BOOKING_REQUESTS,
     QUOTATIONS,
+    PACKAGE_MASTER,
+    PRICING_MASTER,
+    PAYMENT_GATEWAY,
     CUSTOMERS,
     FINANCE,
     PLANNING,
@@ -114,7 +117,7 @@ object RoleAccess {
         "Owner" -> AppPage.entries.toSet()
         "Manager" -> AppPage.entries.toSet() - AppPage.USERS
         "Admin" -> setOf(
-            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.QUOTATIONS, AppPage.CUSTOMERS,
+            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.QUOTATIONS, AppPage.PACKAGE_MASTER, AppPage.CUSTOMERS,
             AppPage.OPERATIONS, AppPage.TRIP_FOLDER, AppPage.WORKFLOW,
             AppPage.SOP, AppPage.REPORTS, AppPage.AUDIT, AppPage.PROFILE
         )
