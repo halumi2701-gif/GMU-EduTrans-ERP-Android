@@ -630,6 +630,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     effectiveFrom,effectiveUntil,notes
                 )
                 pricingDashboard = api.getPricingDashboard(session.accessToken)
+                pricingMaster = runCatching { api.getPricingMasterDashboard(session.accessToken) }.getOrNull()
                 quotationDetail?.requestId?.takeIf { it.isNotBlank() }?.let {
                     quotationDetail = runCatching { api.getQuotationDetail(session.accessToken,it) }.getOrNull()
                 }
