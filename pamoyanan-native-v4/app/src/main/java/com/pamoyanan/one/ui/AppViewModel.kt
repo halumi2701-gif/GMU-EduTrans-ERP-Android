@@ -44,6 +44,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var digitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
         private set
+    var staffDigitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
+        private set
+    var staffDigitalResidentId = androidx.compose.runtime.mutableStateOf<String?>(null)
+        private set
     var letters = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
         private set
     var templates = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
@@ -190,6 +194,47 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             loading.value = true
             try { digitalId.value = api.digitalId() } catch (e: Exception) { fail(e) }
+            finally { loading.value = false }
+        }
+    }
+
+    fun openResidentDigitalId(residentId: String) {
+        staffDigitalResidentId.value = residentId
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                staffDigitalId.value = api.residentDigitalId(residentId)
+            } catch (e: Exception) { fail(e) }
+            finally { loading.value = false }
+        }
+    }
+
+    fun closeResidentDigitalId() {
+        staffDigitalId.value = null
+        staffDigitalResidentId.value = null
+    }
+
+    fun rotateResidentDigitalId() {
+        val residentId = staffDigitalResidentId.value ?: return
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                staffDigitalId.value = api.rotateResidentQr(residentId)
+                notice.value = UiNotice("QR Digital ID warga berhasil diperbarui.")
+            } catch (e: Exception) { fail(e) }
+            finally { loading.value = false }
+        }
+    }
+
+    fun revokeResidentDigitalId() {
+        val residentId = staffDigitalResidentId.value ?: return
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                api.revokeResidentDigitalId(residentId)
+                notice.value = UiNotice("Digital ID warga berhasil dicabut.")
+                closeResidentDigitalId()
+            } catch (e: Exception) { fail(e) }
             finally { loading.value = false }
         }
     }
