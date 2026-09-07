@@ -2,7 +2,7 @@ name: Build GMU EduTrans ERP Release
 
 on:
   push:
-    branches: [ "main", "feature/v25-checkout-alpha8" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
