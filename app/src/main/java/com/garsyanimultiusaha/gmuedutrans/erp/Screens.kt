@@ -275,6 +275,9 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice = { notice = it })
                 AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice = { notice = it })
                 AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice = { notice = it })
+                AppPage.PACKAGE_MASTER -> PackageMasterScreen(vm, session, onNotice = { notice = it })
+                AppPage.PRICING_MASTER -> PricingMasterScreen(vm, session, onNotice = { notice = it })
+                AppPage.PAYMENT_GATEWAY -> PaymentGatewayScreen(vm, session, onNotice = { notice = it })
                 AppPage.CUSTOMERS -> CustomerScreen(vm, session, onNotice = { notice = it })
                 AppPage.FINANCE -> FinanceScreen(vm, session, onNotice = { notice = it })
                 AppPage.PLANNING -> PlanningScreen(vm, session, onNotice = { notice = it })
@@ -363,6 +366,9 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
     val allMenus = listOf(
         Triple(AppPage.BOOKING_REQUESTS, "Pengajuan Website", Icons.Rounded.Inbox),
         Triple(AppPage.QUOTATIONS, "Quotation & Pricing", Icons.Rounded.RequestQuote),
+        Triple(AppPage.PACKAGE_MASTER, "Package Master", Icons.Rounded.Inventory2),
+        Triple(AppPage.PRICING_MASTER, "Pricing Master", Icons.Rounded.PriceCheck),
+        Triple(AppPage.PAYMENT_GATEWAY, "Payment Gateway", Icons.Rounded.Payments),
         Triple(AppPage.CUSTOMERS, "Customer", Icons.Rounded.Groups),
         Triple(AppPage.PLANNING, "Planning & Control", Icons.Rounded.Assessment),
         Triple(AppPage.VENDORS, "Vendor & PO", Icons.Rounded.Storefront),
