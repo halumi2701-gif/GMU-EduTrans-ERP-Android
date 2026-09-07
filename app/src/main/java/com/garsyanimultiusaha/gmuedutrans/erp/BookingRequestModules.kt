@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -18,13 +20,14 @@ fun BookingRequestScreen(
     session: SessionState,
     onNotice: (String) -> Unit
 ) {
-    if (session.profile.role !in listOf("Owner", "Manager")) {
+    if (session.profile.role !in listOf("Owner", "Manager", "Sales")) {
         Box(Modifier.fillMaxSize().padding(18.dp)) {
-            EmptyCard("Pengajuan Website hanya dapat diproses Owner / Manager.")
+            EmptyCard("Pengajuan Website hanya tersedia untuk Owner / Manager / Sales.")
         }
         return
     }
 
+    val canReview = session.profile.role in listOf("Owner", "Manager")
     var filter by remember { mutableStateOf("NEW_REQUEST") }
     var rejectRow by remember { mutableStateOf<BookingRequestItem?>(null) }
 
@@ -35,7 +38,11 @@ fun BookingRequestScreen(
         Spacer(Modifier.height(12.dp))
         SectionTitle(
             "Pengajuan Website",
-            "Owner / Manager • Terima pengajuan ke Verifikasi atau Tolak"
+            if (canReview) {
+                "Owner / Manager • Terima, Tolak & Token Customer"
+            } else {
+                "Sales • Lihat pengajuan & Token Customer"
+            }
         )
         Spacer(Modifier.height(10.dp))
 
@@ -96,12 +103,25 @@ fun BookingRequestScreen(
                         if (r.whatsapp.isNotBlank()) {
                             RequestLine("WhatsApp", r.whatsapp)
                         }
-                        if (r.status == "NEW_REQUEST") {
-                            Spacer(Modifier.height(10.dp))
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    vm.loadCustomerPortalToken(r.id) { ok, msg ->
+                                        if (!ok) onNotice(msg)
+                                    }
+                                },
+                                enabled = !vm.actionBusy,
+                                shape = RoundedCornerShape(12.dp)
                             ) {
+                                Text("Token Customer")
+                            }
+
+                            if (canReview && r.status == "NEW_REQUEST") {
+                                Spacer(Modifier.width(6.dp))
                                 TextButton(
                                     onClick = { rejectRow = r },
                                     enabled = !vm.actionBusy
@@ -127,6 +147,76 @@ fun BookingRequestScreen(
                 }
             }
         }
+    }
+
+    vm.customerPortalCredential?.let { credential ->
+        val clipboard = LocalClipboardManager.current
+        AlertDialog(
+            onDismissRequest = { vm.clearCustomerPortalToken() },
+            title = { Text("Token Customer") },
+            text = {
+                Column {
+                    Text(
+                        credential.institutionName.ifBlank { credential.picName.ifBlank { "Customer" } },
+                        fontWeight = FontWeight.Black,
+                        color = GmuDark
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    RequestLine("Booking Code", credential.bookingCode)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Token Akses", fontSize = 11.sp, color = Color.Gray)
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF3F6F4)
+                    ) {
+                        Text(
+                            credential.accessToken,
+                            modifier = Modifier.padding(12.dp),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GmuDark
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Token ini sudah tersimpan di server. Gunakan hanya untuk membantu customer mengakses portal booking.",
+                        fontSize = 10.sp,
+                        color = Color.Gray
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        clipboard.setText(
+                            AnnotatedString(
+                                "Booking Code: " + credential.bookingCode +
+                                    "\nToken Akses: " + credential.accessToken
+                            )
+                        )
+                        onNotice("Booking Code + Token berhasil disalin.")
+                    }
+                ) {
+                    Text("Salin Semua")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            clipboard.setText(AnnotatedString(credential.accessToken))
+                            onNotice("Token berhasil disalin.")
+                        }
+                    ) {
+                        Text("Salin Token")
+                    }
+                    TextButton(onClick = { vm.clearCustomerPortalToken() }) {
+                        Text("Tutup")
+                    }
+                }
+            }
+        )
     }
 
     rejectRow?.let { row ->
