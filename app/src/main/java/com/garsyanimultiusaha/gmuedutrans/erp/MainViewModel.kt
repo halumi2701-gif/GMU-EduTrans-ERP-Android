@@ -220,6 +220,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (role in listOf("Owner", "Manager")) {
+            wanted += "booking_requests" to "created_at.desc"
             wanted += "programs" to "sort_order.asc"
             wanted += "staff_attendance" to "attendance_date.desc"
             wanted += "staff_assignments" to "created_at.desc"
@@ -314,6 +315,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loadAll(session)
             } catch (e: Exception) {
                 done(false, e.message ?: "Gagal memperbarui data.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun reviewBookingRequest(
+        requestId: String,
+        accepted: Boolean,
+        reason: String = "",
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager")) {
+            done(false, "Hanya Owner / Manager yang dapat memproses pengajuan.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.reviewBookingRequest(session.accessToken, requestId, accepted, reason)
+                val message = if (accepted) {
+                    "Pengajuan diterima dan masuk tahap verifikasi."
+                } else {
+                    "Pengajuan ditolak."
+                }
+                done(true, message)
+                loadAll(session)
+            } catch (e: Exception) {
+                done(false, e.message ?: "Status pengajuan gagal diperbarui.")
             }
             actionBusy = false
         }
