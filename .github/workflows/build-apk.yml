@@ -2,7 +2,7 @@ name: Build Android Debug APK
 
 on:
   push:
-    branches: [ "main", "hotfix/alpha5-visible-menu" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
