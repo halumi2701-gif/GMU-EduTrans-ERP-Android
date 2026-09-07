@@ -53,6 +53,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var planningError by mutableStateOf<String?>(null)
         private set
+    var bookingRequests by mutableStateOf<List<BookingRequestItem>>(emptyList())
+        private set
+    var bookingRequestError by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -151,6 +155,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 dataError = firstError
                 if (FinancialAccess.canView(session.profile.role)) {
                     try {
+                        bookingRequests = api.getBookingRequests(session.accessToken)
+                        bookingRequestError = null
+                    } catch (e: Exception) {
+                        bookingRequests = emptyList()
+                        bookingRequestError = e.message ?: "Pengajuan Website gagal dimuat."
+                    }
+                    try {
                         managementDashboard = api.getManagementDashboard(session.accessToken)
                         managementError = null
                     } catch (e: Exception) {
@@ -165,6 +176,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         planningError = e.message ?: "Planning & Business Control gagal dimuat."
                     }
                 } else {
+                    bookingRequests = emptyList()
+                    bookingRequestError = null
                     managementDashboard = null
                     managementError = null
                     planningDashboard = null
@@ -220,7 +233,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (role in listOf("Owner", "Manager")) {
-            wanted += "booking_requests" to "created_at.desc"
             wanted += "programs" to "sort_order.asc"
             wanted += "staff_attendance" to "attendance_date.desc"
             wanted += "staff_assignments" to "created_at.desc"
@@ -335,6 +347,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 api.reviewBookingRequest(session.accessToken, requestId, accepted, reason)
+                bookingRequests = api.getBookingRequests(session.accessToken)
+                bookingRequestError = null
                 val message = if (accepted) {
                     "Pengajuan diterima dan masuk tahap verifikasi."
                 } else {
@@ -690,6 +704,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         customers = emptyList()
         bookings = emptyList()
         rows = emptyMap()
+        bookingRequests = emptyList()
+        bookingRequestError = null
         managementDashboard = null
         managementError = null
         planningDashboard = null
