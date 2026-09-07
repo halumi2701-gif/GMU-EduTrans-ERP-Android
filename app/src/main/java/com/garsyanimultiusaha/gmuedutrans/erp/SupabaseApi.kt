@@ -412,6 +412,45 @@ class SupabaseApi {
         request("POST", "/functions/v1/internal-booking-inbox", payload, accessToken)
     }
 
+
+    suspend fun getBookingRequests(accessToken: String): List<BookingRequestItem> = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "list")
+            .put("status", "ALL")
+            .toString()
+        val root = JSONObject(request("POST", "/functions/v1/internal-booking-inbox", payload, accessToken))
+        val arr = root.optJSONArray("items") ?: JSONArray()
+        buildList {
+            for (i in 0 until arr.length()) {
+                val x = arr.optJSONObject(i) ?: continue
+                val program = x.optJSONObject("programs")?.optString("name", "").orEmpty()
+                add(
+                    BookingRequestItem(
+                        id = x.optString("id", ""),
+                        bookingCode = x.optString("booking_code", ""),
+                        status = x.optString("status", ""),
+                        institutionName = x.optString("institution_name", ""),
+                        picName = x.optString("pic_name", ""),
+                        whatsapp = x.optString("whatsapp", ""),
+                        email = x.optString("email", ""),
+                        city = x.optString("city", ""),
+                        programName = program,
+                        customProgram = x.optString("custom_program", ""),
+                        tripDate = x.optString("trip_date", ""),
+                        pax = x.optInt("pax", 0),
+                        companionPax = x.optInt("companion_pax", 0),
+                        participantGroup = x.optString("participant_group", ""),
+                        meetingPoint = x.optString("meeting_point", ""),
+                        source = x.optString("source", ""),
+                        createdAt = x.optString("created_at", ""),
+                        updatedAt = x.optString("updated_at", ""),
+                        convertedBookingId = x.optString("converted_booking_id", "")
+                    )
+                )
+            }
+        }
+    }
+
     suspend fun audit(
         accessToken: String,
         userId: String,
