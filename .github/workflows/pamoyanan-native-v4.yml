@@ -1,0 +1,51 @@
+name: Build PAMOYANAN ONE Native V4
+
+on:
+  push:
+    branches:
+      - pamoyanan-native-v4-startup
+    paths:
+      - "pamoyanan-native-v4/**"
+      - ".github/workflows/pamoyanan-native-v4.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build Native APK
+        working-directory: pamoyanan-native-v4
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Artifact
+        run: |
+          mkdir -p artifact
+          cp pamoyanan-native-v4/app/build/outputs/apk/debug/app-debug.apk artifact/PAMOYANAN_ONE_v6.7.1_NATIVE_V4.apk
+          sha256sum artifact/PAMOYANAN_ONE_v6.7.1_NATIVE_V4.apk | tee artifact/SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PAMOYANAN_ONE_NATIVE_V4
+          path: artifact/
+          retention-days: 7
