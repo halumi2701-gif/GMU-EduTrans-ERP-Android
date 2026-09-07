@@ -274,6 +274,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 AppPage.DASHBOARD -> DashboardScreen(vm, session)
                 AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice = { notice = it })
                 AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice = { notice = it })
+                AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice = { notice = it })
                 AppPage.CUSTOMERS -> CustomerScreen(vm, session, onNotice = { notice = it })
                 AppPage.FINANCE -> FinanceScreen(vm, session, onNotice = { notice = it })
                 AppPage.PLANNING -> PlanningScreen(vm, session, onNotice = { notice = it })
@@ -361,6 +362,7 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
     val allowed = RoleAccess.pages(session.profile.role)
     val allMenus = listOf(
         Triple(AppPage.BOOKING_REQUESTS, "Pengajuan Website", Icons.Rounded.Inbox),
+        Triple(AppPage.QUOTATIONS, "Quotation & Pricing", Icons.Rounded.RequestQuote),
         Triple(AppPage.CUSTOMERS, "Customer", Icons.Rounded.Groups),
         Triple(AppPage.PLANNING, "Planning & Control", Icons.Rounded.Assessment),
         Triple(AppPage.VENDORS, "Vendor & PO", Icons.Rounded.Storefront),
