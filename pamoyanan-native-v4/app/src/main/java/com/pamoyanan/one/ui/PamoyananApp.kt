@@ -246,7 +246,7 @@ private fun BrandMark(size: androidx.compose.ui.unit.Dp = 48.dp) {
             .background(Brush.linearGradient(listOf(BrandDark, Brand))),
         contentAlignment = Alignment.Center
     ) {
-        Text("01", color = Color.White, fontWeight = FontWeight.Black, fontSize = (size.value * .3f).sp)
+        Icon(painter = painterResource(R.drawable.logo_rw01), contentDescription = "Logo RW 01", tint = Color.Unspecified, modifier = Modifier.size(size))
     }
 }
 
