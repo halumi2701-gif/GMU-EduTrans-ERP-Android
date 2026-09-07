@@ -2,7 +2,7 @@ name: Build Android Debug APK
 
 on:
   push:
-    branches: [ "main", "hotfix/customer-token-access" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
