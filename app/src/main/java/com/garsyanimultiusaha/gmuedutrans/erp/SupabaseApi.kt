@@ -322,6 +322,21 @@ class SupabaseApi {
             if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
         }
 
+    suspend fun updateBookingStatus(
+        accessToken: String,
+        bookingId: String,
+        status: String
+    ): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "update_status")
+            .put("booking_id", bookingId)
+            .put("status", status)
+            .toString()
+        val root = JSONObject(request("POST", "/functions/v1/internal-booking-control", payload, accessToken))
+        root.optJSONObject("item")?.optString("status", status) ?: status
+    }
+
+
     suspend fun updateRow(accessToken: String, table: String, id: String, values: Map<String, Any?>): ErpRow? =
         withContext(Dispatchers.IO) {
             val payload = JSONObject()
