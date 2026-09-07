@@ -2,7 +2,7 @@ name: Build Android Debug APK
 
 on:
   push:
-    branches: [ "main", "hotfix/booking-status-private-permission" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
