@@ -324,6 +324,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateBookingStatus(
+        bookingId: String,
+        status: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager", "Admin", "Sales")) {
+            done(false, "Tidak memiliki akses update status Booking.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                val saved = api.updateBookingStatus(session.accessToken, bookingId, status)
+                done(true, "Status booking berhasil diperbarui menjadi " + saved + ".")
+                loadAll(session)
+            } catch (e: Exception) {
+                done(false, e.message ?: "Status booking gagal diperbarui.")
+            }
+            actionBusy = false
+        }
+    }
+
     fun update(table: String, id: String, values: Map<String, Any?>, successMessage: String, done: (Boolean, String) -> Unit) {
         val session = activeSession() ?: return
         actionBusy = true
