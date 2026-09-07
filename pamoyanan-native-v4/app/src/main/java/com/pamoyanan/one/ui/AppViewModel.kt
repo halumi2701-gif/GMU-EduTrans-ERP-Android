@@ -44,16 +44,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var digitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
         private set
-    var staffDigitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
-        private set
-    var staffDigitalResidentId = androidx.compose.runtime.mutableStateOf<String?>(null)
-        private set
-    var staffDigitalResidentName = androidx.compose.runtime.mutableStateOf("")
-        private set
-    var staffDigitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
-        private set
-    var staffDigitalResidentId = androidx.compose.runtime.mutableStateOf<String?>(null)
-        private set
     var letters = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
         private set
     var templates = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
@@ -182,7 +172,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         when (target) {
             "home" -> loadHome()
             "digital" -> loadDigitalId()
-            "digitalStaff" -> loadResidents()
             "letters" -> loadLetters()
             "complaints" -> loadComplaints()
             "residents" -> loadResidents()
@@ -205,47 +194,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun openResidentDigitalId(residentId: String) {
-        staffDigitalResidentId.value = residentId
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                staffDigitalId.value = api.residentDigitalId(residentId)
-            } catch (e: Exception) { fail(e) }
-            finally { loading.value = false }
-        }
-    }
-
-    fun closeResidentDigitalId() {
-        staffDigitalId.value = null
-        staffDigitalResidentId.value = null
-    }
-
-    fun rotateResidentDigitalId() {
-        val residentId = staffDigitalResidentId.value ?: return
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                staffDigitalId.value = api.rotateResidentQr(residentId)
-                notice.value = UiNotice("QR Digital ID warga berhasil diperbarui.")
-            } catch (e: Exception) { fail(e) }
-            finally { loading.value = false }
-        }
-    }
-
-    fun revokeResidentDigitalId() {
-        val residentId = staffDigitalResidentId.value ?: return
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                api.revokeResidentDigitalId(residentId)
-                notice.value = UiNotice("Digital ID warga berhasil dicabut.")
-                closeResidentDigitalId()
-            } catch (e: Exception) { fail(e) }
-            finally { loading.value = false }
-        }
-    }
-
     fun rotateQr() {
         viewModelScope.launch {
             loading.value = true
@@ -255,53 +203,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) { fail(e) }
             finally { loading.value = false }
         }
-    }
-
-    fun openResidentDigitalId(residentId: String, residentName: String) {
-        staffDigitalResidentId.value = residentId
-        staffDigitalResidentName.value = residentName
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                staffDigitalId.value = api.residentDigitalId(residentId)
-            } catch (e: Exception) {
-                staffDigitalId.value = null
-                fail(e)
-            } finally {
-                loading.value = false
-            }
-        }
-    }
-
-    fun rotateResidentDigitalId() {
-        val id = staffDigitalResidentId.value ?: return
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                staffDigitalId.value = api.rotateResidentDigitalId(id)
-                notice.value = UiNotice("QR Digital ID warga berhasil diperbarui.")
-            } catch (e: Exception) { fail(e) }
-            finally { loading.value = false }
-        }
-    }
-
-    fun revokeResidentDigitalId() {
-        val id = staffDigitalResidentId.value ?: return
-        viewModelScope.launch {
-            loading.value = true
-            try {
-                api.revokeResidentDigitalId(id)
-                staffDigitalId.value = null
-                notice.value = UiNotice("QR Digital ID warga berhasil dicabut.")
-            } catch (e: Exception) { fail(e) }
-            finally { loading.value = false }
-        }
-    }
-
-    fun clearResidentDigitalId() {
-        staffDigitalId.value = null
-        staffDigitalResidentId.value = null
-        staffDigitalResidentName.value = ""
     }
 
     fun loadLetters() {
@@ -349,9 +250,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             loading.value = true
             try {
-                if (me.value?.role == "RW" || me.value?.role == "ADMIN") {
-                    api.letterAction(id, "regenerate-pdf")
-                }
                 val file: File = api.downloadLetterPdf(id)
                 val context = getApplication<Application>()
                 val uri = FileProvider.getUriForFile(context, "com.pamoyanan.one.files", file)
