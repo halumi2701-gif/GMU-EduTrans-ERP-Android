@@ -28,8 +28,8 @@ fun BookingRequestScreen(
     var filter by remember { mutableStateOf("NEW_REQUEST") }
     var rejectRow by remember { mutableStateOf<ErpRow?>(null) }
 
-    val all = vm.table("booking_requests")
-    val rows = all.filter { filter == "ALL" || it.text("status") == filter }
+    val all = vm.bookingRequests
+    val rows = all.filter { filter == "ALL" || it.status == filter }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(12.dp))
@@ -66,7 +66,7 @@ fun BookingRequestScreen(
             }
 
             items(rows, key = { it.id }) { r ->
-                val program = requestProgramName(vm, r)
+                val program = requestProgramName(r)
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.padding(15.dp)) {
                         Row(
@@ -75,37 +75,37 @@ fun BookingRequestScreen(
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    r.text("institution_name").ifBlank { "Pengajuan Website" },
+                                    r.institutionName.ifBlank { "Pengajuan Website" },
                                     fontWeight = FontWeight.Black,
                                     color = GmuDark
                                 )
                                 Text(
-                                    r.text("booking_code"),
+                                    r.bookingCode,
                                     fontSize = 11.sp,
                                     color = Color.Gray
                                 )
                             }
-                            StatusChip(requestStatusLabel(r.text("status")))
+                            StatusChip(requestStatusLabel(r.status))
                         }
 
                         Spacer(Modifier.height(8.dp))
                         RequestLine("Program", program)
-                        RequestLine("Tanggal", r.text("trip_date"))
-                        RequestLine("Peserta", r.text("pax") + " pax")
-                        RequestLine("PIC", r.text("pic_name"))
-                        if (r.text("whatsapp").isNotBlank()) {
-                            RequestLine("WhatsApp", r.text("whatsapp"))
+                        RequestLine("Tanggal", r.tripDate)
+                        RequestLine("Peserta", r.pax.toString() + " pax")
+                        RequestLine("PIC", r.picName)
+                        if (r.whatsapp.isNotBlank()) {
+                            RequestLine("WhatsApp", r.whatsapp)
                         }
-                        if (r.text("internal_notes").isNotBlank()) {
+                        if ("".isNotBlank()) {
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                r.text("internal_notes"),
+                                "",
                                 fontSize = 11.sp,
                                 color = Color.Gray
                             )
                         }
 
-                        if (r.text("status") == "NEW_REQUEST") {
+                        if (r.status == "NEW_REQUEST") {
                             Spacer(Modifier.height(10.dp))
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -146,7 +146,7 @@ fun BookingRequestScreen(
             text = {
                 Column {
                     Text(
-                        row.text("institution_name").ifBlank { row.text("booking_code") },
+                        row.institutionName.ifBlank { row.bookingCode },
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(8.dp))
@@ -202,20 +202,12 @@ private fun RequestLine(label: String, value: String) {
     }
 }
 
-private fun requestProgramName(vm: MainViewModel, r: ErpRow): String {
-    val custom = r.text("custom_program")
-    if (custom.isNotBlank()) return custom
-    val programId = r.text("program_id")
-    return vm.table("programs")
-        .firstOrNull { it.id == programId }
-        ?.text("name")
-        .orEmpty()
-        .ifBlank { "Program belum ditentukan" }
-}
+private fun requestProgramName(r: BookingRequestItem): String =
+    r.programName.ifBlank { r.customProgram }.ifBlank { "Program belum ditentukan" }
 
 private fun requestStatusLabel(status: String): String = when (status) {
     "NEW_REQUEST" -> "Baru"
-    "VERIFICATION" -> "Verifikasi"
+    "VERIFICATION" -> "Diterima / Verifikasi"
     "QUOTATION" -> "Quotation"
     "WAITING_DP" -> "Menunggu DP"
     "CONFIRMED" -> "Confirmed"
