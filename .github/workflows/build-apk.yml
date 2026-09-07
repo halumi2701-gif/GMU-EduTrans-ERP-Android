@@ -2,7 +2,7 @@ name: Build Android Debug APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "hotfix/quotation-status" ]
   workflow_dispatch:
 
 jobs:
