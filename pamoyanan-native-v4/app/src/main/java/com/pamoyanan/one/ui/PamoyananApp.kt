@@ -1065,6 +1065,13 @@ private fun LetterCard(
                         Text("TERBITKAN", fontSize = 11.sp)
                     }
                 }
+                if ((role == "RW" || role == "ADMIN") && status == "ISSUED") {
+                    OutlinedButton(onClick = { onAction("regenerate-pdf") }, shape = RadiusMD) {
+                        Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text("PERBARUI PDF", fontSize = 12.sp)
+                    }
+                }
                 if (status == "ISSUED" && row.optBoolean("pdf_available")) {
                     Button(onClick = onPdf, shape = RadiusMD, colors = ButtonDefaults.buttonColors(containerColor = Brand)) {
                         Icon(Icons.Outlined.Download, null, modifier = Modifier.size(15.dp))
