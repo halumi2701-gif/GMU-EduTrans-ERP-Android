@@ -124,15 +124,6 @@ class ApiClient(
         JSONObject(raw("/digital-id/residents/" + residentId + "/rotate-qr", "POST", JSONObject()).second)
     suspend fun revokeResidentDigitalId(residentId: String): JSONObject =
         JSONObject(raw("/digital-id/residents/" + residentId + "/revoke", "POST", JSONObject()).second)
-
-    suspend fun residentDigitalId(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId).second)
-
-    suspend fun rotateResidentQr(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId + "/rotate-qr", "POST", JSONObject()).second)
-
-    suspend fun revokeResidentDigitalId(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId + "/revoke", "POST", JSONObject()).second)
     suspend fun letters(): JSONArray = JSONArray(raw("/letters").second)
     suspend fun templates(): JSONArray = JSONArray(raw("/letters/templates").second)
 
