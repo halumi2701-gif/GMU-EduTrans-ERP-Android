@@ -241,13 +241,12 @@ private fun StartupSplash() {
 
 @Composable
 private fun BrandMark(size: androidx.compose.ui.unit.Dp = 48.dp) {
-    Box(
-        Modifier.size(size).clip(RoundedCornerShape(size / 3))
-            .background(Brush.linearGradient(listOf(BrandDark, Brand))),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("01", color = Color.White, fontWeight = FontWeight.Black, fontSize = (size.value * .3f).sp)
-    }
+    androidx.compose.foundation.Image(
+        painter = painterResource(R.drawable.logo_rw01),
+        contentDescription = "Logo RW 01 Pamoyanan Cianjur",
+        modifier = Modifier.size(size),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
@@ -297,7 +296,7 @@ private fun LoginScreen(vm: AppViewModel) {
                         Spacer(Modifier.width(14.dp))
                         Column {
                             Text("PAMOYANAN ONE", fontWeight = FontWeight.Black, fontSize = 20.sp)
-                            Text("Native Startup Experience · V4", color = Muted, fontSize = 13.sp)
+                            Text("Native Startup Experience · V4", color = Muted, fontSize = 15.sp)
                         }
                     }
                     Spacer(Modifier.height(28.dp))
@@ -346,8 +345,8 @@ private fun LoginScreen(vm: AppViewModel) {
                             "Warga memakai NIK 16 digit. Pengurus memakai akun resmi RT/RW. Password awal wajib diganti pada login pertama.",
                             modifier = Modifier.padding(13.dp),
                             color = BrandDark,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp
                         )
                     }
                 }
@@ -394,7 +393,7 @@ private fun InitialPasswordScreen(vm: AppViewModel) {
                 Text(
                     "Minimal 12 karakter, huruf besar, huruf kecil, angka, dan simbol.",
                     color = Muted,
-                    fontSize = 13.sp
+                    fontSize = 15.sp
                 )
                 Spacer(Modifier.height(16.dp))
                 Button(
@@ -454,7 +453,7 @@ private fun MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
                             Spacer(Modifier.width(10.dp))
                             Column {
                                 Text("PAMOYANAN ONE", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                Text(roleLabel(me), color = Muted, fontSize = 12.sp)
+                                Text(roleLabel(me), color = Muted, fontSize = 14.sp)
                             }
                         }
                     },
@@ -483,7 +482,7 @@ private fun MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
                         selected = selected,
                         onClick = { vm.navigate(item.route) },
                         icon = { Icon(item.icon, item.label) },
-                        label = { Text(item.label, fontSize = 12.sp) },
+                        label = { Text(item.label, fontSize = 14.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             selectedTextColor = BrandDark,
@@ -601,16 +600,16 @@ private fun RoleHero(home: JSONObject?, me: UserMe?) {
                         if (role == "WARGA") "LIVE · WARGA RW 01" else "LIVE · OPERATING SYSTEM",
                         Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(Modifier.height(18.dp))
                 Text(title, color = Color.White, fontSize = 29.sp, lineHeight = 31.sp, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(8.dp))
-                Text(subtitle, color = Color.White.copy(alpha = .84f), fontSize = 14.sp, lineHeight = 20.sp)
+                Text(subtitle, color = Color.White.copy(alpha = .84f), fontSize = 14.sp, lineHeight = 24.sp)
                 Spacer(Modifier.height(20.dp))
-                Text("PAMOYANAN ONE · NATIVE V4", color = Color.White.copy(alpha = .70f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("PAMOYANAN ONE · NATIVE V4", color = Color.White.copy(alpha = .70f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -646,7 +645,7 @@ private fun NativePulse(home: JSONObject?, me: UserMe?, vm: AppViewModel) {
                 border = CardDefaults.outlinedCardBorder()
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(card.first.uppercase(), color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(card.first.uppercase(), color = Muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(7.dp))
                     Text(card.second, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
                 }
@@ -662,15 +661,15 @@ private fun QuickActions(me: UserMe?, vm: AppViewModel) {
     val actions = when (me?.role) {
         "RW", "ADMIN" -> listOf(
             QuickAction("Command Center", "Executive cockpit", Icons.Outlined.Dashboard, "command"),
-            QuickAction("Inbox", "Prioritas operasional", Icons.Outlined.Notifications, "inbox"),
+            QuickAction("ID Digital Warga", "Kartu + QR warga", Icons.Outlined.QrCode2, "digitalStaff"),
             QuickAction("Pelayanan", "Approve & terbitkan", Icons.Outlined.Assignment, "letters"),
             QuickAction("Master Warga", "RT 01 + RT 02", Icons.Outlined.People, "residents")
         )
         "RT" -> listOf(
-            QuickAction("Laporan", "Tangani aduan", Icons.Outlined.Campaign, "complaints"),
+            QuickAction("ID Digital Warga", "Kartu + QR warga", Icons.Outlined.QrCode2, "digitalStaff"),
             QuickAction("Warga RT", "Master wilayah", Icons.Outlined.People, "residents"),
             QuickAction("Pelayanan", "Verifikasi surat", Icons.Outlined.Assignment, "letters"),
-            QuickAction("Lainnya", "Modul wilayah", Icons.Outlined.GridView, "more")
+            QuickAction("Laporan", "Tangani aduan", Icons.Outlined.Campaign, "complaints")
         )
         else -> listOf(
             QuickAction("Digital ID", "Identitas warga", Icons.Outlined.QrCode2, "digital"),
@@ -699,7 +698,7 @@ private fun QuickActions(me: UserMe?, vm: AppViewModel) {
                     }
                     Spacer(Modifier.height(10.dp))
                     Text(action.title, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Ink)
-                    Text(action.subtitle, color = Muted, fontSize = 11.sp)
+                    Text(action.subtitle, color = Muted, fontSize = 13.sp)
                 }
             }
         }
@@ -710,11 +709,11 @@ private fun QuickActions(me: UserMe?, vm: AppViewModel) {
 private fun AnnouncementCard(obj: JSONObject) {
     Card(shape = RadiusLG, colors = CardDefaults.cardColors(containerColor = Color.White), border = CardDefaults.outlinedCardBorder()) {
         Column(Modifier.padding(15.dp)) {
-            Text(obj.text("category").uppercase(), color = Brand, fontSize = 11.sp, fontWeight = FontWeight.Black)
+            Text(obj.text("category").uppercase(), color = Brand, fontSize = 13.sp, fontWeight = FontWeight.Black)
             Spacer(Modifier.height(5.dp))
             Text(obj.text("title"), color = Ink, fontWeight = FontWeight.Black, fontSize = 16.sp)
             Spacer(Modifier.height(4.dp))
-            Text(obj.text("body"), color = Muted, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(obj.text("body"), color = Muted, fontSize = 15.sp, lineHeight = 22.sp)
         }
     }
 }
@@ -729,8 +728,8 @@ private fun EventCard(obj: JSONObject) {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(obj.text("title"), fontWeight = FontWeight.Black, fontSize = 15.sp)
-                Text(obj.text("location_text"), color = Muted, fontSize = 12.sp)
-                Text(obj.text("starts_at"), color = Muted, fontSize = 11.sp)
+                Text(obj.text("location_text"), color = Muted, fontSize = 14.sp)
+                Text(obj.text("starts_at"), color = Muted, fontSize = 13.sp)
             }
         }
     }
@@ -876,15 +875,15 @@ private fun DigitalIdCard(
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("PAMOYANAN ONE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                    Text("DIGITAL ID · RW 01 PAMOYANAN", color = Color.White.copy(alpha = .84f), fontSize = 11.sp)
+                    Text("DIGITAL ID · RW 01 PAMOYANAN", color = Color.White.copy(alpha = .84f), fontSize = 13.sp)
                 }
                 Surface(color = Color.White.copy(alpha = .12f), shape = CircleShape) {
-                    Text(obj.text("qr_status"), Modifier.padding(horizontal = 9.dp, vertical = 5.dp), color = Color.White, fontSize = 10.sp)
+                    Text(obj.text("qr_status"), Modifier.padding(horizontal = 9.dp, vertical = 5.dp), color = Color.White, fontSize = 12.sp)
                 }
             }
             Spacer(Modifier.height(22.dp))
             Text(obj.text("name"), color = Color.White, fontWeight = FontWeight.Black, fontSize = 23.sp)
-            Text(obj.text("member_no"), color = Color.White.copy(alpha = .78f), fontSize = 13.sp)
+            Text(obj.text("member_no"), color = Color.White.copy(alpha = .78f), fontSize = 15.sp)
             Spacer(Modifier.height(16.dp))
             InfoLine("NIK", if (reveal) obj.text("nik") else maskNumber(obj.text("nik")))
             InfoLine("No. KK", if (reveal) obj.text("family_no") else maskNumber(obj.text("family_no")))
@@ -906,7 +905,7 @@ private fun DigitalIdCard(
             Spacer(Modifier.height(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onReveal, shape = RadiusMD) {
-                    Text(if (reveal) "SEMBUNYIKAN DATA" else "LIHAT DATA", fontSize = 12.sp)
+                    Text(if (reveal) "SEMBUNYIKAN DATA" else "LIHAT DATA", fontSize = 14.sp)
                 }
                 Button(onClick = onRotate, shape = RadiusMD, colors = ButtonDefaults.buttonColors(containerColor = Brand)) {
                     Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
@@ -926,8 +925,8 @@ private fun DigitalIdCard(
 @Composable
 private fun InfoLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.Top) {
-        Text(label, color = Color.White.copy(alpha = .80f), fontSize = 11.sp, modifier = Modifier.width(70.dp))
-        Text(value, color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(label, color = Color.White.copy(alpha = .80f), fontSize = 13.sp, modifier = Modifier.width(70.dp))
+        Text(value, color = Color.White, fontSize = 15.sp, modifier = Modifier.weight(1f))
     }
 }
 
@@ -955,7 +954,7 @@ private fun LettersScreen(vm: AppViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Pelayanan Surat", fontWeight = FontWeight.Black, fontSize = 24.sp)
-                        Text("Native tracking · RT → RW → PDF + QR", color = Muted, fontSize = 13.sp)
+                        Text("Native tracking · RT → RW → PDF + QR", color = Muted, fontSize = 15.sp)
                     }
                     IconButton(onClick = { vm.loadLetters() }) { Icon(Icons.Outlined.Refresh, null) }
                 }
@@ -966,7 +965,7 @@ private fun LettersScreen(vm: AppViewModel) {
                         FilterChip(
                             selected = filter == status,
                             onClick = { filter = status },
-                            label = { Text(status.replace("_", " "), fontSize = 11.sp) }
+                            label = { Text(status.replace("_", " "), fontSize = 13.sp) }
                         )
                     }
                 }
@@ -995,7 +994,7 @@ private fun LettersScreen(vm: AppViewModel) {
             ) {
                 Icon(Icons.Outlined.Add, null)
                 Spacer(Modifier.width(7.dp))
-                Text("AJUKAN SURAT", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("AJUKAN SURAT", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }
@@ -1031,52 +1030,52 @@ private fun LetterCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(row.text("letter_type"), fontWeight = FontWeight.Black, fontSize = 15.sp)
-                    Text(row.text("request_no"), color = Muted, fontSize = 11.sp)
+                    Text(row.text("request_no"), color = Muted, fontSize = 13.sp)
                 }
                 StatusPill(status)
             }
             Spacer(Modifier.height(9.dp))
-            Text(row.text("purpose"), color = Ink, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(row.text("purpose"), color = Ink, fontSize = 15.sp, lineHeight = 22.sp)
             if (priority == "URGENT") {
                 Spacer(Modifier.height(7.dp))
                 Surface(color = Color(0xFFFFEEEB), shape = RadiusMD) {
                     Row(Modifier.padding(9.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.WarningAmber, null, tint = Danger, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("URGENT · " + row.text("urgent_reason"), color = Danger, fontSize = 11.sp)
+                        Text("URGENT · " + row.text("urgent_reason"), color = Danger, fontSize = 13.sp)
                     }
                 }
             }
             if (row.text("official_no") != "-") {
                 Spacer(Modifier.height(8.dp))
-                Text("No. resmi: " + row.text("official_no"), color = Brand, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("No. resmi: " + row.text("official_no"), color = Brand, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
             Spacer(Modifier.height(10.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                OutlinedButton(onClick = onTimeline, shape = RadiusMD) { Text("TRACKING", fontSize = 11.sp) }
+                OutlinedButton(onClick = onTimeline, shape = RadiusMD) { Text("TRACKING", fontSize = 13.sp) }
                 if ((role == "RT" || role == "RW" || role == "ADMIN") && status == "SUBMITTED") {
-                    FilledTonalButton(onClick = { onAction("rt-verify") }, shape = RadiusMD) { Text("VERIFIKASI RT", fontSize = 11.sp) }
+                    FilledTonalButton(onClick = { onAction("rt-verify") }, shape = RadiusMD) { Text("VERIFIKASI RT", fontSize = 13.sp) }
                 }
                 if ((role == "RW" || role == "ADMIN") && status == "RT_VERIFIED") {
-                    FilledTonalButton(onClick = { onAction("rw-approve") }, shape = RadiusMD) { Text("APPROVE RW", fontSize = 11.sp) }
+                    FilledTonalButton(onClick = { onAction("rw-approve") }, shape = RadiusMD) { Text("APPROVE RW", fontSize = 13.sp) }
                 }
                 if ((role == "RW" || role == "ADMIN") && status == "RW_APPROVED") {
                     Button(onClick = { onAction("issue") }, shape = RadiusMD, colors = ButtonDefaults.buttonColors(containerColor = BrandDark)) {
-                        Text("TERBITKAN", fontSize = 11.sp)
+                        Text("TERBITKAN", fontSize = 13.sp)
                     }
                 }
                 if ((role == "RW" || role == "ADMIN") && status == "ISSUED") {
                     OutlinedButton(onClick = { onAction("regenerate-pdf") }, shape = RadiusMD) {
                         Icon(Icons.Outlined.Refresh, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(5.dp))
-                        Text("PERBARUI PDF", fontSize = 12.sp)
+                        Text("PERBARUI PDF", fontSize = 14.sp)
                     }
                 }
                 if (status == "ISSUED" && row.optBoolean("pdf_available")) {
                     Button(onClick = onPdf, shape = RadiusMD, colors = ButtonDefaults.buttonColors(containerColor = Brand)) {
                         Icon(Icons.Outlined.Download, null, modifier = Modifier.size(15.dp))
                         Spacer(Modifier.width(5.dp))
-                        Text("PDF", fontSize = 11.sp)
+                        Text("PDF", fontSize = 13.sp)
                     }
                 }
             }
@@ -1091,7 +1090,7 @@ private fun StatusPill(status: String) {
             status.replace("_", " "),
             Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
             color = statusColor(status),
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Black
         )
     }
@@ -1120,10 +1119,10 @@ private fun CreateLetterSheet(
         ) {
             item {
                 Text("Ajukan Surat", fontWeight = FontWeight.Black, fontSize = 22.sp)
-                Text("Form native PAMOYANAN ONE", color = Muted, fontSize = 13.sp)
+                Text("Form native PAMOYANAN ONE", color = Muted, fontSize = 15.sp)
             }
             item {
-                Text("Jenis surat", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Jenis surat", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     templates.take(12).forEach { t ->
                         FilterChip(
@@ -1133,7 +1132,7 @@ private fun CreateLetterSheet(
                                 fields.clear()
                                 checked.clear()
                             },
-                            label = { Text(t.text("short", t.text("title")), fontSize = 10.sp) }
+                            label = { Text(t.text("short", t.text("title")), fontSize = 12.sp) }
                         )
                     }
                 }
@@ -1174,7 +1173,7 @@ private fun CreateLetterSheet(
                         Checkbox(checked = checked.contains(id), onCheckedChange = {
                             if (it) { if (!checked.contains(id)) checked.add(id) } else checked.remove(id)
                         })
-                        Text(req.text("label"), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text(req.text("label"), fontSize = 15.sp, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -1235,7 +1234,7 @@ private fun TimelineSheet(data: JSONObject, onDismiss: () -> Unit) {
         ) {
             item {
                 Text("Tracking Surat", fontWeight = FontWeight.Black, fontSize = 22.sp)
-                Text(data.text("request_no"), color = Muted, fontSize = 13.sp)
+                Text(data.text("request_no"), color = Muted, fontSize = 15.sp)
             }
             items(events) { e ->
                 Row(verticalAlignment = Alignment.Top) {
@@ -1252,9 +1251,9 @@ private fun TimelineSheet(data: JSONObject, onDismiss: () -> Unit) {
                         Text(
                             if (e.optBoolean("done")) e.text("at", "Selesai") else "Menunggu",
                             color = Muted,
-                            fontSize = 11.sp
+                            fontSize = 13.sp
                         )
-                        if (e.text("actor") != "-") Text(e.text("actor"), color = Muted, fontSize = 11.sp)
+                        if (e.text("actor") != "-") Text(e.text("actor"), color = Muted, fontSize = 13.sp)
                     }
                 }
             }
@@ -1285,7 +1284,7 @@ private fun ComplaintsScreen(vm: AppViewModel) {
                         Text(
                             if (me?.role == "WARGA") "RT menangani · RW memantau" else "Operational complaint workflow",
                             color = Muted,
-                            fontSize = 13.sp
+                            fontSize = 15.sp
                         )
                     }
                     IconButton(onClick = { vm.loadComplaints() }) { Icon(Icons.Outlined.Refresh, null) }
@@ -1313,7 +1312,7 @@ private fun ComplaintsScreen(vm: AppViewModel) {
         ) {
             Icon(Icons.Outlined.Add, null)
             Spacer(Modifier.width(7.dp))
-            Text("BUAT LAPORAN", fontSize = 13.sp)
+            Text("BUAT LAPORAN", fontSize = 15.sp)
         }
     }
 
@@ -1352,7 +1351,7 @@ private fun ComplaintCard(row: JSONObject, role: String, onAction: (String) -> U
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(row.text("category"), fontWeight = FontWeight.Black, fontSize = 15.sp)
-                    Text(row.text("complaint_no"), color = Muted, fontSize = 11.sp)
+                    Text(row.text("complaint_no"), color = Muted, fontSize = 13.sp)
                 }
                 StatusPill(if (priority == "URGENT") "URGENT" else status)
             }
@@ -1360,17 +1359,17 @@ private fun ComplaintCard(row: JSONObject, role: String, onAction: (String) -> U
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.LocationOn, null, tint = Muted, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text(row.text("location_text"), color = Muted, fontSize = 12.sp)
+                Text(row.text("location_text"), color = Muted, fontSize = 14.sp)
             }
             Spacer(Modifier.height(6.dp))
-            Text(row.text("body"), color = Ink, fontSize = 13.sp, lineHeight = 18.sp)
+            Text(row.text("body"), color = Ink, fontSize = 15.sp, lineHeight = 22.sp)
             Spacer(Modifier.height(8.dp))
-            Text("Routing: " + row.text("routing_state") + " · Handler: " + row.text("current_handler"), color = Muted, fontSize = 11.sp)
+            Text("Routing: " + row.text("routing_state") + " · Handler: " + row.text("current_handler"), color = Muted, fontSize = 13.sp)
             if (role == "RT") {
                 Spacer(Modifier.height(9.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("ACK" to "TERIMA", "START" to "MULAI", "ESCALATE_RW" to "ESKALASI", "RESOLVE" to "SELESAI").forEach { (a, label) ->
-                        OutlinedButton(onClick = { onAction(a) }, shape = RadiusMD) { Text(label, fontSize = 10.sp) }
+                        OutlinedButton(onClick = { onAction(a) }, shape = RadiusMD) { Text(label, fontSize = 12.sp) }
                     }
                 }
             }
@@ -1378,7 +1377,7 @@ private fun ComplaintCard(row: JSONObject, role: String, onAction: (String) -> U
                 Spacer(Modifier.height(9.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("RW_NOTE" to "CATATAN", "RW_TAKEOVER" to "AMBIL ALIH", "RESOLVE" to "SELESAI", "REJECT" to "TUTUP").forEach { (a, label) ->
-                        OutlinedButton(onClick = { onAction(a) }, shape = RadiusMD) { Text(label, fontSize = 10.sp) }
+                        OutlinedButton(onClick = { onAction(a) }, shape = RadiusMD) { Text(label, fontSize = 12.sp) }
                     }
                 }
             }
@@ -1407,12 +1406,12 @@ private fun CreateComplaintSheet(
         ) {
             item {
                 Text("Buat Laporan", fontWeight = FontWeight.Black, fontSize = 22.sp)
-                Text("Laporan masuk ke RT terlebih dahulu dan RW memantau.", color = Muted, fontSize = 13.sp)
+                Text("Laporan masuk ke RT terlebih dahulu dan RW memantau.", color = Muted, fontSize = 15.sp)
             }
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Kebersihan", "Sampah", "PJU", "Keamanan", "Drainase", "Lainnya").forEach {
-                        FilterChip(selected = category == it, onClick = { category = it }, label = { Text(it, fontSize = 11.sp) })
+                        FilterChip(selected = category == it, onClick = { category = it }, label = { Text(it, fontSize = 13.sp) })
                     }
                 }
             }
@@ -1433,7 +1432,7 @@ private fun CreateComplaintSheet(
             item {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("LOW", "NORMAL", "HIGH", "URGENT").forEach {
-                        FilterChip(selected = priority == it, onClick = { priority = it }, label = { Text(it, fontSize = 11.sp) })
+                        FilterChip(selected = priority == it, onClick = { priority = it }, label = { Text(it, fontSize = 13.sp) })
                     }
                 }
             }
@@ -1462,7 +1461,7 @@ private fun ComplaintActionSheet(row: JSONObject, action: String, onDismiss: () 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(18.dp).navigationBarsPadding()) {
             Text("Tindak Lanjut", fontWeight = FontWeight.Black, fontSize = 21.sp)
-            Text(row.text("complaint_no") + " · " + action.replace("_", " "), color = Muted, fontSize = 13.sp)
+            Text(row.text("complaint_no") + " · " + action.replace("_", " "), color = Muted, fontSize = 15.sp)
             Spacer(Modifier.height(14.dp))
             OutlinedTextField(
                 value = note,
@@ -1503,7 +1502,7 @@ private fun ResidentsScreen(vm: AppViewModel) {
             Text(
                 if (me?.role == "RT") "Scope RT " + (me?.rtScope?.toIntOrNull() ?: 0) else "Scope RW 01 · RT 01 + RT 02",
                 color = Muted,
-                fontSize = 13.sp
+                fontSize = 15.sp
             )
         }
         item {
@@ -1522,7 +1521,7 @@ private fun ResidentsScreen(vm: AppViewModel) {
         }
         val list = rows?.objects().orEmpty()
         item {
-            Text(list.size.toString() + " warga ditampilkan", color = Muted, fontSize = 12.sp)
+            Text(list.size.toString() + " warga ditampilkan", color = Muted, fontSize = 14.sp)
         }
         items(list, key = { it.text("id") }) { row ->
             ResidentCard(row, onDigitalId = { vm.openResidentDigitalId(row.text("id")) })
@@ -1545,21 +1544,21 @@ private fun ResidentCard(row: JSONObject, onDigitalId: (() -> Unit)? = null) {
             Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
                 Text(row.text("name"), fontWeight = FontWeight.Black, fontSize = 14.sp)
-                Text(row.text("member_no"), color = Muted, fontSize = 11.sp)
-                Text("RT " + row.text("rt") + " / RW " + row.text("rw"), color = Muted, fontSize = 11.sp)
+                Text(row.text("member_no"), color = Muted, fontSize = 13.sp)
+                Text("RT " + row.text("rt") + " / RW " + row.text("rw"), color = Muted, fontSize = 13.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
                 val desil = row.optInt("desil", 0)
                 if (desil > 0) {
                     Surface(color = Mint, shape = CircleShape) {
-                        Text("D" + desil, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Brand, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        Text("D" + desil, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Brand, fontSize = 12.sp, fontWeight = FontWeight.Black)
                     }
                 }
                 Spacer(Modifier.height(5.dp))
-                Text(maskNumber(row.text("nik")), color = Muted, fontSize = 13.sp)
+                Text(maskNumber(row.text("nik")), color = Muted, fontSize = 15.sp)
                 if (onDigitalId != null) {
                     Spacer(Modifier.height(5.dp))
-                    Text("BUKA ID DIGITAL", color = Brand, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                    Text("BUKA ID DIGITAL", color = Brand, fontSize = 15.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
@@ -1580,9 +1579,9 @@ private fun InboxScreen(vm: AppViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Inbox Operasional", fontWeight = FontWeight.Black, fontSize = 24.sp)
-                    Text((data?.optInt("unread") ?: 0).toString() + " belum dibaca", color = Muted, fontSize = 13.sp)
+                    Text((data?.optInt("unread") ?: 0).toString() + " belum dibaca", color = Muted, fontSize = 15.sp)
                 }
-                TextButton(onClick = { vm.markAllRead() }) { Text("BACA SEMUA", fontSize = 11.sp) }
+                TextButton(onClick = { vm.markAllRead() }) { Text("BACA SEMUA", fontSize = 13.sp) }
             }
         }
         if (notifications.isEmpty()) item { EmptyCard("Inbox bersih.") }
@@ -1598,9 +1597,9 @@ private fun InboxScreen(vm: AppViewModel) {
                     }
                     Spacer(Modifier.width(10.dp))
                     Column {
-                        Text(n.text("title"), fontWeight = FontWeight.Black, fontSize = 13.sp)
-                        Text(n.text("body"), color = Muted, fontSize = 12.sp, lineHeight = 16.sp)
-                        Text(n.text("created_at"), color = Muted, fontSize = 10.sp)
+                        Text(n.text("title"), fontWeight = FontWeight.Black, fontSize = 15.sp)
+                        Text(n.text("body"), color = Muted, fontSize = 14.sp, lineHeight = 16.sp)
+                        Text(n.text("created_at"), color = Muted, fontSize = 12.sp)
                     }
                 }
             }
@@ -1619,16 +1618,16 @@ private fun CommandScreen(vm: AppViewModel) {
     ) {
         item {
             Text("Command Center", fontWeight = FontWeight.Black, fontSize = 24.sp)
-            Text("Executive operating cockpit · RW 01", color = Muted, fontSize = 13.sp)
+            Text("Executive operating cockpit · RW 01", color = Muted, fontSize = 15.sp)
         }
         item {
             Card(shape = RadiusXL, colors = CardDefaults.cardColors(containerColor = BrandDark)) {
                 Column(Modifier.padding(20.dp)) {
-                    Text("RW 01 LIVE", color = Color.White.copy(alpha = .84f), fontSize = 11.sp, fontWeight = FontWeight.Black)
+                    Text("RW 01 LIVE", color = Color.White.copy(alpha = .84f), fontSize = 13.sp, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(8.dp))
                     Text("Keputusan berbasis data operasional.", color = Color.White, fontWeight = FontWeight.Black, fontSize = 24.sp, lineHeight = 27.sp)
                     Spacer(Modifier.height(10.dp))
-                    Text("Pantau demografi, layanan, laporan, sosial, dan alert wilayah secara native.", color = Color.White.copy(alpha = .80f), fontSize = 13.sp, lineHeight = 18.sp)
+                    Text("Pantau demografi, layanan, laporan, sosial, dan alert wilayah secara native.", color = Color.White.copy(alpha = .80f), fontSize = 15.sp, lineHeight = 22.sp)
                 }
             }
         }
@@ -1663,7 +1662,7 @@ private fun CommandScreen(vm: AppViewModel) {
 private fun SectionHeader(title: String, subtitle: String) {
     Column {
         Text(title, fontWeight = FontWeight.Black, fontSize = 16.sp)
-        Text(subtitle, color = Muted, fontSize = 12.sp)
+        Text(subtitle, color = Muted, fontSize = 14.sp)
     }
 }
 
@@ -1679,7 +1678,7 @@ private fun ObjectMetricRow(obj: JSONObject, prefix: String = "") {
                 border = CardDefaults.outlinedCardBorder()
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(prefix + key, color = Muted, fontSize = 10.sp)
+                    Text(prefix + key, color = Muted, fontSize = 12.sp)
                     Text(obj.opt(key).toString(), fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
             }
@@ -1692,7 +1691,7 @@ private fun ObjectMetricGrid(obj: JSONObject, prefix: String = "") {
     val keys = obj.keys().asSequence().toList().take(10)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         keys.forEach { key ->
-            AssistChip(onClick = {}, label = { Text(prefix + key + " · " + obj.opt(key).toString(), fontSize = 11.sp) })
+            AssistChip(onClick = {}, label = { Text(prefix + key + " · " + obj.opt(key).toString(), fontSize = 13.sp) })
         }
     }
 }
@@ -1738,7 +1737,7 @@ private fun MoreScreen(vm: AppViewModel) {
 
     Column(Modifier.fillMaxSize().padding(14.dp)) {
         Text("Semua Layanan", fontWeight = FontWeight.Black, fontSize = 24.sp)
-        Text("Native module launcher", color = Muted, fontSize = 13.sp)
+        Text("Native module launcher", color = Muted, fontSize = 15.sp)
         Spacer(Modifier.height(14.dp))
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -1761,7 +1760,7 @@ private fun MoreScreen(vm: AppViewModel) {
                         }
                         Spacer(Modifier.height(10.dp))
                         Text(module.title, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                        Text(module.subtitle, color = Muted, fontSize = 11.sp)
+                        Text(module.subtitle, color = Muted, fontSize = 13.sp)
                     }
                 }
             }
@@ -1782,7 +1781,7 @@ private fun GenericModuleScreen(vm: AppViewModel) {
                 IconButton(onClick = { vm.navigate("more") }) { Icon(Icons.Outlined.ArrowBack, null) }
                 Column {
                     Text(title, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                    Text("Native data module", color = Muted, fontSize = 12.sp)
+                    Text("Native data module", color = Muted, fontSize = 14.sp)
                 }
             }
         }
@@ -1814,15 +1813,15 @@ private fun GenericObjectCard(obj: JSONObject) {
                 val value = obj.opt(key)
                 if (value !is JSONObject && value !is JSONArray) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                        Text(key.replace("_", " "), color = Muted, fontSize = 11.sp, modifier = Modifier.width(100.dp))
-                        Text(value?.toString() ?: "-", color = Ink, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text(key.replace("_", " "), color = Muted, fontSize = 13.sp, modifier = Modifier.width(100.dp))
+                        Text(value?.toString() ?: "-", color = Ink, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 3, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
             val nestedObjects = keys.mapNotNull { key -> (obj.opt(key) as? JSONObject)?.let { key to it } }
             nestedObjects.take(2).forEach { pair ->
                 Spacer(Modifier.height(6.dp))
-                Text(pair.first.replace("_", " ").uppercase(), color = Brand, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                Text(pair.first.replace("_", " ").uppercase(), color = Brand, fontSize = 12.sp, fontWeight = FontWeight.Black)
                 ObjectMetricGrid(pair.second)
             }
         }
@@ -1922,8 +1921,8 @@ private fun SearchRow(title: String, subtitle: String, icon: ImageVector, onClic
     ) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                Text(subtitle, color = Muted, fontSize = 11.sp)
+                Text(title, fontWeight = FontWeight.Black, fontSize = 15.sp)
+                Text(subtitle, color = Muted, fontSize = 13.sp)
             }
             Icon(icon, null, tint = Muted)
         }
