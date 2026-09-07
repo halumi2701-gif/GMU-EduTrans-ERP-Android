@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F6F8F7">
+
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#F6F8F7" />
+
+    <LinearLayout
+        android:id="@+id/splashOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:background="#F6F8F7">
+
+        <TextView
+            android:layout_width="74dp"
+            android:layout_height="74dp"
+            android:gravity="center"
+            android:background="@drawable/splash_logo_bg"
+            android:text="01"
+            android:textColor="#FFFFFF"
+            android:textSize="23sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="PAMOYANAN ONE"
+            android:textColor="#10251B"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="RW 01 Pamoyanan · Super App V4"
+            android:textColor="#718078"
+            android:textSize="11sp" />
+
+        <ProgressBar
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginTop="26dp"
+            android:indeterminateTint="#0B704B" />
+    </LinearLayout>
+</FrameLayout>
