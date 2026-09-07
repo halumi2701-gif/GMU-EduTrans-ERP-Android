@@ -118,12 +118,9 @@ class ApiClient(
     suspend fun home(): JSONObject = JSONObject(raw("/superapp/home").second)
     suspend fun digitalId(): JSONObject = JSONObject(raw("/digital-id/me").second)
     suspend fun rotateMyQr(): JSONObject = JSONObject(raw("/digital-id/me/rotate-qr", "POST", JSONObject()).second)
-    suspend fun residentDigitalId(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId).second)
-    suspend fun rotateResidentDigitalId(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId + "/rotate-qr", "POST", JSONObject()).second)
-    suspend fun revokeResidentDigitalId(residentId: String): JSONObject =
-        JSONObject(raw("/digital-id/residents/" + residentId + "/revoke", "POST", JSONObject()).second)
+    suspend fun residentDigitalId(residentId: String): JSONObject = JSONObject(raw("/digital-id/residents/" + residentId).second)
+    suspend fun rotateResidentDigitalId(residentId: String): JSONObject = JSONObject(raw("/digital-id/residents/" + residentId + "/rotate-qr", "POST", JSONObject()).second)
+    suspend fun revokeResidentDigitalId(residentId: String): JSONObject = JSONObject(raw("/digital-id/residents/" + residentId + "/revoke", "POST", JSONObject()).second)
     suspend fun letters(): JSONArray = JSONArray(raw("/letters").second)
     suspend fun templates(): JSONArray = JSONArray(raw("/letters/templates").second)
 
