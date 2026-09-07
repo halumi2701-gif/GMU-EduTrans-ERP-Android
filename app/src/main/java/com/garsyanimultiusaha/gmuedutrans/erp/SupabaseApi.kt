@@ -78,6 +78,125 @@ class SupabaseApi {
         ManagementDashboard.fromJson(result)
     }
 
+
+    suspend fun getPlanningDashboard(accessToken: String): PlanningDashboard = withContext(Dispatchers.IO) {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val month = today.substring(0, 7)
+        val payload = JSONObject()
+            .put("action", "dashboard")
+            .put("month", month + "-01")
+            .put("start_date", month + "-01")
+            .put("end_date", today)
+            .toString()
+        val body = request("POST", "/functions/v1/internal-planning-control", payload, accessToken)
+        PlanningDashboard.fromJson(JSONObject(body))
+    }
+
+    suspend fun savePlanningTarget(
+        accessToken: String,
+        targetId: String?,
+        periodMonth: String,
+        scopeType: String,
+        salesId: String?,
+        programId: String?,
+        targetRevenue: Double,
+        targetBookings: Int,
+        targetPax: Int,
+        targetProfit: Double,
+        targetMarginPct: Double,
+        targetCashIn: Double,
+        notes: String
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "save_target")
+            .put("target_id", targetId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("period_month", periodMonth)
+            .put("scope_type", scopeType)
+            .put("sales_id", salesId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("program_id", programId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("target_revenue", targetRevenue)
+            .put("target_bookings", targetBookings)
+            .put("target_pax", targetPax)
+            .put("target_profit", targetProfit)
+            .put("target_margin_pct", targetMarginPct)
+            .put("target_cash_in", targetCashIn)
+            .put("notes", notes)
+            .toString()
+        request("POST", "/functions/v1/internal-planning-control", payload, accessToken)
+    }
+
+    suspend fun savePlanningBudget(
+        accessToken: String,
+        budgetId: String?,
+        periodMonth: String,
+        budgetType: String,
+        category: String,
+        programId: String?,
+        amount: Double,
+        notes: String
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "save_budget")
+            .put("budget_id", budgetId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("period_month", periodMonth)
+            .put("budget_type", budgetType)
+            .put("category", category)
+            .put("program_id", programId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("amount", amount)
+            .put("notes", notes)
+            .toString()
+        request("POST", "/functions/v1/internal-planning-control", payload, accessToken)
+    }
+
+    suspend fun deletePlanningBudget(accessToken: String, budgetId: String) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "delete_budget")
+            .put("budget_id", budgetId)
+            .toString()
+        request("POST", "/functions/v1/internal-planning-control", payload, accessToken)
+    }
+
+    suspend fun setPlanningPipelineWeight(
+        accessToken: String,
+        status: String,
+        probabilityPct: Double,
+        notes: String
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "set_pipeline_weight")
+            .put("booking_status", status)
+            .put("win_probability_pct", probabilityPct)
+            .put("notes", notes)
+            .toString()
+        request("POST", "/functions/v1/internal-planning-control", payload, accessToken)
+    }
+
+    suspend fun runPlanningScenario(
+        accessToken: String,
+        bookingId: String,
+        pax: Int?,
+        pricePerPax: Double?,
+        vendorIncreasePct: Double,
+        transportIncreasePct: Double,
+        discountPct: Double,
+        variableCostSharePct: Double
+    ): PlanningScenarioResult = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "scenario")
+            .put("booking_id", bookingId)
+            .put("pax", pax ?: JSONObject.NULL)
+            .put("price_per_pax", pricePerPax ?: JSONObject.NULL)
+            .put("vendor_increase_pct", vendorIncreasePct)
+            .put("transport_increase_pct", transportIncreasePct)
+            .put("discount_pct", discountPct)
+            .put("variable_cost_share_pct", variableCostSharePct)
+            .toString()
+        val body = JSONObject(request("POST", "/functions/v1/internal-planning-control", payload, accessToken))
+        val result = body.optJSONObject("result")
+            ?: throw IllegalStateException(body.optString("error", "Scenario Simulator gagal."))
+        PlanningScenarioResult.fromJson(result)
+    }
+
     suspend fun getCustomers(accessToken: String): List<Customer> = withContext(Dispatchers.IO) {
         val arr = JSONArray(request("GET", "/rest/v1/customers?select=*&order=created_at.desc", null, accessToken))
         buildList {
