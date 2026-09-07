@@ -212,6 +212,59 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun openResidentDigitalId(residentId: String, residentName: String) {
+        staffDigitalResidentId.value = residentId
+        staffDigitalResidentName.value = residentName
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                staffDigitalId.value = api.residentDigitalId(residentId)
+            } catch (e: Exception) {
+                staffDigitalId.value = null
+                fail(e)
+            } finally {
+                loading.value = false
+            }
+        }
+    }
+
+    fun rotateResidentDigitalId() {
+        val id = staffDigitalResidentId.value ?: return
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                staffDigitalId.value = api.rotateResidentDigitalId(id)
+                notice.value = UiNotice("QR Digital ID warga berhasil diperbarui.")
+            } catch (e: Exception) {
+                fail(e)
+            } finally {
+                loading.value = false
+            }
+        }
+    }
+
+    fun revokeResidentDigitalId() {
+        val id = staffDigitalResidentId.value ?: return
+        viewModelScope.launch {
+            loading.value = true
+            try {
+                api.revokeResidentDigitalId(id)
+                staffDigitalId.value = null
+                notice.value = UiNotice("QR Digital ID warga berhasil dicabut.")
+            } catch (e: Exception) {
+                fail(e)
+            } finally {
+                loading.value = false
+            }
+        }
+    }
+
+    fun clearResidentDigitalId() {
+        staffDigitalId.value = null
+        staffDigitalResidentId.value = null
+        staffDigitalResidentName.value = ""
+    }
+
     fun loadLetters() {
         viewModelScope.launch {
             loading.value = true
