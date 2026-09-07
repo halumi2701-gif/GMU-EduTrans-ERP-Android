@@ -317,6 +317,84 @@ private fun QuotationEditorTab(
         }
 
         if (isDraft) {
+            if (detail.items.isEmpty()) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF3EE))
+                    ) {
+                        Column(Modifier.padding(15.dp)) {
+                            Text(
+                                "Quotation Draft Assistant",
+                                fontWeight = FontWeight.Black,
+                                color = GmuDark
+                            )
+                            Text(
+                                "Ambil recommended price dari Package/Pricing Master tanpa menebak harga.",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            vm.quotationSuggestion?.let { suggestion ->
+                                QuoteLine("Source", suggestion.source.ifBlank { "-" })
+                                QuoteLine(
+                                    "Estimasi Subtotal",
+                                    if (suggestion.estimatedSubtotal > 0) rupiah(suggestion.estimatedSubtotal) else "-"
+                                )
+                                if (suggestion.blockers.isNotEmpty()) {
+                                    Spacer(Modifier.height(5.dp))
+                                    Text(
+                                        suggestion.blockers.joinToString(" • "),
+                                        fontSize = 10.sp,
+                                        color = GmuWarn
+                                    )
+                                }
+                                if (suggestion.warnings.isNotEmpty()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        suggestion.warnings.joinToString(" • "),
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                if (suggestion.proposedItems.isNotEmpty()) {
+                                    Spacer(Modifier.height(7.dp))
+                                    suggestion.proposedItems.forEach { line ->
+                                        QuoteLine(
+                                            line.description,
+                                            quoteNumberText(line.qty) + " × " + rupiah(line.unitPrice)
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        vm.loadQuotationDraftSuggestion { _, msg -> onNotice(msg) }
+                                    },
+                                    enabled = !vm.actionBusy
+                                ) {
+                                    Text("Saran Harga Otomatis")
+                                }
+                                if (vm.quotationSuggestion?.ready == true) {
+                                    Button(
+                                        onClick = {
+                                            vm.applyQuotationDraftSuggestion { _, msg -> onNotice(msg) }
+                                        },
+                                        enabled = !vm.actionBusy
+                                    ) {
+                                        Text("Apply Suggestion")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Text(
                     "Item Quotation",

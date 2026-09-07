@@ -71,6 +71,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var pricingError by mutableStateOf<String?>(null)
         private set
+    var packageMaster by mutableStateOf<List<PackageMasterItem>>(emptyList())
+        private set
+    var packageMasterError by mutableStateOf<String?>(null)
+        private set
+    var pricingMaster by mutableStateOf<PricingMasterDashboard?>(null)
+        private set
+    var pricingMasterError by mutableStateOf<String?>(null)
+        private set
+    var paymentGateway by mutableStateOf<PaymentGatewayDashboard?>(null)
+        private set
+    var paymentGatewayError by mutableStateOf<String?>(null)
+        private set
+    var quotationSuggestion by mutableStateOf<QuotationDraftSuggestion?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -194,6 +208,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     quotationError = null
                 }
 
+                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                    try {
+                        packageMaster = api.getPackageMaster(session.accessToken)
+                        packageMasterError = null
+                    } catch (e: Exception) {
+                        packageMaster = emptyList()
+                        packageMasterError = e.message ?: "Master Paket gagal dimuat."
+                    }
+                } else {
+                    packageMaster = emptyList()
+                    packageMasterError = null
+                }
+
                 if (FinancialAccess.canView(session.profile.role)) {
                     try {
                         pricingDashboard = api.getPricingDashboard(session.accessToken)
@@ -201,6 +228,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) {
                         pricingDashboard = null
                         pricingError = e.message ?: "Pricing Intelligence gagal dimuat."
+                    }
+                    try {
+                        pricingMaster = api.getPricingMasterDashboard(session.accessToken)
+                        pricingMasterError = null
+                    } catch (e: Exception) {
+                        pricingMaster = null
+                        pricingMasterError = e.message ?: "Pricing Master gagal dimuat."
+                    }
+                    try {
+                        paymentGateway = api.getPaymentGatewayDashboard(session.accessToken)
+                        paymentGatewayError = null
+                    } catch (e: Exception) {
+                        paymentGateway = null
+                        paymentGatewayError = e.message ?: "Payment Gateway gagal dimuat."
                     }
                     try {
                         managementDashboard = api.getManagementDashboard(session.accessToken)
@@ -219,6 +260,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     pricingDashboard = null
                     pricingError = null
+                    pricingMaster = null
+                    pricingMasterError = null
+                    paymentGateway = null
+                    paymentGatewayError = null
                     managementDashboard = null
                     managementError = null
                     planningDashboard = null
@@ -273,7 +318,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             wanted += "profiles" to "created_at.desc"
         }
 
-        if (role in listOf("Owner", "Manager")) {
+        if (role in listOf("Owner", "Manager", "Admin")) {
             wanted += "programs" to "sort_order.asc"
             wanted += "staff_attendance" to "attendance_date.desc"
             wanted += "staff_assignments" to "created_at.desc"
@@ -409,6 +454,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 quotationDetail = api.getQuotationDetail(session.accessToken, requestId)
+                quotationSuggestion = null
                 quotationError = null
                 done(true, "Quotation berhasil dimuat.")
             } catch (e: Exception) {
@@ -433,6 +479,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 quotationDetail = api.createQuotationDraft(session.accessToken, requestId)
+                quotationSuggestion = null
                 quotationQueue = api.getQuotationQueue(session.accessToken)
                 done(true, "Draft quotation berhasil dibuat.")
             } catch (e: Exception) {
@@ -583,6 +630,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     effectiveFrom,effectiveUntil,notes
                 )
                 pricingDashboard = api.getPricingDashboard(session.accessToken)
+                pricingMaster = runCatching { api.getPricingMasterDashboard(session.accessToken) }.getOrNull()
                 quotationDetail?.requestId?.takeIf { it.isNotBlank() }?.let {
                     quotationDetail = runCatching { api.getQuotationDetail(session.accessToken,it) }.getOrNull()
                 }
@@ -594,8 +642,276 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadQuotationDraftSuggestion(done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        if (current.quotationId.isBlank()) {
+            done(false, "Draft quotation belum tersedia.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationSuggestion = api.getQuotationDraftSuggestion(
+                    session.accessToken,
+                    current.quotationId
+                )
+                done(
+                    true,
+                    if (quotationSuggestion?.ready == true) {
+                        "Saran quotation siap diterapkan."
+                    } else {
+                        "Saran belum siap. Periksa blocker Pricing Master."
+                    }
+                )
+            } catch (e: Exception) {
+                quotationSuggestion = null
+                done(false, e.message ?: "Saran quotation gagal dimuat.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun applyQuotationDraftSuggestion(done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.applyQuotationDraftSuggestion(session.accessToken, current.quotationId)
+                quotationDetail = api.getQuotationDetail(session.accessToken, current.requestId)
+                quotationSuggestion = null
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                done(true, "Saran harga berhasil diterapkan ke Draft Quotation.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Saran quotation gagal diterapkan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun savePackageDraft(
+        existingId: String?,
+        programId: String,
+        name: String,
+        description: String,
+        pricePerPax: Double,
+        minPax: Int,
+        facilities: List<String>,
+        priceNote: String,
+        effectiveFrom: String,
+        effectiveUntil: String,
+        sortOrder: Int,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+            done(false, "Tidak memiliki akses Master Paket.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                if (existingId.isNullOrBlank()) {
+                    api.createPackageDraft(
+                        session.accessToken,programId,name,description,pricePerPax,minPax,
+                        facilities,priceNote,effectiveFrom,effectiveUntil,sortOrder
+                    )
+                } else {
+                    api.updatePackageDraft(
+                        session.accessToken,existingId,name,description,pricePerPax,minPax,
+                        facilities,priceNote,effectiveFrom,effectiveUntil,sortOrder
+                    )
+                }
+                packageMaster = api.getPackageMaster(session.accessToken)
+                if (FinancialAccess.canView(session.profile.role)) {
+                    pricingMaster = runCatching {
+                        api.getPricingMasterDashboard(session.accessToken)
+                    }.getOrNull()
+                }
+                done(true, if (existingId.isNullOrBlank()) "Draft paket berhasil dibuat." else "Draft paket berhasil diperbarui.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Master Paket gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun clonePackage(id: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.clonePackage(session.accessToken,id)
+                packageMaster = api.getPackageMaster(session.accessToken)
+                done(true, "Paket berhasil di-clone menjadi Draft baru.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Clone paket gagal.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun archivePackage(id: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Hanya Owner / Manager yang dapat mengarsipkan paket.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.archivePackage(session.accessToken,id)
+                packageMaster = api.getPackageMaster(session.accessToken)
+                pricingMaster = runCatching {
+                    api.getPricingMasterDashboard(session.accessToken)
+                }.getOrNull()
+                done(true, "Paket berhasil diarsipkan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Paket gagal diarsipkan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun applyRecommendedPackagePrice(id: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Hanya Owner / Manager yang dapat menerapkan recommended price.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.applyRecommendedPackagePrice(session.accessToken,id)
+                packageMaster = api.getPackageMaster(session.accessToken)
+                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
+                done(true, "Recommended price berhasil diterapkan. Paket tetap DRAFT.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Recommended price gagal diterapkan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun activatePackage(id: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Hanya Owner / Manager yang dapat mengaktifkan paket.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.activatePackage(session.accessToken,id)
+                packageMaster = api.getPackageMaster(session.accessToken)
+                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
+                done(true, "Paket ACTIVE dan siap tampil di Web Customer.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Paket belum dapat diaktifkan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun saveCostTemplate(
+        templateId: String?,
+        scopeType: String,
+        programId: String?,
+        packageId: String?,
+        category: String,
+        description: String,
+        costMode: String,
+        amount: Double,
+        minPax: Int?,
+        maxPax: Int?,
+        effectiveFrom: String,
+        effectiveUntil: String?,
+        notes: String,
+        active: Boolean,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Cost Template hanya untuk Owner / Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.saveCostTemplate(
+                    session.accessToken,templateId,scopeType,programId,packageId,
+                    category,description,costMode,amount,minPax,maxPax,
+                    effectiveFrom,effectiveUntil,notes,active
+                )
+                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
+                pricingDashboard = runCatching { api.getPricingDashboard(session.accessToken) }.getOrNull()
+                done(true, "Cost Template berhasil disimpan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Cost Template gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun setPaymentChannel(
+        code: String,
+        enabled: Boolean,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Payment Gateway hanya untuk Owner / Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.setPaymentChannel(session.accessToken,code,enabled)
+                paymentGateway = api.getPaymentGatewayDashboard(session.accessToken)
+                done(true, if (enabled) "$code berhasil diaktifkan." else "$code dinonaktifkan.")
+            } catch (e: Exception) {
+                paymentGateway = runCatching {
+                    api.getPaymentGatewayDashboard(session.accessToken)
+                }.getOrNull()
+                done(false, e.message ?: "Payment channel gagal diperbarui.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun refreshCommerce() {
+        val session = activeSession() ?: return
+        if (actionBusy) return
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                if (session.profile.role in listOf("Owner","Manager","Admin")) {
+                    packageMaster = api.getPackageMaster(session.accessToken)
+                    packageMasterError = null
+                }
+                if (FinancialAccess.canView(session.profile.role)) {
+                    pricingMaster = api.getPricingMasterDashboard(session.accessToken)
+                    paymentGateway = api.getPaymentGatewayDashboard(session.accessToken)
+                    pricingMasterError = null
+                    paymentGatewayError = null
+                }
+            } catch (e: Exception) {
+                dataError = e.message ?: "Refresh commerce gagal."
+            }
+            actionBusy = false
+        }
+    }
+
     fun clearQuotationDetail() {
         quotationDetail = null
+        quotationSuggestion = null
         quotationError = null
     }
 
@@ -1038,8 +1354,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         quotationQueue = emptyList()
         quotationDetail = null
         quotationError = null
+        quotationSuggestion = null
         pricingDashboard = null
         pricingError = null
+        packageMaster = emptyList()
+        packageMasterError = null
+        pricingMaster = null
+        pricingMasterError = null
+        paymentGateway = null
+        paymentGatewayError = null
         managementDashboard = null
         managementError = null
         planningDashboard = null
