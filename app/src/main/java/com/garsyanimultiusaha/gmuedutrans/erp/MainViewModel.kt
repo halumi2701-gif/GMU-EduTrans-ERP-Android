@@ -318,7 +318,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             wanted += "profiles" to "created_at.desc"
         }
 
-        if (role in listOf("Owner", "Manager")) {
+        if (role in listOf("Owner", "Manager", "Admin")) {
             wanted += "programs" to "sort_order.asc"
             wanted += "staff_attendance" to "attendance_date.desc"
             wanted += "staff_assignments" to "created_at.desc"
