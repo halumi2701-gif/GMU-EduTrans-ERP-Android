@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.pamoyanan.one.ui
 
 import android.graphics.BitmapFactory
