@@ -2,7 +2,7 @@ name: Build GMU EduTrans ERP Release
 
 on:
   push:
-    branches: [ "main", "hotfix/booking-status-private-permission" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
