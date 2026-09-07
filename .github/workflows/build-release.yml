@@ -2,7 +2,7 @@ name: Build GMU EduTrans ERP Release
 
 on:
   push:
-    branches: [ "main", "hotfix/alpha5-visible-menu" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
