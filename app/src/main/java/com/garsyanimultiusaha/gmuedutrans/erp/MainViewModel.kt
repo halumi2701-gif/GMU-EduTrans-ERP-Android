@@ -369,6 +369,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         customerPortalTokenError = null
     }
 
+    fun startBookingRequestQuotation(
+        requestId: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager")) {
+            done(false, "Hanya Owner / Manager yang dapat memulai quotation.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                val quotationNo = api.startBookingRequestQuotation(session.accessToken, requestId)
+                bookingRequests = api.getBookingRequests(session.accessToken)
+                bookingRequestError = null
+                done(
+                    true,
+                    if (quotationNo.isNotBlank()) {
+                        "Status Quotation berhasil disimpan. Draft " + quotationNo + " siap dilengkapi."
+                    } else {
+                        "Status Quotation berhasil disimpan."
+                    }
+                )
+                loadAll(session)
+            } catch (e: Exception) {
+                done(false, e.message ?: "Status Quotation gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
     fun reviewBookingRequest(
         requestId: String,
         accepted: Boolean,

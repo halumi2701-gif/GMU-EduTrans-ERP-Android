@@ -413,6 +413,19 @@ class SupabaseApi {
     }
 
 
+    suspend fun startBookingRequestQuotation(
+        accessToken: String,
+        requestId: String
+    ): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "start_quotation")
+            .put("id", requestId)
+            .toString()
+        val root = JSONObject(request("POST", "/functions/v1/internal-booking-inbox", payload, accessToken))
+        root.optJSONObject("quotation")?.optString("quotation_no", "").orEmpty()
+    }
+
+
     suspend fun getBookingRequestToken(
         accessToken: String,
         requestId: String
