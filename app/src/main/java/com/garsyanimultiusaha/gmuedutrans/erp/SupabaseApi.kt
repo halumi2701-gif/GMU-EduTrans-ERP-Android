@@ -413,6 +413,28 @@ class SupabaseApi {
     }
 
 
+    suspend fun getBookingRequestToken(
+        accessToken: String,
+        requestId: String
+    ): CustomerPortalCredential = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "get_token")
+            .put("id", requestId)
+            .toString()
+        val root = JSONObject(request("POST", "/functions/v1/internal-booking-inbox", payload, accessToken))
+        val item = root.optJSONObject("item")
+            ?: throw IllegalStateException(root.optString("error", "Token customer tidak dapat dimuat."))
+        CustomerPortalCredential(
+            requestId = item.optString("id", ""),
+            bookingCode = item.optString("booking_code", ""),
+            accessToken = item.optString("access_token", ""),
+            institutionName = item.optString("institution_name", ""),
+            picName = item.optString("pic_name", ""),
+            status = item.optString("status", "")
+        )
+    }
+
+
     suspend fun getBookingRequests(accessToken: String): List<BookingRequestItem> = withContext(Dispatchers.IO) {
         val payload = JSONObject()
             .put("action", "list")

@@ -21,3 +21,13 @@ data class BookingRequestItem(
     val updatedAt: String,
     val convertedBookingId: String
 )
+
+
+data class CustomerPortalCredential(
+    val requestId: String,
+    val bookingCode: String,
+    val accessToken: String,
+    val institutionName: String,
+    val picName: String,
+    val status: String
+)

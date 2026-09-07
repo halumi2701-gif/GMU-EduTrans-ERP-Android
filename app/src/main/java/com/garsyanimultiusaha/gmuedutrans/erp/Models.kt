@@ -118,7 +118,8 @@ object RoleAccess {
             AppPage.SOP, AppPage.REPORTS, AppPage.AUDIT, AppPage.PROFILE
         )
         "Sales" -> setOf(
-            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.CUSTOMERS, AppPage.PROFILE
+            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS,
+            AppPage.CUSTOMERS, AppPage.PROFILE
         )
         "Finance" -> setOf(
             AppPage.DASHBOARD, AppPage.PROFILE
