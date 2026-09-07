@@ -706,11 +706,9 @@ private fun BookingDetailDialog(
                             Spacer(Modifier.height(8.dp))
                             Button(
                                 onClick = {
-                                    vm.update(
-                                        "bookings",
+                                    vm.updateBookingStatus(
                                         booking.id,
-                                        mapOf("status" to status),
-                                        "Status booking diperbarui menjadi " + status
+                                        status
                                     ) { ok, msg ->
                                         onNotice(msg)
                                         if (ok) onDismiss()
