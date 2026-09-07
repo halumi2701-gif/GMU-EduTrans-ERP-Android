@@ -991,8 +991,13 @@ class SupabaseApi {
         if (status !in 200..299) {
             val msg = runCatching {
                 val j = if (text.trim().startsWith("[")) JSONArray(text).optJSONObject(0) else JSONObject(text)
-                j?.optString("message", j.optString("msg", j.optString("error_description", "API gagal ($status)")))
-                    ?: "API gagal ($status)"
+                j?.optString(
+                    "message",
+                    j.optString(
+                        "error",
+                        j.optString("msg", j.optString("error_description", "API gagal ($status)"))
+                    )
+                ) ?: "API gagal ($status)"
             }.getOrDefault("API gagal ($status)")
             throw IllegalStateException(msg)
         }
