@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 fun DashboardScreen(vm: MainViewModel, session: SessionState) {
     val s = vm.dashboardStats()
     val financeVisible = FinancialAccess.canView(session.profile.role)
+    val management = if (financeVisible) vm.managementDashboard else null
     val needsAttention = buildList {
         val approvalCount = vm.table("approvals").count { it.text("status") == "Pending" }
         if (approvalCount > 0) add(approvalCount.toString() + " approval menunggu")
@@ -33,6 +34,10 @@ fun DashboardScreen(vm: MainViewModel, session: SessionState) {
             b.status in listOf("Confirmed", "Preparation", "Trip") && count < 5
         }
         if (missingDocs > 0) add(missingDocs.toString() + " trip perlu kelengkapan dokumen")
+        if (financeVisible && management != null) {
+            if (management.criticalTotal > 0) add(management.criticalTotal.toString() + " management exception kritis")
+            if (management.warningTotal > 0) add(management.warningTotal.toString() + " management warning")
+        }
     }
     val nextTrip = vm.bookings
         .filter { it.status !in listOf("Completed", "Closed") }
@@ -113,6 +118,79 @@ fun DashboardScreen(vm: MainViewModel, session: SessionState) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         MetricCard("Piutang", rupiah(s.receivable), Modifier.weight(1f))
                         MetricCard("Laba", rupiah(s.profit), Modifier.weight(1f), accent = true)
+                    }
+                }
+            }
+        }
+
+        if (financeVisible && management != null) {
+            item {
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    Text("Management control", fontWeight = FontWeight.Black, fontSize = 17.sp, color = GmuDark)
+                    Text("v" + management.version + " • authoritative management data", fontSize = 11.sp, color = Color.Gray)
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MetricCard("Committed", rupiah(management.kpi.committedCost), Modifier.weight(1f))
+                        MetricCard("Actual", rupiah(management.kpi.actualCost), Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MetricCard("Cash 30D", rupiah(management.cashForecast.projected30d), Modifier.weight(1f))
+                        MetricCard("Exception", management.exceptionTotal.toString(), Modifier.weight(1f), accent = management.criticalTotal > 0)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Card(
+                        onClick = { vm.navigate(AppPage.FINANCE) },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (management.criticalTotal > 0) Color(0xFFFFEEEE) else Color(0xFFEAF7EF)
+                        )
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Budget & cash control", fontWeight = FontWeight.Black, color = GmuDark)
+                                    Text(
+                                        "RAB " + rupiah(management.kpi.rab) +
+                                            " • Actual " + rupiah(management.kpi.actualCost),
+                                        fontSize = 11.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                StatusChip(if (management.criticalTotal > 0) "Attention" else "Healthy")
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "AR " + rupiah(management.kpi.receivable) +
+                                    " • Cash forecast 30D " + rupiah(management.cashForecast.projected30d),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (management.exceptionTotal > 0) {
+                                Spacer(Modifier.height(8.dp))
+                                management.exceptions.take(3).forEach { ex ->
+                                    Text(
+                                        "• " + ex.message,
+                                        fontSize = 11.sp,
+                                        color = if (ex.severity == "CRITICAL") GmuWarn else Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (financeVisible && vm.managementError != null) {
+            item {
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7E8))
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Management Control belum termuat", fontWeight = FontWeight.Black, color = GmuDark)
+                            Text(vm.managementError.orEmpty(), fontSize = 11.sp, color = Color.Gray)
+                        }
                     }
                 }
             }

@@ -61,6 +61,23 @@ class SupabaseApi {
         Unit
     }
 
+    suspend fun getManagementDashboard(accessToken: String): ManagementDashboard = withContext(Dispatchers.IO) {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val month = today.substring(0, 7)
+        val payload = JSONObject()
+            .put("action", "dashboard")
+            .put("start_date", month + "-01")
+            .put("end_date", today)
+            .put("as_of", today)
+            .put("horizon_days", 30)
+            .toString()
+        val body = request("POST", "/functions/v1/internal-management-control", payload, accessToken)
+        val root = JSONObject(body)
+        val result = root.optJSONObject("result")
+            ?: throw IllegalStateException(root.optString("error", "Management Control gagal dimuat."))
+        ManagementDashboard.fromJson(result)
+    }
+
     suspend fun getCustomers(accessToken: String): List<Customer> = withContext(Dispatchers.IO) {
         val arr = JSONArray(request("GET", "/rest/v1/customers?select=*&order=created_at.desc", null, accessToken))
         buildList {
