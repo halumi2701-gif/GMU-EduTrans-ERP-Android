@@ -85,7 +85,7 @@ fun PlanningScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
     if (newTarget || targetDialog != null) {
         PlanningTargetDialog(
             vm = vm,
-            plan = plan,
+            plan = plan ?: PlanningDashboard(),
             existing = targetDialog,
             busy = vm.actionBusy,
             onDismiss = { newTarget = false; targetDialog = null },
@@ -100,7 +100,7 @@ fun PlanningScreen(vm: MainViewModel, session: SessionState, onNotice: (String) 
     if (newBudget || budgetDialog != null) {
         PlanningBudgetDialog(
             vm = vm,
-            plan = plan,
+            plan = plan ?: PlanningDashboard(),
             existing = budgetDialog,
             busy = vm.actionBusy,
             onDismiss = { newBudget = false; budgetDialog = null },
