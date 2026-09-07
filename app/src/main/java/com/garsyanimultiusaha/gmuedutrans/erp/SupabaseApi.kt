@@ -501,6 +501,202 @@ class SupabaseApi {
         }
     }
 
+    suspend fun getQuotationQueue(accessToken: String): List<QuotationQueueItem> = withContext(Dispatchers.IO) {
+        val root = JSONObject(
+            request(
+                "POST",
+                "/functions/v1/internal-quotation-workflow",
+                JSONObject().put("action", "list_queue").toString(),
+                accessToken
+            )
+        )
+        val arr = root.optJSONArray("items") ?: JSONArray()
+        buildList {
+            for (i in 0 until arr.length()) {
+                val x = arr.optJSONObject(i) ?: continue
+                val q = x.optJSONObject("quotation")
+                val program = x.optJSONObject("programs")?.optString("name", "").orEmpty()
+                add(
+                    QuotationQueueItem(
+                        requestId = x.optString("id", ""),
+                        bookingCode = x.optString("booking_code", ""),
+                        requestStatus = x.optString("status", ""),
+                        institutionName = x.optString("institution_name", ""),
+                        tripDate = x.optString("trip_date", ""),
+                        pax = x.optInt("pax", 0),
+                        programName = program,
+                        quotationId = q?.optString("id", "").orEmpty(),
+                        quotationNo = q?.optString("quotation_no", "").orEmpty(),
+                        quotationStatus = q?.optString("status", "").orEmpty(),
+                        total = q?.optDouble("total", 0.0) ?: 0.0,
+                        validUntil = q?.optString("valid_until", "").orEmpty()
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun getQuotationDetail(accessToken: String, requestId: String): QuotationDetail =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("action", "get")
+                .put("booking_request_id", requestId)
+                .toString()
+            QuotationDetail.fromWorkflowJson(
+                JSONObject(
+                    request(
+                        "POST",
+                        "/functions/v1/internal-quotation-workflow",
+                        payload,
+                        accessToken
+                    )
+                )
+            )
+        }
+
+    suspend fun createQuotationDraft(accessToken: String, requestId: String): QuotationDetail =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("action", "create_draft")
+                .put("booking_request_id", requestId)
+                .toString()
+            request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+            getQuotationDetail(accessToken, requestId)
+        }
+
+    suspend fun saveQuotationDraft(
+        accessToken: String,
+        requestId: String,
+        quotationId: String,
+        items: List<QuotationLine>,
+        discount: Double,
+        tax: Double,
+        validUntil: String,
+        notesCustomer: String,
+        terms: String
+    ): QuotationDetail = withContext(Dispatchers.IO) {
+        val arr = JSONArray()
+        items.forEach { item ->
+            arr.put(
+                JSONObject()
+                    .put("description", item.description)
+                    .put("qty", item.qty)
+                    .put("unit", item.unit)
+                    .put("unit_price", item.unitPrice)
+            )
+        }
+        val payload = JSONObject()
+            .put("action", "save_draft")
+            .put("quotation_id", quotationId)
+            .put("items", arr)
+            .put("discount", discount)
+            .put("tax", tax)
+            .put("valid_until", validUntil.ifBlank { JSONObject.NULL })
+            .put("notes_customer", notesCustomer)
+            .put("terms", terms)
+            .toString()
+        request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+        getQuotationDetail(accessToken, requestId)
+    }
+
+    suspend fun publishQuotation(
+        accessToken: String,
+        requestId: String,
+        quotationId: String,
+        pricingOverrideReason: String
+    ): QuotationDetail = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "publish")
+            .put("quotation_id", quotationId)
+            .put("pricing_override_reason", pricingOverrideReason)
+            .toString()
+        request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+        getQuotationDetail(accessToken, requestId)
+    }
+
+    suspend fun acceptQuotation(
+        accessToken: String,
+        requestId: String,
+        quotationId: String
+    ): QuotationDetail = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "accept")
+            .put("quotation_id", quotationId)
+            .toString()
+        request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+        getQuotationDetail(accessToken, requestId)
+    }
+
+    suspend fun rejectQuotation(
+        accessToken: String,
+        requestId: String,
+        quotationId: String,
+        reason: String
+    ): QuotationDetail = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "reject")
+            .put("quotation_id", quotationId)
+            .put("reason", reason)
+            .toString()
+        request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+        getQuotationDetail(accessToken, requestId)
+    }
+
+    suspend fun getPricingDashboard(accessToken: String): PricingDashboard = withContext(Dispatchers.IO) {
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val end = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(
+            java.util.Date(System.currentTimeMillis() + 90L * 24L * 60L * 60L * 1000L)
+        )
+        val payload = JSONObject()
+            .put("action", "dashboard")
+            .put("start_date", today)
+            .put("end_date", end)
+            .toString()
+        PricingDashboard.fromJson(
+            JSONObject(
+                request(
+                    "POST",
+                    "/functions/v1/internal-pricing-control",
+                    payload,
+                    accessToken
+                )
+            )
+        )
+    }
+
+    suspend fun savePricingPolicy(
+        accessToken: String,
+        policyId: String?,
+        scopeType: String,
+        programId: String?,
+        targetMarginPct: Double?,
+        floorMarginPct: Double?,
+        maxDiscountPct: Double?,
+        contingencyPct: Double,
+        roundingIncrement: Double,
+        effectiveFrom: String,
+        effectiveUntil: String?,
+        notes: String
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "save_policy")
+            .put("policy_id", policyId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("scope_type", scopeType)
+            .put("program_id", programId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("target_margin_pct", targetMarginPct ?: JSONObject.NULL)
+            .put("floor_margin_pct", floorMarginPct ?: JSONObject.NULL)
+            .put("max_discount_pct", maxDiscountPct ?: JSONObject.NULL)
+            .put("contingency_pct", contingencyPct)
+            .put("rounding_increment", roundingIncrement)
+            .put("effective_from", effectiveFrom)
+            .put("effective_until", effectiveUntil?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("is_active", true)
+            .put("notes", notes)
+            .toString()
+        request("POST", "/functions/v1/internal-pricing-control", payload, accessToken)
+    }
+
+
     suspend fun audit(
         accessToken: String,
         userId: String,
