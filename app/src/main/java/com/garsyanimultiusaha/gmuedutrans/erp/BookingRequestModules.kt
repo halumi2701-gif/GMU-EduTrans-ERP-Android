@@ -26,7 +26,7 @@ fun BookingRequestScreen(
     }
 
     var filter by remember { mutableStateOf("NEW_REQUEST") }
-    var rejectRow by remember { mutableStateOf<ErpRow?>(null) }
+    var rejectRow by remember { mutableStateOf<BookingRequestItem?>(null) }
 
     val all = vm.bookingRequests
     val rows = all.filter { filter == "ALL" || it.status == filter }
@@ -42,7 +42,7 @@ fun BookingRequestScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             listOf(
                 "NEW_REQUEST" to "Baru",
-                "VERIFICATION" to "Verifikasi",
+                "VERIFICATION" to "Diterima",
                 "REJECTED" to "Ditolak",
                 "ALL" to "Semua"
             ).forEach { (value, label) ->
@@ -96,15 +96,6 @@ fun BookingRequestScreen(
                         if (r.whatsapp.isNotBlank()) {
                             RequestLine("WhatsApp", r.whatsapp)
                         }
-                        if ("".isNotBlank()) {
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "",
-                                fontSize = 11.sp,
-                                color = Color.Gray
-                            )
-                        }
-
                         if (r.status == "NEW_REQUEST") {
                             Spacer(Modifier.height(10.dp))
                             Row(
