@@ -61,6 +61,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var customerPortalTokenError by mutableStateOf<String?>(null)
         private set
+    var quotationQueue by mutableStateOf<List<QuotationQueueItem>>(emptyList())
+        private set
+    var quotationDetail by mutableStateOf<QuotationDetail?>(null)
+        private set
+    var quotationError by mutableStateOf<String?>(null)
+        private set
+    var pricingDashboard by mutableStateOf<PricingDashboard?>(null)
+        private set
+    var pricingError by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -170,7 +180,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     bookingRequestError = null
                 }
 
+                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                    try {
+                        quotationQueue = api.getQuotationQueue(session.accessToken)
+                        quotationError = null
+                    } catch (e: Exception) {
+                        quotationQueue = emptyList()
+                        quotationError = e.message ?: "Quotation Workflow gagal dimuat."
+                    }
+                } else {
+                    quotationQueue = emptyList()
+                    quotationDetail = null
+                    quotationError = null
+                }
+
                 if (FinancialAccess.canView(session.profile.role)) {
+                    try {
+                        pricingDashboard = api.getPricingDashboard(session.accessToken)
+                        pricingError = null
+                    } catch (e: Exception) {
+                        pricingDashboard = null
+                        pricingError = e.message ?: "Pricing Intelligence gagal dimuat."
+                    }
                     try {
                         managementDashboard = api.getManagementDashboard(session.accessToken)
                         managementError = null
@@ -186,6 +217,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         planningError = e.message ?: "Planning & Business Control gagal dimuat."
                     }
                 } else {
+                    pricingDashboard = null
+                    pricingError = null
                     managementDashboard = null
                     managementError = null
                     planningDashboard = null
@@ -361,6 +394,209 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             actionBusy = false
         }
+    }
+
+    fun openQuotationRequest(
+        requestId: String,
+        done: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+            done(false, "Tidak memiliki akses Quotation Workflow.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.getQuotationDetail(session.accessToken, requestId)
+                quotationError = null
+                done(true, "Quotation berhasil dimuat.")
+            } catch (e: Exception) {
+                quotationDetail = null
+                quotationError = e.message ?: "Quotation gagal dimuat."
+                done(false, quotationError ?: "Quotation gagal dimuat.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun createQuotationDraft(
+        requestId: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+            done(false, "Tidak memiliki akses membuat draft quotation.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.createQuotationDraft(session.accessToken, requestId)
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                done(true, "Draft quotation berhasil dibuat.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Draft quotation gagal dibuat.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun saveQuotationDraft(
+        items: List<QuotationLine>,
+        discount: Double,
+        tax: Double,
+        validUntil: String,
+        notesCustomer: String,
+        terms: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        if (current.quotationId.isBlank()) {
+            done(false, "Draft quotation belum dibuat.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.saveQuotationDraft(
+                    session.accessToken,current.requestId,current.quotationId,items,
+                    discount,tax,validUntil,notesCustomer,terms
+                )
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                done(true, "Draft quotation berhasil disimpan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Draft quotation gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun publishQuotation(
+        pricingOverrideReason: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        if (session.profile.role !in listOf("Owner", "Manager")) {
+            done(false, "Hanya Owner / Manager yang dapat publish quotation.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.publishQuotation(
+                    session.accessToken,current.requestId,current.quotationId,pricingOverrideReason
+                )
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                if (FinancialAccess.canView(session.profile.role)) {
+                    pricingDashboard = runCatching { api.getPricingDashboard(session.accessToken) }.getOrNull()
+                }
+                done(true, "Quotation berhasil dipublish dan PDF dibuat.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Quotation gagal dipublish.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun acceptQuotation(done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        if (session.profile.role !in listOf("Owner", "Manager")) {
+            done(false, "Hanya Owner / Manager yang dapat menerima quotation.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.acceptQuotation(session.accessToken,current.requestId,current.quotationId)
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                bookingRequests = runCatching { api.getBookingRequests(session.accessToken) }.getOrElse { bookingRequests }
+                done(true, "Quotation diterima. Pengajuan masuk Waiting DP.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Quotation gagal diterima.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun rejectQuotation(reason: String, done: (Boolean, String) -> Unit) {
+        val session = activeSession() ?: return
+        val current = quotationDetail ?: run {
+            done(false, "Quotation belum dipilih.")
+            return
+        }
+        if (session.profile.role !in listOf("Owner", "Manager")) {
+            done(false, "Hanya Owner / Manager yang dapat menolak quotation.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                quotationDetail = api.rejectQuotation(session.accessToken,current.requestId,current.quotationId,reason)
+                quotationQueue = api.getQuotationQueue(session.accessToken)
+                bookingRequests = runCatching { api.getBookingRequests(session.accessToken) }.getOrElse { bookingRequests }
+                done(true, "Quotation ditolak. Pengajuan kembali ke Verifikasi.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Quotation gagal ditolak.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun savePricingPolicy(
+        policyId: String?,
+        scopeType: String,
+        programId: String?,
+        targetMarginPct: Double?,
+        floorMarginPct: Double?,
+        maxDiscountPct: Double?,
+        contingencyPct: Double,
+        roundingIncrement: Double,
+        effectiveFrom: String,
+        effectiveUntil: String?,
+        notes: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (!FinancialAccess.canView(session.profile.role)) {
+            done(false, "Pricing Policy hanya untuk Owner / Manager.")
+            return
+        }
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                api.savePricingPolicy(
+                    session.accessToken,policyId,scopeType,programId,targetMarginPct,
+                    floorMarginPct,maxDiscountPct,contingencyPct,roundingIncrement,
+                    effectiveFrom,effectiveUntil,notes
+                )
+                pricingDashboard = api.getPricingDashboard(session.accessToken)
+                quotationDetail?.requestId?.takeIf { it.isNotBlank() }?.let {
+                    quotationDetail = runCatching { api.getQuotationDetail(session.accessToken,it) }.getOrNull()
+                }
+                done(true, "Pricing Policy berhasil disimpan.")
+            } catch (e: Exception) {
+                done(false, e.message ?: "Pricing Policy gagal disimpan.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun clearQuotationDetail() {
+        quotationDetail = null
+        quotationError = null
     }
 
     fun loadCustomerPortalToken(
@@ -799,6 +1035,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         bookingRequestError = null
         customerPortalCredential = null
         customerPortalTokenError = null
+        quotationQueue = emptyList()
+        quotationDetail = null
+        quotationError = null
+        pricingDashboard = null
+        pricingError = null
         managementDashboard = null
         managementError = null
         planningDashboard = null
