@@ -57,6 +57,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var bookingRequestError by mutableStateOf<String?>(null)
         private set
+    var customerPortalCredential by mutableStateOf<CustomerPortalCredential?>(null)
+        private set
+    var customerPortalTokenError by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -153,7 +157,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 rows = loaded
                 dataError = firstError
-                if (FinancialAccess.canView(session.profile.role)) {
+                if (session.profile.role in listOf("Owner", "Manager", "Sales")) {
                     try {
                         bookingRequests = api.getBookingRequests(session.accessToken)
                         bookingRequestError = null
@@ -161,6 +165,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         bookingRequests = emptyList()
                         bookingRequestError = e.message ?: "Pengajuan Website gagal dimuat."
                     }
+                } else {
+                    bookingRequests = emptyList()
+                    bookingRequestError = null
+                }
+
+                if (FinancialAccess.canView(session.profile.role)) {
                     try {
                         managementDashboard = api.getManagementDashboard(session.accessToken)
                         managementError = null
@@ -176,8 +186,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         planningError = e.message ?: "Planning & Business Control gagal dimuat."
                     }
                 } else {
-                    bookingRequests = emptyList()
-                    bookingRequestError = null
                     managementDashboard = null
                     managementError = null
                     planningDashboard = null
@@ -330,6 +338,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             actionBusy = false
         }
+    }
+
+    fun loadCustomerPortalToken(
+        requestId: String,
+        done: (Boolean, String) -> Unit
+    ) {
+        val session = activeSession() ?: return
+        if (session.profile.role !in listOf("Owner", "Manager", "Sales")) {
+            done(false, "Hanya Owner / Manager / Sales yang dapat melihat token customer.")
+            return
+        }
+        actionBusy = true
+        customerPortalTokenError = null
+        viewModelScope.launch {
+            try {
+                customerPortalCredential = api.getBookingRequestToken(session.accessToken, requestId)
+                done(true, "Token customer berhasil dimuat.")
+            } catch (e: Exception) {
+                customerPortalCredential = null
+                customerPortalTokenError = e.message ?: "Token customer gagal dimuat."
+                done(false, customerPortalTokenError ?: "Token customer gagal dimuat.")
+            }
+            actionBusy = false
+        }
+    }
+
+    fun clearCustomerPortalToken() {
+        customerPortalCredential = null
+        customerPortalTokenError = null
     }
 
     fun reviewBookingRequest(
@@ -706,6 +743,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rows = emptyMap()
         bookingRequests = emptyList()
         bookingRequestError = null
+        customerPortalCredential = null
+        customerPortalTokenError = null
         managementDashboard = null
         managementError = null
         planningDashboard = null
