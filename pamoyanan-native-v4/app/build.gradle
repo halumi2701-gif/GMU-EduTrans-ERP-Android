@@ -65,12 +65,12 @@ def decodedLogoDir = layout.buildDirectory.dir("generated/pamoyananLogo/res")
 android.sourceSets.main.res.srcDir(decodedLogoDir)
 
 tasks.register("decodePamoyananLogo") {
-    inputs.file(file("src/main/res/raw/logo_rw01_b64.txt"))
-    outputs.file(decodedLogoDir.map { it.file("drawable/logo_rw01.png") })
+    inputs.file(file("src/main/assets/logo_rw01.b64"))
+    outputs.file(decodedLogoDir.map { it.file("drawable/logo_rw01.webp") })
     doLast {
-        def out = decodedLogoDir.get().file("drawable/logo_rw01.png").asFile
+        def out = decodedLogoDir.get().file("drawable/logo_rw01.webp").asFile
         out.parentFile.mkdirs()
-        out.bytes = file("src/main/res/raw/logo_rw01_b64.txt").text.trim().decodeBase64()
+        out.bytes = file("src/main/assets/logo_rw01.b64").text.trim().decodeBase64()
     }
 }
 tasks.named("preBuild").configure { dependsOn("decodePamoyananLogo") }
