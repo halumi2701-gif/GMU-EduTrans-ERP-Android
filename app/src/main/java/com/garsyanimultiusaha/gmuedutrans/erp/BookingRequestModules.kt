@@ -50,6 +50,7 @@ fun BookingRequestScreen(
             listOf(
                 "NEW_REQUEST" to "Baru",
                 "VERIFICATION" to "Diterima",
+                "QUOTATION" to "Quotation",
                 "REJECTED" to "Ditolak",
                 "ALL" to "Semua"
             ).forEach { (value, label) ->
@@ -140,6 +141,19 @@ fun BookingRequestScreen(
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text("Terima")
+                                }
+                            }
+
+                            if (canReview && r.status == "VERIFICATION") {
+                                Spacer(Modifier.width(6.dp))
+                                Button(
+                                    onClick = {
+                                        vm.startBookingRequestQuotation(r.id) { _, msg -> onNotice(msg) }
+                                    },
+                                    enabled = !vm.actionBusy,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Mulai Quotation")
                                 }
                             }
                         }
