@@ -697,6 +697,233 @@ class SupabaseApi {
     }
 
 
+    suspend fun getPackageMaster(accessToken: String): List<PackageMasterItem> =
+        withContext(Dispatchers.IO) {
+            val root = JSONObject(
+                request(
+                    "POST",
+                    "/functions/v1/internal-package-master",
+                    JSONObject().put("action", "list").toString(),
+                    accessToken
+                )
+            )
+            val arr = root.optJSONArray("items") ?: JSONArray()
+            buildList {
+                for (i in 0 until arr.length()) {
+                    val x = arr.optJSONObject(i) ?: continue
+                    add(PackageMasterItem.fromJson(x))
+                }
+            }
+        }
+
+    suspend fun createPackageDraft(
+        accessToken: String,
+        programId: String,
+        name: String,
+        description: String,
+        pricePerPax: Double,
+        minPax: Int,
+        facilities: List<String>,
+        priceNote: String,
+        effectiveFrom: String,
+        effectiveUntil: String,
+        sortOrder: Int
+    ) = withContext(Dispatchers.IO) {
+        val arr = JSONArray()
+        facilities.forEach { arr.put(it) }
+        val payload = JSONObject()
+            .put("action", "create")
+            .put("program_id", programId)
+            .put("name", name)
+            .put("description", description)
+            .put("price_per_pax", pricePerPax)
+            .put("min_pax", minPax)
+            .put("facilities", arr)
+            .put("price_note", priceNote)
+            .put("effective_from", effectiveFrom.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("effective_until", effectiveUntil.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("sort_order", sortOrder)
+            .toString()
+        request("POST", "/functions/v1/internal-package-master", payload, accessToken)
+    }
+
+    suspend fun updatePackageDraft(
+        accessToken: String,
+        id: String,
+        name: String,
+        description: String,
+        pricePerPax: Double,
+        minPax: Int,
+        facilities: List<String>,
+        priceNote: String,
+        effectiveFrom: String,
+        effectiveUntil: String,
+        sortOrder: Int
+    ) = withContext(Dispatchers.IO) {
+        val arr = JSONArray()
+        facilities.forEach { arr.put(it) }
+        val payload = JSONObject()
+            .put("action", "update")
+            .put("id", id)
+            .put("name", name)
+            .put("description", description)
+            .put("price_per_pax", pricePerPax)
+            .put("min_pax", minPax)
+            .put("facilities", arr)
+            .put("price_note", priceNote)
+            .put("effective_from", effectiveFrom.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("effective_until", effectiveUntil.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("sort_order", sortOrder)
+            .toString()
+        request("POST", "/functions/v1/internal-package-master", payload, accessToken)
+    }
+
+    suspend fun clonePackage(accessToken: String, id: String) = withContext(Dispatchers.IO) {
+        val payload = JSONObject().put("action", "clone").put("id", id).toString()
+        request("POST", "/functions/v1/internal-package-master", payload, accessToken)
+    }
+
+    suspend fun archivePackage(accessToken: String, id: String) = withContext(Dispatchers.IO) {
+        val payload = JSONObject().put("action", "archive").put("id", id).toString()
+        request("POST", "/functions/v1/internal-package-master", payload, accessToken)
+    }
+
+    suspend fun getPricingMasterDashboard(accessToken: String): PricingMasterDashboard =
+        withContext(Dispatchers.IO) {
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .format(java.util.Date())
+            val payload = JSONObject()
+                .put("action", "dashboard")
+                .put("start_date", today.substring(0, 7) + "-01")
+                .put("end_date", today)
+                .put("as_of", today)
+                .toString()
+            PricingMasterDashboard.fromJson(
+                JSONObject(
+                    request(
+                        "POST",
+                        "/functions/v1/internal-pricing-control",
+                        payload,
+                        accessToken
+                    )
+                )
+            )
+        }
+
+    suspend fun saveCostTemplate(
+        accessToken: String,
+        templateId: String?,
+        scopeType: String,
+        programId: String?,
+        packageId: String?,
+        category: String,
+        description: String,
+        costMode: String,
+        amount: Double,
+        minPax: Int?,
+        maxPax: Int?,
+        effectiveFrom: String,
+        effectiveUntil: String?,
+        notes: String,
+        active: Boolean
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "save_cost_template")
+            .put("template_id", templateId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("scope_type", scopeType)
+            .put("program_id", programId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("package_id", packageId?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("category", category)
+            .put("description", description)
+            .put("cost_mode", costMode)
+            .put("amount", amount)
+            .put("min_pax", minPax ?: JSONObject.NULL)
+            .put("max_pax", maxPax ?: JSONObject.NULL)
+            .put("effective_from", effectiveFrom)
+            .put("effective_until", effectiveUntil?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("is_active", active)
+            .put("notes", notes)
+            .toString()
+        request("POST", "/functions/v1/internal-pricing-control", payload, accessToken)
+    }
+
+    suspend fun applyRecommendedPackagePrice(accessToken: String, packageId: String) =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("action", "apply_recommended_package_price")
+                .put("package_id", packageId)
+                .toString()
+            request("POST", "/functions/v1/internal-pricing-control", payload, accessToken)
+        }
+
+    suspend fun activatePackage(accessToken: String, packageId: String) =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("action", "activate_package")
+                .put("package_id", packageId)
+                .toString()
+            request("POST", "/functions/v1/internal-pricing-control", payload, accessToken)
+        }
+
+    suspend fun getPaymentGatewayDashboard(accessToken: String): PaymentGatewayDashboard =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject().put("action", "dashboard").toString()
+            PaymentGatewayDashboard.fromJson(
+                JSONObject(
+                    request(
+                        "POST",
+                        "/functions/v1/internal-payment-gateway-control",
+                        payload,
+                        accessToken
+                    )
+                )
+            )
+        }
+
+    suspend fun setPaymentChannel(
+        accessToken: String,
+        code: String,
+        enabled: Boolean
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "set_channel")
+            .put("code", code)
+            .put("is_enabled", enabled)
+            .toString()
+        request("POST", "/functions/v1/internal-payment-gateway-control", payload, accessToken)
+    }
+
+    suspend fun getQuotationDraftSuggestion(
+        accessToken: String,
+        quotationId: String
+    ): QuotationDraftSuggestion = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "draft_suggestion")
+            .put("quotation_id", quotationId)
+            .toString()
+        val root = JSONObject(
+            request(
+                "POST",
+                "/functions/v1/internal-quotation-workflow",
+                payload,
+                accessToken
+            )
+        )
+        QuotationDraftSuggestion.fromJson(root.optJSONObject("result") ?: JSONObject())
+    }
+
+    suspend fun applyQuotationDraftSuggestion(
+        accessToken: String,
+        quotationId: String
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", "apply_draft_suggestion")
+            .put("quotation_id", quotationId)
+            .toString()
+        request("POST", "/functions/v1/internal-quotation-workflow", payload, accessToken)
+    }
+
+
     suspend fun audit(
         accessToken: String,
         userId: String,
