@@ -34,6 +34,11 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Decode official branding
+        run: |
+          mkdir -p pamoyanan-native-v4/app/src/main/res/drawable
+          base64 -d pamoyanan-native-v4/app/src/main/assets/logo_rw01.b64 > pamoyanan-native-v4/app/src/main/res/drawable/logo_rw01.webp
+
       - name: Build Native APK
         working-directory: pamoyanan-native-v4
         run: gradle --no-daemon :app:assembleDebug
@@ -41,11 +46,11 @@ jobs:
       - name: Artifact
         run: |
           mkdir -p artifact
-          cp pamoyanan-native-v4/app/build/outputs/apk/debug/app-debug.apk artifact/PAMOYANAN_ONE_v6.7.1_NATIVE_V4.apk
+          cp pamoyanan-native-v4/app/build/outputs/apk/debug/app-debug.apk artifact/PAMOYANAN_ONE_v6.7.1_NATIVE_V4_1.apk
           sha256sum artifact/PAMOYANAN_ONE_v6.7.1_NATIVE_V4.apk | tee artifact/SHA256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PAMOYANAN_ONE_NATIVE_V4
+          name: PAMOYANAN_ONE_NATIVE_V4_1
           path: artifact/
           retention-days: 7
