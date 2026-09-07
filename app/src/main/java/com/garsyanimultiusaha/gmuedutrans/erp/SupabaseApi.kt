@@ -397,6 +397,21 @@ class SupabaseApi {
         )
     }
 
+
+    suspend fun reviewBookingRequest(
+        accessToken: String,
+        requestId: String,
+        accepted: Boolean,
+        reason: String = ""
+    ) = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("action", if (accepted) "start_verification" else "reject")
+            .put("id", requestId)
+            .put("reason", reason.trim())
+            .toString()
+        request("POST", "/functions/v1/internal-booking-inbox", payload, accessToken)
+    }
+
     suspend fun audit(
         accessToken: String,
         userId: String,
