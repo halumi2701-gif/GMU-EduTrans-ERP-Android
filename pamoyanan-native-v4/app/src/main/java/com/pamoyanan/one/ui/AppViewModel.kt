@@ -44,6 +44,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var digitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
         private set
+    var staffDigitalId = androidx.compose.runtime.mutableStateOf<JSONObject?>(null)
+        private set
+    var staffDigitalResidentId = androidx.compose.runtime.mutableStateOf<String?>(null)
+        private set
+    var staffDigitalResidentName = androidx.compose.runtime.mutableStateOf("")
+        private set
     var letters = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
         private set
     var templates = androidx.compose.runtime.mutableStateOf<JSONArray?>(null)
@@ -172,6 +178,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         when (target) {
             "home" -> loadHome()
             "digital" -> loadDigitalId()
+            "digitalStaff" -> loadResidents()
             "letters" -> loadLetters()
             "complaints" -> loadComplaints()
             "residents" -> loadResidents()
