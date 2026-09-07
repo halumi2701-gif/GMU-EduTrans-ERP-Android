@@ -34,11 +34,6 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Decode official branding
-        run: |
-          mkdir -p pamoyanan-native-v4/app/src/main/res/drawable
-          base64 -d pamoyanan-native-v4/app/src/main/assets/logo_rw01.b64 > pamoyanan-native-v4/app/src/main/res/drawable/logo_rw01.webp
-
       - name: Build Native APK
         working-directory: pamoyanan-native-v4
         run: gradle --no-daemon :app:assembleDebug
