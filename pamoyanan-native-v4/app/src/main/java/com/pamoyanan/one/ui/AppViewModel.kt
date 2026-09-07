@@ -295,6 +295,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             loading.value = true
             try {
+                if (me.value?.role == "RW" || me.value?.role == "ADMIN") {
+                    api.letterAction(id, "regenerate-pdf")
+                }
                 val file: File = api.downloadLetterPdf(id)
                 val context = getApplication<Application>()
                 val uri = FileProvider.getUriForFile(context, "com.pamoyanan.one.files", file)
