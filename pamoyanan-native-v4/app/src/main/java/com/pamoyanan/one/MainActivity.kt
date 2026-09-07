@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.pamoyanan.one.ui.PamoyananApp
 import com.pamoyanan.one.ui.theme.PamoyananTheme
 
@@ -13,7 +16,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PamoyananTheme {
-                PamoyananApp()
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(
+                        density = density.density,
+                        fontScale = maxOf(density.fontScale, 1.35f)
+                    )
+                ) {
+                    PamoyananApp()
+                }
             }
         }
     }
