@@ -43,6 +43,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var dataError by mutableStateOf<String?>(null)
         private set
+    var managementDashboard by mutableStateOf<ManagementDashboard?>(null)
+        private set
+    var managementError by mutableStateOf<String?>(null)
+        private set
 
     init {
         viewModelScope.launch {
@@ -139,6 +143,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 rows = loaded
                 dataError = firstError
+                if (FinancialAccess.canView(session.profile.role)) {
+                    try {
+                        managementDashboard = api.getManagementDashboard(session.accessToken)
+                        managementError = null
+                    } catch (e: Exception) {
+                        managementDashboard = null
+                        managementError = e.message ?: "Management Control gagal dimuat."
+                    }
+                } else {
+                    managementDashboard = null
+                    managementError = null
+                }
             } catch (e: Exception) {
                 dataError = e.message ?: "Gagal memuat data ERP."
             }
@@ -386,6 +402,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun dashboardStats(): DashboardStats {
+        val management = managementDashboard
+        if (management != null) {
+            val k = management.kpi
+            return DashboardStats(
+                bookingsMonth = k.bookingCount,
+                customers = customers.size,
+                pax = k.paxTotal,
+                omzet = k.revenue,
+                paid = k.cashCollected,
+                receivable = k.receivable,
+                actualCost = k.actualCost,
+                profit = k.grossProfit,
+                margin = k.marginPct,
+                upcoming = bookings.count {
+                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+                    it.tripDate >= today && it.status !in listOf("Completed", "Closed")
+                },
+                topPrograms = management.topPrograms.take(3),
+                topCustomers = management.topCustomers.take(3),
+                topSales = management.topSales.take(3)
+            )
+        }
+
         val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val monthBookings = bookings.filter { it.tripDate.startsWith(month) }
@@ -460,6 +499,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         customers = emptyList()
         bookings = emptyList()
         rows = emptyMap()
+        managementDashboard = null
+        managementError = null
         state = AppState.LoggedOut
         if (session != null) viewModelScope.launch { api.signOut(session.accessToken) }
     }
