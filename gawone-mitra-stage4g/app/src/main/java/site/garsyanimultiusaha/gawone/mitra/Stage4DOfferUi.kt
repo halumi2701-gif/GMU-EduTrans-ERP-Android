@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -51,6 +52,7 @@ internal fun Stage4DOfferPanel(serviceCode: String?) {
     var acceptTarget by remember { mutableStateOf<PartnerOfferDetail?>(null) }
     var rejectTarget by remember { mutableStateOf<PartnerOfferDetail?>(null) }
     var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val deepLinkTarget by Stage4GDeepLinkRouter.target.collectAsState()
 
     suspend fun refreshAll() {
         offers = client.offers()
@@ -59,6 +61,25 @@ internal fun Stage4DOfferPanel(serviceCode: String?) {
             if (offers.none { it.offerId == current.offerId }) {
                 selected = null
             }
+        }
+    }
+
+    LaunchedEffect(deepLinkTarget, serviceCode) {
+        val target = deepLinkTarget
+        if (target is Stage4GDeepLinkTarget.Offer && !serviceCode.isNullOrBlank()) {
+            loading = true
+            error = null
+            runCatching { client.detail(target.offerId) }
+                .onSuccess {
+                    selected = it
+                    Stage4GDeepLinkRouter.consume(target)
+                }
+                .onFailure {
+                    info = "Offer dari notifikasi sudah tidak aktif atau tidak dapat dibuka."
+                    Stage4GDeepLinkRouter.consume(target)
+                    runCatching { refreshAll() }
+                }
+            loading = false
         }
     }
 
