@@ -1035,12 +1035,13 @@ private fun StatusScreen(
         Surface(color = GawoneSoft, shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Text("Mitra sudah ACTIVE", fontWeight = FontWeight.Bold)
-                Text("Online + GPS aktif. Offer & matching sudah terhubung pada Stage 4D.")
+                Text("Online, order, eksekusi kerja, dan pendapatan sudah terhubung sampai Stage 4F.")
             }
         }
         Stage4CPresencePanel(plan?.serviceCode)
         Stage4DOfferPanel(plan?.serviceCode)
         Stage4EExecutionPanel()
+        Stage4FWalletPanel()
     } else {
         Text(
             "ACTIVE hanya dapat diberikan reviewer GAWONE setelah KYC, skill, dan kendaraan yang diperlukan lolos.",
