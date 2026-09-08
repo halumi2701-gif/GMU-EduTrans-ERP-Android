@@ -16,15 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PamoyananTheme {
-                val density = LocalDensity.current
-                CompositionLocalProvider(
-                    LocalDensity provides Density(
-                        density = density.density,
-                        fontScale = maxOf(density.fontScale, 1.35f)
-                    )
-                ) {
-                    PamoyananApp()
-                }
+                PamoyananApp()
             }
         }
     }
