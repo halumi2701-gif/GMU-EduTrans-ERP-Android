@@ -269,7 +269,7 @@ private fun V20Home(
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(R.drawable.logo_rw01), "Logo RW 01", tint = Color.Unspecified, modifier = Modifier.size(50.dp))
+                SafeBrandLogo(size = 50.dp, modifier = Modifier.size(50.dp))
                 Spacer(Modifier.width(11.dp))
                 Column(Modifier.weight(1f)) {
                     Text("PAMOYANAN ONE", fontWeight = FontWeight.Black, fontSize = 18.sp, color = V20Ink)
