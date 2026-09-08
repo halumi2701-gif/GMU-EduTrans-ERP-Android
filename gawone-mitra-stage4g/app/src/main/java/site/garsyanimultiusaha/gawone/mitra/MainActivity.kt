@@ -2,7 +2,8 @@ package site.garsyanimultiusaha.gawone.mitra
 
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle\nimport android.content.Intent
+import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
