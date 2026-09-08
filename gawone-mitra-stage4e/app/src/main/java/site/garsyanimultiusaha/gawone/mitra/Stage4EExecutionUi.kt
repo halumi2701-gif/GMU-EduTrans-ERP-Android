@@ -360,14 +360,38 @@ private fun ExecutionDetailCard(
             }
 
             execution.nextAction?.let { action ->
+                val requiredTypes = execution.requiredFinishProofTypes
+                val matchingProofs = if (requiredTypes.isEmpty()) {
+                    execution.proofs.size
+                } else {
+                    execution.proofs.count { it.proofType in requiredTypes }
+                }
+                val proofReady = matchingProofs >= execution.minimumFinishProofs
+                val hasBlockingIssue = execution.issues.any {
+                    it.status == "OPEN" && it.severity in setOf("BLOCKING","EMERGENCY")
+                }
+
                 Button(
                     onClick = { onAction(action) },
                     enabled = !loading &&
-                        !(action == "FINISH_WORK" &&
-                            execution.minimumFinishProofs > execution.proofs.size),
+                        !(action == "FINISH_WORK" && (!proofReady || hasBlockingIssue)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(actionLabel(action))
+                }
+
+                if (action == "FINISH_WORK" && !proofReady) {
+                    Text(
+                        "Bukti penyelesaian wajib belum lengkap.",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                if (action == "FINISH_WORK" && hasBlockingIssue) {
+                    Text(
+                        "Ada kendala BLOCKING/EMERGENCY yang masih OPEN.",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             }
 
