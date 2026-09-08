@@ -12,8 +12,8 @@ android {
         applicationId = "site.garsyanimultiusaha.gawone.mitra"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0-stage4d"
+        versionCode = 5
+        versionName = "0.5.0-stage4e"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://fhtxlojbguineyqayhai.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h\"")
