@@ -50,7 +50,7 @@ private val GawoneBg = Color(0xFFF7FAF8)
 
 private enum class Screen { PHONE, OTP, PROFILE, SERVICE, VEHICLE, KYC, STATUS }
 
-private data class Session(
+internal data class Session(
     val accessToken: String,
     val refreshToken: String,
     val expiresAt: Long,
