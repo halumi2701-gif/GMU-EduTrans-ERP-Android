@@ -1,0 +1,47 @@
+name: GAWONE Mitra Stage 4D Source Validation
+
+on:
+  push:
+    branches:
+      - gawone-mitra-apk-build
+    paths:
+      - "gawone-mitra-stage4d/**"
+      - ".github/workflows/gawone-mitra-stage4d-source.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Compile Stage 4D Kotlin
+        run: gradle -p gawone-mitra-stage4d --no-daemon --stacktrace :app:compileDebugKotlin
+
+      - name: Validate Android resources
+        run: gradle -p gawone-mitra-stage4d --no-daemon :app:processDebugResources
+
+      - name: Stage 4D validation marker
+        run: echo "STAGE_4D_SOURCE_VALIDATION_PASS"
