@@ -145,15 +145,34 @@ private fun V20SpriteIcon(key:String, modifier:Modifier = Modifier.size(44.dp)) 
     }
 }
 
+private fun normalizeV20Role(raw: String?): String {
+    val role = raw.orEmpty().uppercase()
+    return when {
+        role.contains("ADMIN") -> "ADMIN"
+        role == "RW" || role.startsWith("RW_") || role.endsWith("_RW") -> "RW"
+        role == "RT" || role.startsWith("RT_") || role.endsWith("_RT") -> "RT"
+        else -> "WARGA"
+    }
+}
+
 @Composable
 fun V20MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
+    try {
+        V20MainShellContent(vm, snackbar)
+    } catch (_: Throwable) {
+        LegacyMainShell(vm, snackbar)
+    }
+}
+
+@Composable
+private fun V20MainShellContent(vm: AppViewModel, snackbar: SnackbarHostState) {
     val me by vm.me
     val home by vm.home
-    val role = me?.role ?: "WARGA"
+    val role = normalizeV20Role(me?.role)
     var tabName by rememberSaveable { mutableStateOf(V20Tab.HOME.name) }
     var legacyOpen by rememberSaveable { mutableStateOf(false) }
     var legacyLabel by rememberSaveable { mutableStateOf("") }
-    val tab = V20Tab.valueOf(tabName)
+    val tab = runCatching { V20Tab.valueOf(tabName) }.getOrDefault(V20Tab.HOME)
 
     BackHandler(enabled = legacyOpen) { legacyOpen = false }
 
@@ -184,7 +203,7 @@ fun V20MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             NavigationBar(containerColor = Color.White, tonalElevation = 10.dp) {
-                V20Tab.entries.forEach { item ->
+                V20Tab.values().forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
                         onClick = { tabName = item.name },
@@ -320,7 +339,13 @@ private fun V20Home(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth().clickable {
-                    openLegacy(if(role=="WARGA") available.first { it.title=="Digital ID" } else available.first { it.title=="Digital ID Warga" })
+                    val target = if (role == "WARGA") {
+                        available.firstOrNull { it.title == "Digital ID" }
+                    } else {
+                        available.firstOrNull { it.title == "Digital ID Warga" }
+                            ?: available.firstOrNull { it.title == "Digital ID" }
+                    }
+                    if (target != null) openLegacy(target)
                 },
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF123D31))
