@@ -94,34 +94,15 @@ private data class KycPlan(
 private class ApiException(message: String) : Exception(message)
 
 private class GawoneApi(private val context: Context) {
-    private val prefs = context.getSharedPreferences("gawone_mitra_stage4b_session", Context.MODE_PRIVATE)
+    private val secureSession = SecureSessionStore(context)
     private val baseUrl = BuildConfig.SUPABASE_URL.trimEnd('/')
     private val key = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
-    fun readSession(): Session? {
-        val access = prefs.getString("access", null) ?: return null
-        val refresh = prefs.getString("refresh", null) ?: return null
-        val userId = prefs.getString("userId", null) ?: return null
-        return Session(
-            accessToken = access,
-            refreshToken = refresh,
-            expiresAt = prefs.getLong("expiresAt", 0L),
-            userId = userId,
-            phone = prefs.getString("phone", "").orEmpty()
-        )
-    }
+    fun readSession(): Session? = secureSession.read()
 
-    private fun saveSession(s: Session) {
-        prefs.edit()
-            .putString("access", s.accessToken)
-            .putString("refresh", s.refreshToken)
-            .putLong("expiresAt", s.expiresAt)
-            .putString("userId", s.userId)
-            .putString("phone", s.phone)
-            .apply()
-    }
+    private fun saveSession(s: Session) = secureSession.save(s)
 
-    fun clearSession() = prefs.edit().clear().apply()
+    fun clearSession() = secureSession.clear()
 
     suspend fun requestOtp(phone: String) {
         request(
