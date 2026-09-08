@@ -1,0 +1,55 @@
+name: GAWONE Mitra Stage 4B APK
+
+on:
+  push:
+    branches:
+      - gawone-mitra-apk-build
+    paths:
+      - "gawone-mitra-stage4b/**"
+      - ".github/workflows/gawone-mitra-stage4b-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build Stage 4B debug APK
+        run: gradle -p gawone-mitra-stage4b --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact-stage4b
+          cp gawone-mitra-stage4b/app/build/outputs/apk/debug/app-debug.apk artifact-stage4b/GAWONE-Mitra-Stage4B-debug.apk
+          sha256sum artifact-stage4b/GAWONE-Mitra-Stage4B-debug.apk | tee artifact-stage4b/SHA256.txt
+
+      - name: Upload Stage 4B APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Mitra-Stage4B-APK
+          path: artifact-stage4b/
+          if-no-files-found: error
+          retention-days: 7
