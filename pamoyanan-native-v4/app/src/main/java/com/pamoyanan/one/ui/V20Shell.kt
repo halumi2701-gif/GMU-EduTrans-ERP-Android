@@ -1,7 +1,6 @@
 package com.pamoyanan.one.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,13 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pamoyanan.one.R
@@ -95,31 +92,56 @@ private val V20Services = listOf(
     V20Service("Reset Password","Permintaan reset password","password_reset",genericPath="/auth/password-reset-requests",roles=setOf("RW","ADMIN"),group="Admin")
 )
 
-private val SpriteKeys = listOf(
-    "admin_center","agenda","aktivitas","akun","approval","arsip","audit_receipt","bangunan",
-    "beranda","coklit","darurat","data_health","device_trust","digital_id","digital_id_revoke","forum_warga",
-    "import_data","inbox_operasional","info_rw","iuran_kas","keamanan","keluarga","kesehatan","kk",
-    "kolaborasi","lapor","layanan","lingkungan","login_session","masjid","mutasi","notifikasi",
-    "one_command","pamoyanan_one","password_reset","pbb","pdf_qr","pelayanan_surat","pendidikan","pengaturan",
-    "pengurus","pju","privacy_shield","qr_akses","qr_rotate","qris_payment","ronda","ruang_publik",
-    "satlinmas","sosial","staff_digital_id","timeline_tracking","transportasi","umkm","warga","whatsapp_gateway","wilayah"
-)
+private fun v20Vector(key:String): ImageVector = when(key) {
+    "beranda" -> Icons.Filled.Home
+    "layanan" -> Icons.Filled.Apps
+    "aktivitas" -> Icons.Filled.History
+    "akun" -> Icons.Filled.Person
+    "digital_id","staff_digital_id" -> Icons.Filled.Badge
+    "pelayanan_surat","arsip","timeline_tracking","pdf_qr" -> Icons.Filled.Description
+    "lapor" -> Icons.Filled.Campaign
+    "warga","keluarga","pengurus" -> Icons.Filled.Groups
+    "mutasi" -> Icons.Filled.SyncAlt
+    "coklit","data_health","audit_receipt" -> Icons.Filled.FactCheck
+    "inbox_operasional","notifikasi" -> Icons.Filled.Notifications
+    "approval" -> Icons.Filled.TaskAlt
+    "info_rw" -> Icons.Filled.Info
+    "agenda" -> Icons.Filled.Event
+    "kesehatan" -> Icons.Filled.HealthAndSafety
+    "keamanan","satlinmas","device_trust","privacy_shield" -> Icons.Filled.Security
+    "lingkungan" -> Icons.Filled.Eco
+    "sosial" -> Icons.Filled.VolunteerActivism
+    "iuran_kas" -> Icons.Filled.AccountBalanceWallet
+    "umkm" -> Icons.Filled.Storefront
+    "pbb","bangunan" -> Icons.Filled.Apartment
+    "qris_payment","qr_akses","qr_rotate" -> Icons.Filled.QrCode2
+    "wilayah" -> Icons.Filled.Map
+    "whatsapp_gateway" -> Icons.Filled.Chat
+    "import_data" -> Icons.Filled.UploadFile
+    "admin_center","pengaturan","password_reset" -> Icons.Filled.AdminPanelSettings
+    "one_command" -> Icons.Filled.AutoAwesome
+    "darurat" -> Icons.Filled.Sos
+    "forum_warga" -> Icons.Filled.Forum
+    "pamoyanan_one" -> Icons.Filled.AccountBalance
+    else -> Icons.Filled.Apps
+}
 
 @Composable
 private fun V20SpriteIcon(key:String, modifier:Modifier = Modifier.size(44.dp)) {
-    val bitmap = ImageBitmap.imageResource(R.drawable.v20_icon_sprite)
-    val index = SpriteKeys.indexOf(key).let { if (it < 0) SpriteKeys.indexOf("layanan") else it }
-    Canvas(modifier = modifier) {
-        val cellPx = 56
-        val col = index % 8
-        val row = index / 8
-        drawImage(
-            image = bitmap,
-            srcOffset = IntOffset(col * cellPx, row * cellPx),
-            srcSize = IntSize(cellPx, cellPx),
-            dstOffset = IntOffset.Zero,
-            dstSize = IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))
-        )
+    val danger = key == "darurat"
+    val gold = key in setOf("qris_payment","iuran_kas","pbb","agenda")
+    val bg = when {
+        danger -> Color(0xFFFFE9EA)
+        gold -> Color(0xFFFFF5CF)
+        else -> Color(0xFFE8F4EA)
+    }
+    val fg = when {
+        danger -> V20Danger
+        gold -> Color(0xFF8A6500)
+        else -> V20Deep
+    }
+    Surface(shape = RoundedCornerShape(15.dp), color = bg) {
+        Icon(v20Vector(key), contentDescription = null, tint = fg, modifier = modifier.padding(8.dp))
     }
 }
 
