@@ -14,7 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.*\nimport androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -413,7 +413,7 @@ private class GawoneApi(private val context: Context) {
             setRequestProperty("Authorization", "Bearer $token")
             setRequestProperty("Content-Type", mime)
             setRequestProperty("x-upsert", "false")
-            fixedLengthStreamingMode(bytes.size)
+            setFixedLengthStreamingMode(bytes.size)
         }
         try {
             c.outputStream.use { it.write(bytes) }
@@ -591,7 +591,7 @@ private fun GawoneMitraStage4B() {
                 loading = loading,
                 error = error,
                 message = message,
-                onOtp = { otp = it.filter(Char::isDigit).take(6) },
+                onOtp = { otp = it.filter { it.isDigit() }.take(6) },
                 onVerify = {
                     launchTask {
                         api.verifyOtp(normalizedPhone, otp)
@@ -615,7 +615,7 @@ private fun GawoneMitraStage4B() {
                         require(fullName.trim().length >= 2) { "Nama lengkap wajib diisi." }
                         require(address.trim().length >= 4) { "Alamat wajib diisi." }
                         require(emergencyName.trim().length >= 2) { "Kontak darurat wajib diisi." }
-                        require(emergencyPhone.filter(Char::isDigit).length >= 8) { "Nomor darurat belum valid." }
+                        require(emergencyPhone.filter { it.isDigit() }.length >= 8) { "Nomor darurat belum valid." }
                         api.patchDisplayName(fullName.trim())
                         api.updatePartnerProfile(address, city, emergencyName, emergencyPhone, bio)
                         screen = Screen.SERVICE
@@ -650,7 +650,7 @@ private fun GawoneMitraStage4B() {
                 onPlate = { plate = it },
                 onBrand = { brand = it },
                 onModel = { model = it },
-                onYear = { year = it.filter(Char::isDigit).take(4) },
+                onYear = { year = it.filter { it.isDigit() }.take(4) },
                 onColor = { color = it },
                 onSave = {
                     launchTask {
@@ -722,7 +722,7 @@ private fun GawoneMitraStage4B() {
 }
 
 private fun normalizePhone(input: String): String? {
-    val d = input.filter(Char::isDigit)
+    val d = input.filter { it.isDigit() }
     val n = when {
         d.startsWith("62") -> "+$d"
         d.startsWith("0") -> "+62${d.drop(1)}"
