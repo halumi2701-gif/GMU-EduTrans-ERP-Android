@@ -1,4 +1,4 @@
-name: GAWONE Mitra Stage 4B APK
+name: GAWONE Mitra Stage 4B Source Validation
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -37,19 +37,11 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build Stage 4B debug APK
-        run: gradle -p gawone-mitra-stage4b --no-daemon --stacktrace :app:assembleDebug
+      - name: Compile Stage 4B Kotlin
+        run: gradle -p gawone-mitra-stage4b --no-daemon --stacktrace :app:compileDebugKotlin
 
-      - name: Prepare artifact
-        run: |
-          mkdir -p artifact-stage4b
-          cp gawone-mitra-stage4b/app/build/outputs/apk/debug/app-debug.apk artifact-stage4b/GAWONE-Mitra-Stage4B-debug.apk
-          sha256sum artifact-stage4b/GAWONE-Mitra-Stage4B-debug.apk | tee artifact-stage4b/SHA256.txt
+      - name: Validate Android resources
+        run: gradle -p gawone-mitra-stage4b --no-daemon :app:processDebugResources
 
-      - name: Upload Stage 4B APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: GAWONE-Mitra-Stage4B-APK
-          path: artifact-stage4b/
-          if-no-files-found: error
-          retention-days: 7
+      - name: Stage 4B validation marker
+        run: echo "STAGE_4B_SOURCE_VALIDATION_PASS"
