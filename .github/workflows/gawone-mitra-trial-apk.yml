@@ -1,0 +1,56 @@
+name: GAWONE Mitra Trial APK
+
+on:
+  push:
+    branches:
+      - gawone-mitra-apk-build
+    paths:
+      - "gawone-mitra-trial/**"
+      - ".github/workflows/gawone-mitra-trial-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build debug APK
+        run: |
+          gradle -p gawone-mitra-trial --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Prepare APK
+        run: |
+          mkdir -p artifact
+          cp gawone-mitra-trial/app/build/outputs/apk/debug/app-debug.apk artifact/GAWONE-Mitra-Alpha-0.1-Trial-debug.apk
+          sha256sum artifact/GAWONE-Mitra-Alpha-0.1-Trial-debug.apk | tee artifact/SHA256.txt
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Mitra-Alpha-0.1-Trial-APK
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 7
