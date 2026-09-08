@@ -12,8 +12,8 @@ android {
         applicationId "com.pamoyanan.one"
         minSdk 24
         targetSdk 35
-        versionCode 67141
-        versionName "6.7.1-native-v4.1"
+        versionCode 200201
+        versionName "20.2.1-v20"
         buildConfigField "String", "API_BASE_URL", "\"https://pamoyanan-one-rw01.vercel.app/api/v1\""
     }
 
@@ -74,3 +74,18 @@ tasks.register("decodePamoyananLogo") {
     }
 }
 tasks.named("preBuild").configure { dependsOn("decodePamoyananLogo") }
+
+def decodedV20IconDir = layout.buildDirectory.dir("generated/v20IconSprite/res")
+android.sourceSets.main.res.srcDir(decodedV20IconDir)
+
+tasks.register("decodeV20IconSprite") {
+    inputs.file(file("src/main/assets/v20_icon_sprite.b64"))
+    outputs.file(decodedV20IconDir.map { it.file("drawable/v20_icon_sprite.webp") })
+    doLast {
+        def out = decodedV20IconDir.get().file("drawable/v20_icon_sprite.webp").asFile
+        out.parentFile.mkdirs()
+        out.bytes = file("src/main/assets/v20_icon_sprite.b64").text.trim().decodeBase64()
+    }
+}
+tasks.named("preBuild").configure { dependsOn("decodeV20IconSprite") }
+
