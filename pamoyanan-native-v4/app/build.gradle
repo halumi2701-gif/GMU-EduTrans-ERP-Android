@@ -12,8 +12,8 @@ android {
         applicationId "com.pamoyanan.one"
         minSdk 24
         targetSdk 35
-        versionCode 200202
-        versionName "20.2.2-v20"
+        versionCode 200204
+        versionName "20.2.4-v20"
         buildConfigField "String", "API_BASE_URL", "\"https://pamoyanan-one-rw01.vercel.app/api/v1\""
     }
 
