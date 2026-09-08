@@ -207,7 +207,7 @@ fun PamoyananApp(vm: AppViewModel = viewModel()) {
                 AuthStage.BOOT -> StartupSplash()
                 AuthStage.LOGIN -> LoginScreen(vm)
                 AuthStage.INITIAL_PASSWORD -> InitialPasswordScreen(vm)
-                AuthStage.MAIN -> MainShell(vm, snackbar)
+                AuthStage.MAIN -> V20MainShell(vm, snackbar)
             }
         }
         if (loading && stage != AuthStage.BOOT) {
@@ -386,7 +386,7 @@ private fun InitialPasswordScreen(vm: AppViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
+fun LegacyMainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
     val me by vm.me
     val route by vm.route
     var showSearch by remember { mutableStateOf(false) }
