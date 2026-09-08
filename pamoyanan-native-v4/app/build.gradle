@@ -74,18 +74,3 @@ tasks.register("decodePamoyananLogo") {
     }
 }
 tasks.named("preBuild").configure { dependsOn("decodePamoyananLogo") }
-
-def decodedV20IconDir = layout.buildDirectory.dir("generated/v20IconSprite/res")
-android.sourceSets.main.res.srcDir(decodedV20IconDir)
-
-tasks.register("decodeV20IconSprite") {
-    inputs.file(file("src/main/assets/v20_icon_sprite.b64"))
-    outputs.file(decodedV20IconDir.map { it.file("drawable/v20_icon_sprite.webp") })
-    doLast {
-        def out = decodedV20IconDir.get().file("drawable/v20_icon_sprite.webp").asFile
-        out.parentFile.mkdirs()
-        out.bytes = file("src/main/assets/v20_icon_sprite.b64").text.trim().decodeBase64()
-    }
-}
-tasks.named("preBuild").configure { dependsOn("decodeV20IconSprite") }
-
