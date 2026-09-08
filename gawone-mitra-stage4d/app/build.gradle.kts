@@ -12,8 +12,8 @@ android {
         applicationId = "site.garsyanimultiusaha.gawone.mitra"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0-stage4c"
+        versionCode = 4
+        versionName = "0.4.0-stage4d"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://fhtxlojbguineyqayhai.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h\"")
@@ -37,11 +37,13 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.10.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
