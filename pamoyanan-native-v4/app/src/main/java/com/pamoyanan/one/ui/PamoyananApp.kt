@@ -245,7 +245,7 @@ private fun BrandMark(size: androidx.compose.ui.unit.Dp = 48.dp) {
         Modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        Icon(painter = painterResource(R.drawable.logo_rw01), contentDescription = "Logo RW 01", tint = Color.Unspecified, modifier = Modifier.size(size))
+        SafeBrandLogo(size = size, modifier = Modifier.size(size))
     }
 }
 
