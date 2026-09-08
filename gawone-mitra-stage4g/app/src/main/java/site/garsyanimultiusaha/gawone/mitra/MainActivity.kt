@@ -2,7 +2,7 @@ package site.garsyanimultiusaha.gawone.mitra
 
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle
+import android.os.Bundle\nimport android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -41,7 +41,15 @@ private const val PILOT_AREA = "ID-JB-CJR-PILOT"
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        GawoneNotificationChannels.ensure(this)
+        Stage4GDeepLinkRouter.accept(intent?.data)
         setContent { GawoneMitraStage4B() }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Stage4GDeepLinkRouter.accept(intent.data)
     }
 }
 
@@ -1035,7 +1043,7 @@ private fun StatusScreen(
         Surface(color = GawoneSoft, shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Text("Mitra sudah ACTIVE", fontWeight = FontWeight.Bold)
-                Text("Online, order, eksekusi kerja, dan pendapatan sudah terhubung sampai Stage 4F.")
+                Text("Online, order, eksekusi, pendapatan, notifikasi, chat, dan realtime terhubung sampai Stage 4G.")
             }
         }
         Stage4CPresencePanel(plan?.serviceCode)
