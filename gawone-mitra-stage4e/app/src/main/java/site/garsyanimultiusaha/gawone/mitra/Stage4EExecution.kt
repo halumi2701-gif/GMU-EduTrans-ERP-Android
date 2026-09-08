@@ -310,6 +310,7 @@ internal class Stage4EExecutionClient(context: Context) {
             "ORDER_CHECKIN_LOCATION_MISSING" -> "Koordinat lokasi order belum tersedia."
             "CHECKIN_TOO_FAR" -> "Anda masih terlalu jauh dari lokasi untuk check-in."
             "COMPLETION_PROOF_REQUIRED" -> "Upload bukti penyelesaian sebelum menyelesaikan pekerjaan."
+            "OPEN_BLOCKING_ISSUE" -> "Ada kendala BLOCKING/EMERGENCY yang belum diselesaikan operasional."
             "INVALID_ASSIGNMENT_TRANSITION" -> "Urutan status pekerjaan tidak valid."
             "PROOF_NOT_ALLOWED_IN_CURRENT_STATUS" -> "Bukti belum dapat diunggah pada status pekerjaan ini."
             else -> server.ifBlank { "Permintaan pekerjaan gagal (HTTP $code)." }
