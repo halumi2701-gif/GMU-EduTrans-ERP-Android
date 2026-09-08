@@ -157,11 +157,7 @@ private fun normalizeV20Role(raw: String?): String {
 
 @Composable
 fun V20MainShell(vm: AppViewModel, snackbar: SnackbarHostState) {
-    try {
-        V20MainShellContent(vm, snackbar)
-    } catch (_: Throwable) {
-        LegacyMainShell(vm, snackbar)
-    }
+    V20MainShellContent(vm, snackbar)
 }
 
 @Composable
