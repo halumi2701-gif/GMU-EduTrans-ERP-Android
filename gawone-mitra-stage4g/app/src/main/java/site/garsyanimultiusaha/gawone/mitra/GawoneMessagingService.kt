@@ -105,7 +105,7 @@ class GawoneMessagingService : FirebaseMessagingService() {
 
         val intent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            if (!route.isNullOrBlank()) data = Uri.parse(route)
+            if (!route.isNullOrBlank()) setData(Uri.parse(route))
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
