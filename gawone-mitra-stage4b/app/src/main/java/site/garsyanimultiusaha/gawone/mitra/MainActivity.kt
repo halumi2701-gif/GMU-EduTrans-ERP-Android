@@ -298,16 +298,27 @@ private class GawoneApi(private val context: Context) {
             "${it}T23:59:59+07:00"
         }
 
-        rpc(
-            "register_partner_document",
-            JSONObject()
-                .put("p_document_type", documentType)
-                .put("p_storage_path", path)
-                .put("p_mime_type", mime)
-                .put("p_expires_at", expiresAt ?: JSONObject.NULL)
-                .put("p_service_code", JSONObject.NULL)
-                .put("p_vehicle_id", vehicleId ?: JSONObject.NULL)
-        )
+        try {
+            rpc(
+                "register_partner_document",
+                JSONObject()
+                    .put("p_document_type", documentType)
+                    .put("p_storage_path", path)
+                    .put("p_mime_type", mime)
+                    .put("p_expires_at", expiresAt ?: JSONObject.NULL)
+                    .put("p_service_code", JSONObject.NULL)
+                    .put("p_vehicle_id", vehicleId ?: JSONObject.NULL)
+            )
+        } catch (error: Throwable) {
+            runCatching {
+                request(
+                    path = "/storage/v1/object/partner-kyc-private/$path",
+                    method = "DELETE",
+                    token = s.accessToken
+                )
+            }
+            throw error
+        }
     }
 
     private suspend fun rpc(name: String, body: JSONObject): String {
@@ -519,7 +530,7 @@ private fun GawoneMitraStage4B() {
         if (screen == Screen.STATUS) {
             while (isActive) {
                 runCatching { refreshStatus() }
-                delay(15_000)
+                delay(5_000)
             }
         }
     }
@@ -1002,7 +1013,7 @@ private fun StatusScreen(
     onLogout: () -> Unit
 ) = Page(
     "Status Verifikasi",
-    "Halaman ini auto-refresh dari backend setiap 15 detik.",
+    "Status otomatis diperbarui dari backend setiap 5 detik saat halaman ini aktif.",
     loading, error, message
 ) {
     StatusLine("Akun", dashboard?.accountStatus ?: "-")
