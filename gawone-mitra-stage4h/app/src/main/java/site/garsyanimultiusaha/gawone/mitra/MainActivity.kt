@@ -748,7 +748,7 @@ private fun Brand() {
         Spacer(Modifier.width(10.dp))
         Column {
             Text("GAWONE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-            Text("Mitra • Stage 4E", color = GawoneGreen, fontWeight = FontWeight.Bold)
+            Text("Mitra • Stage 4H", color = GawoneGreen, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1044,13 +1044,15 @@ private fun StatusScreen(
         Surface(color = GawoneSoft, shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Text("Mitra sudah ACTIVE", fontWeight = FontWeight.Bold)
-                Text("Online, order, eksekusi, pendapatan, notifikasi, chat, dan realtime terhubung sampai Stage 4G.")
+                Text("Online, order, eksekusi, pendapatan, komunikasi, performa, dukungan, dan akun terhubung sampai Stage 4H.")
             }
         }
         Stage4CPresencePanel(plan?.serviceCode)
         Stage4DOfferPanel(plan?.serviceCode)
         Stage4EExecutionPanel()
         Stage4FWalletPanel()
+        Stage4GCommunicationPanel()
+        Stage4HAccountPanel()
     } else {
         Text(
             "ACTIVE hanya dapat diberikan reviewer GAWONE setelah KYC, skill, dan kendaraan yang diperlukan lolos.",
