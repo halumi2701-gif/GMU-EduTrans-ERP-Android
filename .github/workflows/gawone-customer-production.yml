@@ -27,19 +27,8 @@ jobs:
           base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
           test -s /tmp/rc3.patch
           cd gawone-customer-production
-          if git apply --check /tmp/rc3.patch; then
-            git apply /tmp/rc3.patch
-          elif patch --dry-run -p1 < /tmp/rc3.patch >/dev/null; then
-            patch -p1 < /tmp/rc3.patch
-          elif patch --dry-run -p2 < /tmp/rc3.patch >/dev/null; then
-            patch -p2 < /tmp/rc3.patch
-          elif patch --dry-run -p3 < /tmp/rc3.patch >/dev/null; then
-            patch -p3 < /tmp/rc3.patch
-          else
-            echo 'RC3 patch cannot be applied to proven RC2 baseline'
-            head -40 /tmp/rc3.patch
-            exit 1
-          fi
+          patch --dry-run -p4 < /tmp/rc3.patch >/dev/null
+          patch -p4 < /tmp/rc3.patch
           cd ..
           python gawone-customer-rc3-compile-fix.py
           python gawone-customer-rc3-static-hardening.py
