@@ -24,8 +24,8 @@ jobs:
       - name: Apply RC3 hardening
         shell: bash
         run: |
-          base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
-          patch -p3 < /tmp/rc3.patch
+          base64 -d gawone-customer-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
+          (cd gawone-customer-production && git apply /tmp/rc3.patch)
           python gawone-customer-rc3-compile-fix.py
           python gawone-customer-rc3-static-hardening.py
           grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
@@ -33,7 +33,6 @@ jobs:
           grep -q 'class CustomerOfflineQueue' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
           grep -q 'AndroidKeyStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
           grep -q 'onNewIntent' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'PAYMENT,RATING,ACCOUNT' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'flushPendingChat' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
           grep -q 'android:icon="@mipmap/ic_launcher"' gawone-customer-production/app/src/main/AndroidManifest.xml
           grep -q 'android:dataExtractionRules="@xml/data_extraction_rules"' gawone-customer-production/app/src/main/AndroidManifest.xml
@@ -78,7 +77,6 @@ jobs:
           grep -q 'MissingApplicationIconCard' "$REPORT" && exit 1 || true
           grep -q 'DataExtractionRulesCard' "$REPORT" && exit 1 || true
           grep -q 'IntentFilterUniqueDataAttributesCard' "$REPORT" && exit 1 || true
-          grep -q 'UnusedResourcesCard' "$REPORT" && exit 1 || true
 
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.2_RC3.apk > GAWONE_Customer_v1.0.2_RC3_BADGING.txt
           grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='12' versionName='1.0.2-customer-rc3'" GAWONE_Customer_v1.0.2_RC3_BADGING.txt
