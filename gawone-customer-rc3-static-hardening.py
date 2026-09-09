@@ -94,15 +94,27 @@ draw.mkdir(parents=True,exist_ok=True)
 </vector>
 ''')
 
-mip26=root/"res/mipmap-anydpi-v26"
-mip26.mkdir(parents=True,exist_ok=True)
-adaptive='''<?xml version="1.0" encoding="utf-8"?>
+mip=root/"res/mipmap-anydpi"
+mip.mkdir(parents=True,exist_ok=True)
+adaptive_base='''<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/gawone_icon_background" />
     <foreground android:drawable="@drawable/ic_gawone_foreground" />
 </adaptive-icon>
 '''
-(mip26/"ic_launcher.xml").write_text(adaptive)
-(mip26/"ic_launcher_round.xml").write_text(adaptive)
+(mip/"ic_launcher.xml").write_text(adaptive_base)
+(mip/"ic_launcher_round.xml").write_text(adaptive_base)
 
-print("RC3 static hardening applied: launcher branding, backup policy, deep links, resource cleanup")
+mip33=root/"res/mipmap-anydpi-v33"
+mip33.mkdir(parents=True,exist_ok=True)
+adaptive_themed='''<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/gawone_icon_background" />
+    <foreground android:drawable="@drawable/ic_gawone_foreground" />
+    <monochrome android:drawable="@drawable/ic_gawone_foreground" />
+</adaptive-icon>
+'''
+(mip33/"ic_launcher.xml").write_text(adaptive_themed)
+(mip33/"ic_launcher_round.xml").write_text(adaptive_themed)
+
+print("RC3 static hardening applied: launcher branding + themed icon, backup policy, deep links, resource cleanup")
