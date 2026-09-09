@@ -52,6 +52,16 @@ internal class Stage4GRealtimeSocket(context: Context) {
         socket = null
     }
 
+    fun reconnectNow() {
+        if (!started.get()) return
+        reconnectJob?.cancel()
+        heartbeatJob?.cancel()
+        socket?.close(1000, "network_recovered")
+        socket = null
+        reconnectDelayMs = 1_000L
+        connect()
+    }
+
     private fun connect() {
         if (!started.get()) return
         val session = store.read() ?: return
