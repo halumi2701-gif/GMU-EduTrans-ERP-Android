@@ -50,7 +50,7 @@ jobs:
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
           AAPT="$BT/aapt"
           test -f "$AAPT"
-          chmod +x "$AAPT"
+          test -x "$AAPT"
           "$AAPT" dump badging "$APK" | tee apk-badging.txt
           grep -q "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
           grep -q "versionCode='10'" apk-badging.txt
