@@ -109,6 +109,9 @@ internal fun Stage4IRoot(content: @Composable () -> Unit) {
         }
 
         is Stage4IRootState.Ready -> {
+            LaunchedEffect(current.bootstrap.runtime.backendContractVersion) {
+                Stage4IStartupTrace.markRuntimeReady()
+            }
             val runtime = current.bootstrap.runtime
             when {
                 runtime.maintenanceMode -> {
