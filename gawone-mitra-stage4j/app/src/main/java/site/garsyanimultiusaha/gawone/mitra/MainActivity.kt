@@ -91,13 +91,13 @@ private data class VehicleState(
     val verificationStatus: String
 )
 
-private data class Dashboard(
+internal data class Dashboard(
     val accountStatus: String,
     val onboardingStatus: String,
     val availabilityStatus: String
 )
 
-private data class KycPlan(
+internal data class KycPlan(
     val serviceCode: String?,
     val serviceName: String?,
     val requiresVehicle: Boolean,
