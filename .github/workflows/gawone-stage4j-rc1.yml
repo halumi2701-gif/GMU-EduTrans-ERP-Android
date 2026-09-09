@@ -1,0 +1,74 @@
+name: GAWONE Mitra Stage 4J RC1
+
+on:
+  push:
+    branches: [ "gawone-mitra-stage4j-rc1-rebuild" ]
+    paths:
+      - "gawone-mitra-stage4j/**"
+      - ".github/workflows/gawone-stage4j-rc1.yml"
+  workflow_dispatch:
+
+jobs:
+  final-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Compile debug + release
+        working-directory: gawone-mitra-stage4j
+        run: gradle --no-daemon assembleDebug assembleRelease
+
+      - name: Release lint
+        working-directory: gawone-mitra-stage4j
+        run: gradle --no-daemon lintRelease
+
+      - name: Static security gates
+        run: |
+          ! grep -R "service_role\|sb_secret_" -n gawone-mitra-stage4j/app/src || (echo "Forbidden secret pattern"; exit 1)
+          grep -q 'android:allowBackup="false"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
+          ! grep -R "android.webkit.WebView\|<WebView" -n gawone-mitra-stage4j/app/src || (echo "WebView forbidden"; exit 1)
+
+      - name: APK metadata validator
+        run: |
+          set -euo pipefail
+          APK="gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          AAPT="$BT/aapt"
+          test -f "$AAPT"
+          chmod +x "$AAPT"
+          "$AAPT" dump badging "$APK" | tee apk-badging.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
+          grep -q "versionCode='10'" apk-badging.txt
+          grep -q "versionName='1.0.0-rc1'" apk-badging.txt
+
+      - name: Package QA artifact
+        run: |
+          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk GAWONE-Mitra-v1.0-RC1-test.apk
+          sha256sum GAWONE-Mitra-v1.0-RC1-test.apk | tee GAWONE-Mitra-v1.0-RC1-test.sha256
+          ls -lh GAWONE-Mitra-v1.0-RC1-test.apk
+
+      - name: Upload RC1
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Mitra-v1.0-RC1-test
+          path: |
+            GAWONE-Mitra-v1.0-RC1-test.apk
+            GAWONE-Mitra-v1.0-RC1-test.sha256
+            apk-badging.txt
+          if-no-files-found: error
+          retention-days: 14
