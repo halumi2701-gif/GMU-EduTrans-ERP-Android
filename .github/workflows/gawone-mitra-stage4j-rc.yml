@@ -1,0 +1,80 @@
+name: GAWONE Mitra Stage 4J RC1
+
+on:
+  push:
+    branches:
+      - gawone-mitra-apk-build
+    paths:
+      - "gawone-mitra-stage4j/**"
+      - ".github/workflows/gawone-mitra-stage4j-rc.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6"
+
+      - name: Compile debug and release
+        run: |
+          gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:compileDebugKotlin :app:compileReleaseKotlin
+          gradle -p gawone-mitra-stage4j --no-daemon :app:processDebugResources :app:processReleaseResources
+
+      - name: Release lint
+        run: gradle -p gawone-mitra-stage4j --no-daemon :app:lintRelease
+
+      - name: Build installable RC test APK
+        run: gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Validate APK metadata
+        run: |
+          APK="gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          aapt dump badging "$APK" | tee apk-badging.txt
+          grep "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
+          grep "versionCode='10'" apk-badging.txt
+          grep "versionName='1.0.0-rc1-test'" apk-badging.txt
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact-stage4j
+          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0-RC1-test.apk
+          sha256sum artifact-stage4j/GAWONE-Mitra-v1.0-RC1-test.apk | tee artifact-stage4j/SHA256.txt
+          cp apk-badging.txt artifact-stage4j/APK_BADGING.txt
+          cat > artifact-stage4j/README.txt <<'EOF'
+          GAWONE Mitra v1.0 RC1 test APK
+          Package: site.garsyanimultiusaha.gawone.mitra.debug
+          Purpose: Stage 4J device QA / installation test
+          Signing: Android debug signing (test only)
+          Production Play Store signing is intentionally NOT included.
+          EOF
+
+      - name: Upload Stage 4J RC APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Mitra-v1.0-RC1-test-APK
+          path: artifact-stage4j/
+          if-no-files-found: error
+          retention-days: 7
