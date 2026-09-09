@@ -1,0 +1,91 @@
+name: GAWONE Mitra Stage 4I Release Readiness
+
+on:
+  push:
+    branches:
+      - gawone-mitra-apk-build
+    paths:
+      - "gawone-mitra-stage4i/**"
+      - ".github/workflows/gawone-mitra-stage4i-release-readiness.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install release SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Gradle 9.6
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Compile debug and release Kotlin
+        run: |
+          gradle -p gawone-mitra-stage4i --no-daemon --stacktrace             :app:compileDebugKotlin             :app:compileReleaseKotlin
+
+      - name: Validate debug and release resources
+        run: |
+          gradle -p gawone-mitra-stage4i --no-daemon             :app:processDebugResources             :app:processReleaseResources
+
+      - name: Release lint
+        run: gradle -p gawone-mitra-stage4i --no-daemon :app:lintRelease
+
+      - name: Static release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="gawone-mitra-stage4i/app"
+          SRC="$APP/src/main"
+
+          grep -q 'compileSdk = 37' "$APP/build.gradle.kts"
+          grep -q 'targetSdk = 36' "$APP/build.gradle.kts"
+          grep -q 'versionCode = 9' "$APP/build.gradle.kts"
+          grep -q 'versionName = "0.9.0-stage4i"' "$APP/build.gradle.kts"
+          grep -q 'isMinifyEnabled = true' "$APP/build.gradle.kts"
+          grep -q 'isShrinkResources = true' "$APP/build.gradle.kts"
+
+          grep -q 'android:allowBackup="false"' "$SRC/AndroidManifest.xml"
+          grep -q 'android:usesCleartextTraffic="false"' "$SRC/AndroidManifest.xml"
+          grep -q 'android.permission.ACCESS_NETWORK_STATE' "$SRC/AndroidManifest.xml"
+
+          ! grep -R -n -i 'service_role' "$APP/src" "$APP/build.gradle.kts"
+          ! grep -R -n 'android.webkit.WebView' "$APP/src/main/java"
+          ! grep -q 'android.permission.ACCESS_BACKGROUND_LOCATION' "$SRC/AndroidManifest.xml"
+          ! grep -q 'android.permission.CAMERA' "$SRC/AndroidManifest.xml"
+          ! grep -q 'android.permission.READ_EXTERNAL_STORAGE' "$SRC/AndroidManifest.xml"
+          ! grep -q 'android.permission.WRITE_EXTERNAL_STORAGE' "$SRC/AndroidManifest.xml"
+
+          grep -R -q 'Stage4ICrashShield' "$APP/src/main/java"
+          grep -R -q 'Stage4IRuntimeClient' "$APP/src/main/java"
+          grep -R -q 'Stage4IConnectivityMonitor' "$APP/src/main/java"
+          grep -R -q 'LocalStage4IRuntime' "$APP/src/main/java"
+
+      - name: Assert no APK or AAB produced
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find gawone-mitra-stage4i -type f \( -name '*.apk' -o -name '*.aab' \) | grep -q .; then
+            echo "Stage 4I must not produce APK/AAB"
+            exit 1
+          fi
+
+      - name: Stage 4I validation marker
+        run: echo "STAGE_4I_RELEASE_READINESS_PASS"
