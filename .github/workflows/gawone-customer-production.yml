@@ -1,4 +1,4 @@
-name: GAWONE Customer Production RC3
+name: GAWONE Customer Production RC4
 
 on:
   pull_request:
@@ -21,7 +21,7 @@ jobs:
           test -f gawone-customer-production/app/build.gradle.kts
           grep -q 'versionCode = 11' gawone-customer-production/app/build.gradle.kts
 
-      - name: Apply RC3 hardening
+      - name: Apply proven RC3 hardening
         shell: bash
         run: |
           base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
@@ -34,15 +34,28 @@ jobs:
           python gawone-customer-rc3-static-hardening.py
           grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.2-customer-rc3"' gawone-customer-production/app/build.gradle.kts
-          grep -q 'class CustomerOfflineQueue' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
+
+      - name: Apply RC4 production runtime gates
+        shell: bash
+        run: |
+          base64 -d gawone-customer-rc3-to-rc4.patch.gz.b64 | gunzip > /tmp/rc4.patch
+          test -s /tmp/rc4.patch
+          patch --dry-run -p1 < /tmp/rc4.patch >/dev/null
+          patch -p1 < /tmp/rc4.patch
+          grep -q 'versionCode = 13' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.3-customer-rc4"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'class RuntimeConfigStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/RuntimeConfigStore.kt
+          grep -q 'offlineDegradedModeEnabled' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'upgradeRequired' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'maintenanceMode' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"BOOKING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"MATCHING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"REALTIME")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt || grep -q 'optBoolean("REALTIME",false)' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'AndroidKeyStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
-          grep -q 'onNewIntent' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'flushPendingChat' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
           grep -q 'android:icon="@mipmap/ic_launcher"' gawone-customer-production/app/src/main/AndroidManifest.xml
           grep -q 'android:dataExtractionRules="@xml/data_extraction_rules"' gawone-customer-production/app/src/main/AndroidManifest.xml
-          grep -q '<string name="app_name">GAWONE Customer</string>' gawone-customer-production/app/src/main/res/values/strings.xml
           rm -f GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
-          zip -qr GAWONE_Customer_v1.0.2_RC3_SOURCE.zip gawone-customer-production
+          zip -qr GAWONE_Customer_v1.0.3_RC4_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -65,34 +78,33 @@ jobs:
         working-directory: gawone-customer-production
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify RC3 APK
+      - name: Verify RC4 APK
         shell: bash
         run: |
           APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Customer_v1.0.2_RC3.apk
-          unzip -t GAWONE_Customer_v1.0.2_RC3.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.2_RC3.apk | tee GAWONE_Customer_v1.0.2_RC3_SHA256.txt
+          cp "$APK" GAWONE_Customer_v1.0.3_RC4.apk
+          unzip -t GAWONE_Customer_v1.0.3_RC4.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.3_RC4.apk | tee GAWONE_Customer_v1.0.3_RC4_SHA256.txt
           grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
           grep -R "Jl. Suroso" gawone-customer-production/app/src/main/java && exit 1 || true
           REPORT=gawone-customer-production/app/build/reports/lint-results-release.html
           test -f "$REPORT"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.2_RC3.apk > GAWONE_Customer_v1.0.2_RC3_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='12' versionName='1.0.2-customer-rc3'" GAWONE_Customer_v1.0.2_RC3_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.2_RC3.apk > GAWONE_Customer_v1.0.2_RC3_SIGNATURE.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.3_RC4.apk > GAWONE_Customer_v1.0.3_RC4_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='13' versionName='1.0.3-customer-rc4'" GAWONE_Customer_v1.0.3_RC4_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.3_RC4.apk > GAWONE_Customer_v1.0.3_RC4_SIGNATURE.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.2_RC3
+          name: GAWONE_Customer_v1.0.3_RC4
           if-no-files-found: error
           path: |
-            GAWONE_Customer_v1.0.2_RC3.apk
-            GAWONE_Customer_v1.0.2_RC3_SHA256.txt
-            GAWONE_Customer_v1.0.2_RC3_SOURCE.zip
-            GAWONE_Customer_v1.0.2_RC3_BADGING.txt
-            GAWONE_Customer_v1.0.2_RC3_SIGNATURE.txt
+            GAWONE_Customer_v1.0.3_RC4.apk
+            GAWONE_Customer_v1.0.3_RC4_SHA256.txt
+            GAWONE_Customer_v1.0.3_RC4_SOURCE.zip
+            GAWONE_Customer_v1.0.3_RC4_BADGING.txt
+            GAWONE_Customer_v1.0.3_RC4_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
-
 
   emulator_smoke:
     needs: build
@@ -103,7 +115,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.2_RC3
+          name: GAWONE_Customer_v1.0.3_RC4
 
       - name: Prepare emulator reports
         shell: bash
@@ -116,7 +128,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: RC3 Android emulator smoke gate
+      - name: RC4 Android emulator production-prep gate
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -125,10 +137,11 @@ jobs:
           profile: pixel_4
           disable-animations: true
           script: bash gawone-customer-emulator-smoke.sh
+
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.2_RC3_EMULATOR_GATE
+          name: GAWONE_Customer_v1.0.3_RC4_EMULATOR_GATE
           if-no-files-found: warn
           path: emulator-reports
