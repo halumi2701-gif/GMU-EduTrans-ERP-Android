@@ -12,6 +12,7 @@ internal sealed interface Stage4GDeepLinkTarget {
     data object Wallet : Stage4GDeepLinkTarget
     data object Kyc : Stage4GDeepLinkTarget
     data object Verification : Stage4GDeepLinkTarget
+    data object Account : Stage4GDeepLinkTarget
 }
 
 internal object Stage4GDeepLinkRouter {
@@ -29,6 +30,7 @@ internal object Stage4GDeepLinkRouter {
             parts.firstOrNull() == "wallet" -> Stage4GDeepLinkTarget.Wallet
             parts.firstOrNull() == "kyc" -> Stage4GDeepLinkTarget.Kyc
             parts.firstOrNull() == "verification" -> Stage4GDeepLinkTarget.Verification
+            parts.firstOrNull() == "account" -> Stage4GDeepLinkTarget.Account
             else -> null
         }
         if (parsed != null) mutableTarget.value = parsed
