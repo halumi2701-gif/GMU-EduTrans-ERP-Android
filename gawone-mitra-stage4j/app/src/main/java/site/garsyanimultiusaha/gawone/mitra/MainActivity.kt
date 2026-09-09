@@ -1027,76 +1027,63 @@ private fun StatusScreen(
     onRefresh: () -> Unit,
     onDocuments: () -> Unit,
     onLogout: () -> Unit
-) = Page(
-    "Status Verifikasi",
-    "Status otomatis diperbarui dari backend setiap 5 detik saat halaman ini aktif.",
-    loading, error, message
 ) {
-    val runtime = LocalStage4IRuntime.current
-    StatusLine("Akun", dashboard?.accountStatus ?: "-")
-    StatusLine("Onboarding", dashboard?.onboardingStatus ?: "-")
-    StatusLine("Layanan", plan?.serviceName ?: plan?.serviceCode ?: "-")
-    plan?.vehicles?.forEach {
-        StatusLine("Kendaraan ${it.plate}", it.verificationStatus)
-    }
-    Divider()
-    Text("Dokumen", fontWeight = FontWeight.Bold)
-    plan?.documents?.forEach {
-        StatusLine(it.type, if (it.isExpired) "EXPIRED" else it.status)
-        it.rejectionReason?.let { reason ->
-            Text("• ${it.type}: $reason", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-    }
     if (dashboard?.onboardingStatus == "ACTIVE") {
-        Surface(color = GawoneSoft, shape = RoundedCornerShape(16.dp)) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Mitra sudah ACTIVE", fontWeight = FontWeight.Bold)
-                Text("Stage 4B–4H sudah disatukan di runtime Stage 4I dengan feature flag, session recovery, offline guard, dan release gate.")
+        Stage4JHomeShell(
+            dashboard = dashboard,
+            plan = plan,
+            loading = loading,
+            error = error,
+            message = message,
+            onRefresh = onRefresh,
+            onDocuments = onDocuments,
+            onLogout = onLogout
+        )
+    } else {
+        Page(
+            "Status Verifikasi",
+            "Status otomatis diperbarui dari backend setiap 5 detik saat halaman ini aktif.",
+            loading, error, message
+        ) {
+            StatusLine("Akun", dashboard?.accountStatus ?: "-")
+            StatusLine("Onboarding", dashboard?.onboardingStatus ?: "-")
+            StatusLine("Layanan", plan?.serviceName ?: plan?.serviceCode ?: "-")
+            plan?.vehicles?.forEach {
+                StatusLine("Kendaraan ${it.plate}", it.verificationStatus)
+            }
+            Divider()
+            Text("Dokumen", fontWeight = FontWeight.Bold)
+            plan?.documents?.forEach {
+                StatusLine(it.type, if (it.isExpired) "EXPIRED" else it.status)
+                it.rejectionReason?.let { reason ->
+                    Text(
+                        "• ${it.type}: $reason",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            Text(
+                "ACTIVE hanya dapat diberikan reviewer GAWONE setelah KYC, skill, dan kendaraan yang diperlukan lolos.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                onClick = onRefresh,
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Refresh Sekarang")
+            }
+            Button(onClick = onDocuments, modifier = Modifier.fillMaxWidth()) {
+                Text("Kembali ke Dokumen")
+            }
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("Keluar")
             }
         }
-        if (runtime?.enabled("PRESENCE") != false) {
-            Stage4CPresencePanel(plan?.serviceCode)
-        } else {
-            Stage4IFeatureUnavailable("Online & GPS")
-        }
-
-        if (runtime?.enabled("OFFER") == true && runtime.gates.matchingEnabled) {
-            Stage4DOfferPanel(plan?.serviceCode)
-        } else {
-            Stage4IFeatureUnavailable("Offer & Matching")
-        }
-
-        if (runtime?.enabled("JOB_EXECUTION") == true) {
-            Stage4EExecutionPanel()
-        } else {
-            Stage4IFeatureUnavailable("Lifecycle Pekerjaan")
-        }
-
-        if (runtime?.enabled("WALLET_READ") != false) {
-            Stage4FWalletPanel()
-        }
-
-        if (runtime?.enabled("CHAT") != false) {
-            Stage4GCommunicationPanel()
-        }
-
-        if (runtime?.enabled("ACCOUNT_CENTER") != false) {
-            Stage4HAccountPanel()
-        }
-    } else {
-        Text(
-            "ACTIVE hanya dapat diberikan reviewer GAWONE setelah KYC, skill, dan kendaraan yang diperlukan lolos.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    OutlinedButton(onClick = onRefresh, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
-        Text("Refresh Sekarang")
-    }
-    Button(onClick = onDocuments, modifier = Modifier.fillMaxWidth()) {
-        Text("Kembali ke Dokumen")
-    }
-    TextButton(onClick = onLogout, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-        Text("Keluar")
     }
 }
 
