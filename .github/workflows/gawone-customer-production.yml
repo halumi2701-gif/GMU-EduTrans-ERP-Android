@@ -1,4 +1,4 @@
-name: GAWONE Customer Production RC2
+name: GAWONE Customer Production RC3
 
 on:
   pull_request:
@@ -8,11 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct Customer RC2 source
+      - name: Reconstruct proven RC2 source
         shell: bash
         run: |
           cat gawone-customer-rc2-src.00 gawone-customer-rc2-src.01 gawone-customer-rc2-src.02 > gawone-customer-rc2-source.b64
@@ -20,9 +20,21 @@ jobs:
           unzip -q GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
           test -f gawone-customer-production/app/build.gradle.kts
           grep -q 'versionCode = 11' gawone-customer-production/app/build.gradle.kts
-          grep -q 'site.garsyanimultiusaha.gawone' gawone-customer-production/app/build.gradle.kts
-          grep -q 'ACCESS_FINE_LOCATION' gawone-customer-production/app/src/main/AndroidManifest.xml
-          grep -q 'draft.draftId' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+
+      - name: Apply exact RC3 hardening patch
+        shell: bash
+        run: |
+          base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
+          patch -p2 < /tmp/rc3.patch
+          grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.2-customer-rc3"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'class CustomerOfflineQueue' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
+          grep -q 'AndroidKeyStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
+          grep -q 'onNewIntent' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'PAYMENT,RATING,ACCOUNT' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'flushPendingChat' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
+          rm -f GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
+          zip -qr GAWONE_Customer_v1.0.2_RC3_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -41,25 +53,29 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Build release candidate
+      - name: Static QA and compile
         working-directory: gawone-customer-production
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify APK and source
+      - name: Verify RC3 APK
         shell: bash
         run: |
-          test -f gawone-customer-production/app/build/outputs/apk/release/app-release.apk
-          cp gawone-customer-production/app/build/outputs/apk/release/app-release.apk GAWONE_Customer_v1.0.1_RC2.apk
-          sha256sum GAWONE_Customer_v1.0.1_RC2.apk | tee GAWONE_Customer_v1.0.1_RC2_SHA256.txt
-          unzip -t GAWONE_Customer_v1.0.1_RC2.apk >/dev/null
+          APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          cp "$APK" GAWONE_Customer_v1.0.2_RC3.apk
+          unzip -t GAWONE_Customer_v1.0.2_RC3.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.2_RC3.apk | tee GAWONE_Customer_v1.0.2_RC3_SHA256.txt
           grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
           grep -R "Jl. Suroso" gawone-customer-production/app/src/main/java && exit 1 || true
+          grep -R "payment berhasil" gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone -i && exit 1 || true
+          test -f gawone-customer-production/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.1_RC2
+          name: GAWONE_Customer_v1.0.2_RC3
           if-no-files-found: error
           path: |
-            GAWONE_Customer_v1.0.1_RC2.apk
-            GAWONE_Customer_v1.0.1_RC2_SHA256.txt
-            GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
+            GAWONE_Customer_v1.0.2_RC3.apk
+            GAWONE_Customer_v1.0.2_RC3_SHA256.txt
+            GAWONE_Customer_v1.0.2_RC3_SOURCE.zip
+            gawone-customer-production/app/build/reports/lint-results-release.html
