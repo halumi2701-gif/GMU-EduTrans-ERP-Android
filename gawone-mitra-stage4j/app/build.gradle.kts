@@ -22,13 +22,13 @@ android {
         applicationId = "site.garsyanimultiusaha.gawone.mitra"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.9.0-stage4i"
+        versionCode = 10
+        versionName = "1.0.0-rc1"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://fhtxlojbguineyqayhai.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h\"")
         buildConfigField("boolean", "PUSH_PROVIDER_CONFIGURED", "false")
-        buildConfigField("String", "BUILD_STAGE", "\"4I\"")
+        buildConfigField("String", "BUILD_STAGE", "\"4J\"")
     }
 
     signingConfigs {
@@ -49,7 +49,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            versionNameSuffix = "-test"
             isMinifyEnabled = false
             buildConfigField("boolean", "RELEASE_SIGNING_CONFIGURED", "false")
         }
