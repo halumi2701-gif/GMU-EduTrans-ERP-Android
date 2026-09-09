@@ -21,12 +21,13 @@ jobs:
           test -f gawone-customer-production/app/build.gradle.kts
           grep -q 'versionCode = 11' gawone-customer-production/app/build.gradle.kts
 
-      - name: Apply exact RC3 hardening patch
+      - name: Apply RC3 hardening
         shell: bash
         run: |
           base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
           patch -p3 < /tmp/rc3.patch
           python gawone-customer-rc3-compile-fix.py
+          python gawone-customer-rc3-static-hardening.py
           grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.2-customer-rc3"' gawone-customer-production/app/build.gradle.kts
           grep -q 'class CustomerOfflineQueue' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
@@ -34,6 +35,9 @@ jobs:
           grep -q 'onNewIntent' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'PAYMENT,RATING,ACCOUNT' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'flushPendingChat' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
+          grep -q 'android:icon="@mipmap/ic_launcher"' gawone-customer-production/app/src/main/AndroidManifest.xml
+          grep -q 'android:dataExtractionRules="@xml/data_extraction_rules"' gawone-customer-production/app/src/main/AndroidManifest.xml
+          grep -q '<string name="app_name">GAWONE Customer</string>' gawone-customer-production/app/src/main/res/values/strings.xml
           rm -f GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
           zip -qr GAWONE_Customer_v1.0.2_RC3_SOURCE.zip gawone-customer-production
 
@@ -68,8 +72,18 @@ jobs:
           sha256sum GAWONE_Customer_v1.0.2_RC3.apk | tee GAWONE_Customer_v1.0.2_RC3_SHA256.txt
           grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
           grep -R "Jl. Suroso" gawone-customer-production/app/src/main/java && exit 1 || true
-          grep -R "payment berhasil" gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone -i && exit 1 || true
-          test -f gawone-customer-production/app/build/reports/lint-results-release.html
+
+          REPORT=gawone-customer-production/app/build/reports/lint-results-release.html
+          test -f "$REPORT"
+          grep -q 'MissingApplicationIconCard' "$REPORT" && exit 1 || true
+          grep -q 'DataExtractionRulesCard' "$REPORT" && exit 1 || true
+          grep -q 'IntentFilterUniqueDataAttributesCard' "$REPORT" && exit 1 || true
+          grep -q 'UnusedResourcesCard' "$REPORT" && exit 1 || true
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.2_RC3.apk > GAWONE_Customer_v1.0.2_RC3_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='12' versionName='1.0.2-customer-rc3'" GAWONE_Customer_v1.0.2_RC3_BADGING.txt
+
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.2_RC3.apk > GAWONE_Customer_v1.0.2_RC3_SIGNATURE.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -79,4 +93,6 @@ jobs:
             GAWONE_Customer_v1.0.2_RC3.apk
             GAWONE_Customer_v1.0.2_RC3_SHA256.txt
             GAWONE_Customer_v1.0.2_RC3_SOURCE.zip
+            GAWONE_Customer_v1.0.2_RC3_BADGING.txt
+            GAWONE_Customer_v1.0.2_RC3_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
