@@ -20,6 +20,14 @@ jobs:
           unzip -q gawone-stage4j-source.zip
           test -f gawone-mitra-stage4j/app/build.gradle.kts
 
+      - name: Apply Stage 4J RC2 hardening
+        shell: bash
+        run: |
+          base64 -d gawone-stage4j-rc2-patch.b64 > gawone-stage4j-rc2-patch.py
+          python gawone-stage4j-rc2-patch.py gawone-mitra-stage4j
+          grep -q 'versionCode = 11' gawone-mitra-stage4j/app/build.gradle.kts
+          zip -qr gawone-stage4j-rc2-source.zip gawone-mitra-stage4j
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -45,15 +53,15 @@ jobs:
         shell: bash
         run: |
           test -f gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
-          cp gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk GAWONE_Mitra_v1.0.0_STAGE4J.apk
-          sha256sum GAWONE_Mitra_v1.0.0_STAGE4J.apk | tee GAWONE_Mitra_v1.0.0_STAGE4J_SHA256.txt
-          unzip -t GAWONE_Mitra_v1.0.0_STAGE4J.apk >/dev/null
+          cp gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk
+          sha256sum GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk | tee GAWONE_Mitra_v1.0.1_STAGE4J_RC2_SHA256.txt
+          unzip -t GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk >/dev/null
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Mitra_Stage4J
+          name: GAWONE_Mitra_Stage4J_RC2
           if-no-files-found: error
           path: |
-            GAWONE_Mitra_v1.0.0_STAGE4J.apk
-            GAWONE_Mitra_v1.0.0_STAGE4J_SHA256.txt
-            gawone-stage4j-source.zip
+            GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk
+            GAWONE_Mitra_v1.0.1_STAGE4J_RC2_SHA256.txt
+            gawone-stage4j-rc2-source.zip
