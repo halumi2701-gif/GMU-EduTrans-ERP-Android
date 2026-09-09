@@ -43,12 +43,21 @@ internal class Stage4IRuntimeHttpException(
 ) : Exception(message)
 
 internal class Stage4IRuntimeClient(context: Context) {
-    private val store = SecureSessionStore(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val store = SecureSessionStore(appContext)
+    private val runtimePrefs = appContext.getSharedPreferences(
+        "gawone_stage4i_runtime_cache",
+        Context.MODE_PRIVATE
+    )
     private val baseUrl = BuildConfig.SUPABASE_URL.trimEnd('/')
     private val key = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     suspend fun recover(): Stage4IBootstrap {
-        val runtime = retryNetwork { fetchRuntime() }
+        val runtime = try {
+            retryNetwork { fetchRuntime() }
+        } catch (io: IOException) {
+            cachedRuntime() ?: throw io
+        }
         if (runtime.maintenanceMode || runtime.forceUpdate) {
             return Stage4IBootstrap(runtime, store.read(), store.read() != null, false)
         }
@@ -101,7 +110,16 @@ internal class Stage4IRuntimeClient(context: Context) {
             body = JSONObject().put("p_version_code", BuildConfig.VERSION_CODE).toString(),
             token = null
         )
+        runtimePrefs.edit()
+            .putString("runtime_json", raw)
+            .putLong("cached_at", System.currentTimeMillis())
+            .apply()
         return parseRuntime(JSONObject(raw))
+    }
+
+    private fun cachedRuntime(): Stage4IRuntimeConfig? {
+        val raw = runtimePrefs.getString("runtime_json", null) ?: return null
+        return runCatching { parseRuntime(JSONObject(raw)) }.getOrNull()
     }
 
     private suspend fun validateBootstrap(session: Session) {
