@@ -1,0 +1,59 @@
+name: GAWONE Mitra Stage 4J APK
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct GAWONE Stage 4J source
+        shell: bash
+        run: |
+          cat gawone-stage4j-source.part00 gawone-stage4j-source.part01 gawone-stage4j-source.part02 gawone-stage4j-source.part03 gawone-stage4j-source.part04 > gawone-stage4j-source.b64
+          base64 -d gawone-stage4j-source.b64 > gawone-stage4j-source.zip
+          unzip -q gawone-stage4j-source.zip
+          test -f gawone-mitra-stage4j/app/build.gradle.kts
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build release candidate
+        working-directory: gawone-mitra-stage4j
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -f gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
+          cp gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk GAWONE_Mitra_v1.0.0_STAGE4J.apk
+          sha256sum GAWONE_Mitra_v1.0.0_STAGE4J.apk | tee GAWONE_Mitra_v1.0.0_STAGE4J_SHA256.txt
+          unzip -t GAWONE_Mitra_v1.0.0_STAGE4J.apk >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Mitra_Stage4J
+          if-no-files-found: error
+          path: |
+            GAWONE_Mitra_v1.0.0_STAGE4J.apk
+            GAWONE_Mitra_v1.0.0_STAGE4J_SHA256.txt
+            gawone-stage4j-source.zip
