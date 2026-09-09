@@ -102,7 +102,13 @@ internal class Stage4GRealtimeSocket(context: Context) {
             "partner_onboarding",
             "partner_earnings",
             "partner_wallet_ledger",
-            "partner_payout_requests"
+            "partner_payout_requests",
+            "partner_ratings",
+            "partner_account_restrictions",
+            "partner_appeals",
+            "partner_support_tickets",
+            "partner_support_messages",
+            "partner_account_requests"
         ).forEach { table ->
             changes.put(
                 JSONObject()
