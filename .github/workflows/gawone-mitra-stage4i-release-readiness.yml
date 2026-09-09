@@ -30,7 +30,7 @@ jobs:
       - name: Install release SDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Gradle 9.6
         uses: gradle/actions/setup-gradle@v4
@@ -55,7 +55,7 @@ jobs:
           APP="gawone-mitra-stage4i/app"
           SRC="$APP/src/main"
 
-          grep -q 'compileSdk = 37' "$APP/build.gradle.kts"
+          grep -q 'compileSdk = 36' "$APP/build.gradle.kts"
           grep -q 'targetSdk = 36' "$APP/build.gradle.kts"
           grep -q 'versionCode = 9' "$APP/build.gradle.kts"
           grep -q 'versionName = "0.9.0-stage4i"' "$APP/build.gradle.kts"
