@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
-          patch -p2 < /tmp/rc3.patch
+          patch -p3 < /tmp/rc3.patch
           grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.2-customer-rc3"' gawone-customer-production/app/build.gradle.kts
           grep -q 'class CustomerOfflineQueue' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
