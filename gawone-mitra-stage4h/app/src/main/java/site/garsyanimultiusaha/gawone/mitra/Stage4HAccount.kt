@@ -175,8 +175,7 @@ internal class Stage4HAccountClient(context: Context) {
                 cancelledAssignments = p30.optInt("cancelledAssignments"),
                 noShowCount = p30.optInt("noShowCount")
             ),
-            ratings = j.optJSONArray("performance")
-                ?.let { emptyList() } ?: emptyList(),
+            ratings = p.optJSONArray("recentRatings").toRatings4H(),
             schedule = j.optJSONArray("schedule").toSchedule4H(),
             services = j.optJSONArray("services").toServices4H(),
             vehicles = j.optJSONArray("vehicles").toVehicles4H(),
@@ -185,8 +184,6 @@ internal class Stage4HAccountClient(context: Context) {
             appeals = j.optJSONArray("appeals").toAppeals4H(),
             supportTickets = j.optJSONArray("supportTickets").toTickets4H(),
             accountRequests = j.optJSONArray("accountRequests").toAccountRequests4H()
-        ).copy(
-            ratings = p.optJSONArray("recentRatings").toRatings4H()
         )
     }
 
