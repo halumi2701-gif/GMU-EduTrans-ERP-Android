@@ -92,3 +92,111 @@ jobs:
             GAWONE_Customer_v1.0.2_RC3_BADGING.txt
             GAWONE_Customer_v1.0.2_RC3_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
+
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.2_RC3
+
+      - name: Prepare emulator reports
+        shell: bash
+        run: mkdir -p emulator-reports
+
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: RC3 Android emulator smoke gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          script: |
+            set -euxo pipefail
+            PKG=site.garsyanimultiusaha.gawone
+            APK=GAWONE_Customer_v1.0.2_RC3.apk
+
+            adb install -r "$APK" | tee emulator-reports/01-install.txt
+            adb shell pm path "$PKG" | tee emulator-reports/02-package-path.txt
+            test -s emulator-reports/02-package-path.txt
+
+            # Gate 1 — cold start
+            adb shell am force-stop "$PKG"
+            adb logcat -c
+            adb shell am start -W -n "$PKG/.MainActivity" | tee emulator-reports/03-cold-start.txt
+            sleep 5
+            adb shell pidof "$PKG" | tee emulator-reports/04-cold-start-pid.txt
+            test -s emulator-reports/04-cold-start-pid.txt
+            adb shell dumpsys activity activities > emulator-reports/05-activities.txt
+            grep -q "$PKG/.MainActivity" emulator-reports/05-activities.txt
+            adb logcat -d -v threadtime > emulator-reports/06-cold-start-logcat.txt
+            if grep -q "Process: $PKG" emulator-reports/06-cold-start-logcat.txt; then
+              echo "RC3 crashed during cold start" >&2
+              exit 1
+            fi
+
+            # Gate 2 — deep-link recovery path
+            adb logcat -c
+            adb shell am start -W -n "$PKG/.MainActivity" -a android.intent.action.VIEW -d "gawone://support" | tee emulator-reports/07-deeplink-support.txt
+            sleep 3
+            adb shell pidof "$PKG" | tee emulator-reports/08-deeplink-pid.txt
+            test -s emulator-reports/08-deeplink-pid.txt
+            adb logcat -d -v threadtime > emulator-reports/09-deeplink-logcat.txt
+            if grep -q "Process: $PKG" emulator-reports/09-deeplink-logcat.txt; then
+              echo "RC3 crashed during deep-link recovery" >&2
+              exit 1
+            fi
+
+            # Gate 3 — offline/reconnect cold start
+            adb shell settings put global airplane_mode_on 1
+            adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true >/dev/null || true
+            adb shell am force-stop "$PKG"
+            adb logcat -c
+            adb shell am start -W -n "$PKG/.MainActivity" | tee emulator-reports/10-offline-start.txt
+            sleep 5
+            adb shell pidof "$PKG" | tee emulator-reports/11-offline-pid.txt
+            test -s emulator-reports/11-offline-pid.txt
+            adb logcat -d -v threadtime > emulator-reports/12-offline-logcat.txt
+            if grep -q "Process: $PKG" emulator-reports/12-offline-logcat.txt; then
+              echo "RC3 crashed during offline start" >&2
+              exit 1
+            fi
+
+            adb shell settings put global airplane_mode_on 0
+            adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false >/dev/null || true
+            sleep 3
+
+            # Gate 4 — process-death restart after reconnect
+            adb shell am force-stop "$PKG"
+            adb logcat -c
+            adb shell am start -W -n "$PKG/.MainActivity" | tee emulator-reports/13-reconnect-restart.txt
+            sleep 5
+            adb shell pidof "$PKG" | tee emulator-reports/14-reconnect-pid.txt
+            test -s emulator-reports/14-reconnect-pid.txt
+            adb logcat -d -v threadtime > emulator-reports/15-reconnect-logcat.txt
+            if grep -q "Process: $PKG" emulator-reports/15-reconnect-logcat.txt; then
+              echo "RC3 crashed after reconnect/process restart" >&2
+              exit 1
+            fi
+
+            adb shell dumpsys package "$PKG" > emulator-reports/16-package-dumpsys.txt
+            echo "GAWONE Customer RC3 emulator smoke gate: PASS" | tee emulator-reports/RESULT.txt
+
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.2_RC3_EMULATOR_GATE
+          if-no-files-found: warn
+          path: emulator-reports
