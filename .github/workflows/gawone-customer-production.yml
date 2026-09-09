@@ -1,0 +1,61 @@
+name: GAWONE Customer Production RC1
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct Customer source
+        shell: bash
+        run: |
+          cat gawone-customer-src.00 gawone-customer-src.01 gawone-customer-src.02 gawone-customer-src.03 gawone-customer-src.04 > gawone-customer-source.b64
+          base64 -d gawone-customer-source.b64 > GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
+          unzip -q GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
+          test -f gawone-customer-production/app/build.gradle.kts
+          grep -q 'site.garsyanimultiusaha.gawone' gawone-customer-production/app/build.gradle.kts
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build release candidate
+        working-directory: gawone-customer-production
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -f gawone-customer-production/app/build/outputs/apk/release/app-release.apk
+          cp gawone-customer-production/app/build/outputs/apk/release/app-release.apk GAWONE_Customer_v1.0.0_RC1.apk
+          sha256sum GAWONE_Customer_v1.0.0_RC1.apk | tee GAWONE_Customer_v1.0.0_RC1_SHA256.txt
+          unzip -t GAWONE_Customer_v1.0.0_RC1.apk >/dev/null
+          grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.0_RC1
+          if-no-files-found: error
+          path: |
+            GAWONE_Customer_v1.0.0_RC1.apk
+            GAWONE_Customer_v1.0.0_RC1_SHA256.txt
+            GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
