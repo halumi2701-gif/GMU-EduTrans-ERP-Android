@@ -42,9 +42,14 @@ private const val PILOT_AREA = "ID-JB-CJR-PILOT"
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Stage4ICrashShield.install(applicationContext)
         GawoneNotificationChannels.ensure(this)
         Stage4GDeepLinkRouter.accept(intent?.data)
-        setContent { GawoneMitraStage4B() }
+        setContent {
+            Stage4IRoot {
+                GawoneMitraStage4B()
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -748,7 +753,7 @@ private fun Brand() {
         Spacer(Modifier.width(10.dp))
         Column {
             Text("GAWONE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-            Text("Mitra • Stage 4H", color = GawoneGreen, fontWeight = FontWeight.Bold)
+            Text("Mitra • Stage 4I", color = GawoneGreen, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1026,6 +1031,7 @@ private fun StatusScreen(
     "Status otomatis diperbarui dari backend setiap 5 detik saat halaman ini aktif.",
     loading, error, message
 ) {
+    val runtime = LocalStage4IRuntime.current
     StatusLine("Akun", dashboard?.accountStatus ?: "-")
     StatusLine("Onboarding", dashboard?.onboardingStatus ?: "-")
     StatusLine("Layanan", plan?.serviceName ?: plan?.serviceCode ?: "-")
@@ -1044,15 +1050,38 @@ private fun StatusScreen(
         Surface(color = GawoneSoft, shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Text("Mitra sudah ACTIVE", fontWeight = FontWeight.Bold)
-                Text("Online, order, eksekusi, pendapatan, komunikasi, performa, dukungan, dan akun terhubung sampai Stage 4H.")
+                Text("Stage 4B–4H sudah disatukan di runtime Stage 4I dengan feature flag, session recovery, offline guard, dan release gate.")
             }
         }
-        Stage4CPresencePanel(plan?.serviceCode)
-        Stage4DOfferPanel(plan?.serviceCode)
-        Stage4EExecutionPanel()
-        Stage4FWalletPanel()
-        Stage4GCommunicationPanel()
-        Stage4HAccountPanel()
+        if (runtime?.enabled("PRESENCE") != false) {
+            Stage4CPresencePanel(plan?.serviceCode)
+        } else {
+            Stage4IFeatureUnavailable("Online & GPS")
+        }
+
+        if (runtime?.enabled("OFFER") == true && runtime.gates.matchingEnabled) {
+            Stage4DOfferPanel(plan?.serviceCode)
+        } else {
+            Stage4IFeatureUnavailable("Offer & Matching")
+        }
+
+        if (runtime?.enabled("JOB_EXECUTION") == true) {
+            Stage4EExecutionPanel()
+        } else {
+            Stage4IFeatureUnavailable("Lifecycle Pekerjaan")
+        }
+
+        if (runtime?.enabled("WALLET_READ") != false) {
+            Stage4FWalletPanel()
+        }
+
+        if (runtime?.enabled("CHAT") != false) {
+            Stage4GCommunicationPanel()
+        }
+
+        if (runtime?.enabled("ACCOUNT_CENTER") != false) {
+            Stage4HAccountPanel()
+        }
     } else {
         Text(
             "ACTIVE hanya dapat diberikan reviewer GAWONE setelah KYC, skill, dan kendaraan yang diperlukan lolos.",
