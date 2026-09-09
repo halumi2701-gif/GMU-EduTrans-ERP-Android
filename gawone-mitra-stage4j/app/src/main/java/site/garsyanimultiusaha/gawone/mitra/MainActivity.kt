@@ -74,7 +74,7 @@ internal data class Session(
     val phone: String
 )
 
-private data class DocStatus(
+internal data class DocStatus(
     val id: String,
     val type: String,
     val status: String,
@@ -84,7 +84,7 @@ private data class DocStatus(
     val rejectionReason: String?
 )
 
-private data class VehicleState(
+internal data class VehicleState(
     val id: String,
     val type: String,
     val plate: String,
