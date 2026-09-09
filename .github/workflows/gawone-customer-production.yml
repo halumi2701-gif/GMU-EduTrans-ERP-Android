@@ -21,6 +21,13 @@ jobs:
           test -f gawone-customer-production/app/build.gradle.kts
           grep -q 'site.garsyanimultiusaha.gawone' gawone-customer-production/app/build.gradle.kts
 
+      - name: Apply Customer RC1 compile hardening
+        shell: bash
+        run: |
+          python gawone-customer-rc1-compile-patch.py
+          rm -f GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
+          zip -qr GAWONE_Customer_v1.0.0_RC1_SOURCE.zip gawone-customer-production
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
