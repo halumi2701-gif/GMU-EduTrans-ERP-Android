@@ -118,6 +118,21 @@ internal fun Stage4GCommunicationPanel() {
         }
 
         launch {
+            Stage4INetworkRecovery.onlineAgain.collect {
+                realtime.reconnectNow()
+                runCatching {
+                    val synced = client.syncPending()
+                    if (synced > 0) {
+                        info = synced.toString() + " pesan offline berhasil disinkronkan."
+                    }
+                    refreshCenter()
+                    if (selectedOrder != null) refreshSelectedChat()
+                }
+                pendingOffline = client.pendingOfflineCount()
+            }
+        }
+
+        launch {
             while (isActive) {
                 delay(30_000)
                 runCatching {
