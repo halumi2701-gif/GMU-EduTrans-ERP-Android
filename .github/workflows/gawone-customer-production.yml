@@ -123,7 +123,7 @@ jobs:
           profile: pixel_4
           disable-animations: true
           script: |
-            set -euxo pipefail
+            set -eu
             PKG=site.garsyanimultiusaha.gawone
             APK=GAWONE_Customer_v1.0.2_RC3.apk
 
