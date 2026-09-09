@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Stage4ICrashShield.install(applicationContext)
+        Stage4IDebugGuards.install()
         GawoneNotificationChannels.ensure(this)
         Stage4GDeepLinkRouter.accept(intent?.data)
         setContent {
