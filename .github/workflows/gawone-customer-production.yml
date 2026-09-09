@@ -1,4 +1,4 @@
-name: GAWONE Customer Production RC1
+name: GAWONE Customer Production RC2
 
 on:
   pull_request:
@@ -12,21 +12,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct Customer source
+      - name: Reconstruct Customer RC2 source
         shell: bash
         run: |
-          cat gawone-customer-src.00 gawone-customer-src.01 gawone-customer-src.02 gawone-customer-src.03 gawone-customer-src.04 > gawone-customer-source.b64
-          base64 -d gawone-customer-source.b64 > GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
-          unzip -q GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
+          cat gawone-customer-rc2-src.00 gawone-customer-rc2-src.01 gawone-customer-rc2-src.02 > gawone-customer-rc2-source.b64
+          base64 -d gawone-customer-rc2-source.b64 > GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
+          unzip -q GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
           test -f gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionCode = 11' gawone-customer-production/app/build.gradle.kts
           grep -q 'site.garsyanimultiusaha.gawone' gawone-customer-production/app/build.gradle.kts
-
-      - name: Apply Customer RC1 compile hardening
-        shell: bash
-        run: |
-          python gawone-customer-rc1-compile-patch.py
-          rm -f GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
-          zip -qr GAWONE_Customer_v1.0.0_RC1_SOURCE.zip gawone-customer-production
+          grep -q 'ACCESS_FINE_LOCATION' gawone-customer-production/app/src/main/AndroidManifest.xml
+          grep -q 'draft.draftId' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
 
       - uses: actions/setup-java@v4
         with:
@@ -49,20 +45,21 @@ jobs:
         working-directory: gawone-customer-production
         run: gradle :app:assembleRelease --stacktrace
 
-      - name: Verify APK
+      - name: Verify APK and source
         shell: bash
         run: |
           test -f gawone-customer-production/app/build/outputs/apk/release/app-release.apk
-          cp gawone-customer-production/app/build/outputs/apk/release/app-release.apk GAWONE_Customer_v1.0.0_RC1.apk
-          sha256sum GAWONE_Customer_v1.0.0_RC1.apk | tee GAWONE_Customer_v1.0.0_RC1_SHA256.txt
-          unzip -t GAWONE_Customer_v1.0.0_RC1.apk >/dev/null
+          cp gawone-customer-production/app/build/outputs/apk/release/app-release.apk GAWONE_Customer_v1.0.1_RC2.apk
+          sha256sum GAWONE_Customer_v1.0.1_RC2.apk | tee GAWONE_Customer_v1.0.1_RC2_SHA256.txt
+          unzip -t GAWONE_Customer_v1.0.1_RC2.apk >/dev/null
           grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
+          grep -R "Jl. Suroso" gawone-customer-production/app/src/main/java && exit 1 || true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.0_RC1
+          name: GAWONE_Customer_v1.0.1_RC2
           if-no-files-found: error
           path: |
-            GAWONE_Customer_v1.0.0_RC1.apk
-            GAWONE_Customer_v1.0.0_RC1_SHA256.txt
-            GAWONE_Customer_v1.0.0_RC1_SOURCE.zip
+            GAWONE_Customer_v1.0.1_RC2.apk
+            GAWONE_Customer_v1.0.1_RC2_SHA256.txt
+            GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
