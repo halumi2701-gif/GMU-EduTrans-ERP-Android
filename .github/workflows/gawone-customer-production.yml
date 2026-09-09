@@ -136,6 +136,7 @@ jobs:
           target: google_apis
           profile: pixel_4
           disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
           script: bash gawone-customer-emulator-smoke.sh
 
       - name: Upload emulator evidence
