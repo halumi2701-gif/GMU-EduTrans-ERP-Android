@@ -1,4 +1,4 @@
-name: GAWONE Mitra Stage 4J APK
+name: GAWONE Mitra Stage 4J Pilot RC3
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -20,13 +20,23 @@ jobs:
           unzip -q gawone-stage4j-source.zip
           test -f gawone-mitra-stage4j/app/build.gradle.kts
 
-      - name: Apply Stage 4J RC2 hardening
+      - name: Apply proven RC2 hardening
         shell: bash
         run: |
           base64 -d gawone-stage4j-rc2-patch.b64 > gawone-stage4j-rc2-patch.py
           python gawone-stage4j-rc2-patch.py gawone-mitra-stage4j
           grep -q 'versionCode = 11' gawone-mitra-stage4j/app/build.gradle.kts
-          zip -qr gawone-stage4j-rc2-source.zip gawone-mitra-stage4j
+
+      - name: Apply controlled-pilot RC3 hardening
+        shell: bash
+        run: |
+          python gawone-mitra-stage4j-rc3-pilot.py gawone-mitra-stage4j
+          grep -q 'versionCode = 12' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'versionName = "1.0.2-stage4j-pilot-rc3"' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'BuildConfig.VERSION_CODE' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'runtimeFeatureEnabled(runtime, "OFFER")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'runtimeFeatureEnabled(runtime, "JOB_EXECUTION")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          zip -qr GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SOURCE.zip gawone-mitra-stage4j
 
       - uses: actions/setup-java@v4
         with:
@@ -45,23 +55,72 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Build release candidate
+      - name: Static QA and compile
         working-directory: gawone-mitra-stage4j
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify APK
+      - name: Verify Pilot RC3 APK
         shell: bash
         run: |
-          test -f gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
-          cp gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk
-          sha256sum GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk | tee GAWONE_Mitra_v1.0.1_STAGE4J_RC2_SHA256.txt
-          unzip -t GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk >/dev/null
+          APK=gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          cp "$APK" GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk
+          unzip -t GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk >/dev/null
+          sha256sum GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk | tee GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk > GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone.mitra' versionCode='12' versionName='1.0.2-stage4j-pilot-rc3'" GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk > GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SIGNATURE.txt
+          test -f gawone-mitra-stage4j/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Mitra_Stage4J_RC2
+          name: GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3
           if-no-files-found: error
           path: |
-            GAWONE_Mitra_v1.0.1_STAGE4J_RC2.apk
-            GAWONE_Mitra_v1.0.1_STAGE4J_RC2_SHA256.txt
-            gawone-stage4j-rc2-source.zip
+            GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk
+            GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SHA256.txt
+            GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SOURCE.zip
+            GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_BADGING.txt
+            GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SIGNATURE.txt
+            gawone-mitra-stage4j/app/build/reports/lint-results-release.html
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3
+
+      - name: Prepare emulator reports
+        shell: bash
+        run: mkdir -p emulator-reports
+
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Pilot RC3 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash gawone-mitra-emulator-smoke.sh
+
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_EMULATOR_GATE
+          if-no-files-found: warn
+          path: emulator-reports
