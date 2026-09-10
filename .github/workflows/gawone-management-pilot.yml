@@ -1,4 +1,4 @@
-name: GAWONE Management Pilot M0
+name: GAWONE Management Pilot M1
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct Management M0 source
+      - name: Reconstruct proven M0 and apply M1 review console
         shell: bash
         run: |
           cat gawone-management-m0.small00 gawone-management-m0.small01 gawone-management-m0.small02 gawone-management-m0.small03 gawone-management-m0.small04 gawone-management-m0.small05 gawone-management-m0.small06 gawone-management-m0.small07 > gawone-management-m0-source.b64
@@ -21,15 +21,17 @@ jobs:
           unzip -t gawone-management-m0-source.zip >/dev/null
           unzip -q gawone-management-m0-source.zip
           python gawone-management-m0-compile-fix.py
+          patch -p3 < gawone-management-m0-to-m1.patch
           test -f gawone-management-pilot/app/build.gradle.kts
           grep -q 'applicationId = "site.garsyanimultiusaha.gawone.management"' gawone-management-pilot/app/build.gradle.kts
-          grep -q 'versionCode = 1' gawone-management-pilot/app/build.gradle.kts
-          grep -q 'versionName = "0.1.0-pilot-m0"' gawone-management-pilot/app/build.gradle.kts
+          grep -q 'versionCode = 2' gawone-management-pilot/app/build.gradle.kts
+          grep -q 'versionName = "0.2.0-pilot-m1"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'AndroidKeyStore' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/SessionStore.kt
-          grep -q 'ExperimentalMaterial3Api' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
-          grep -q 'Aplikasi tidak membawa service-role key' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
+          grep -q 'api.rpc("review_partner_document"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
+          grep -q 'api.rpc("review_partner_service"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
+          if grep -q 'api.rpc("review_partner_application"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt; then echo 'Unverified partner application mutation must not ship in M1' >&2; exit 1; fi
           if grep -R -n "service_role" gawone-management-pilot/app/src/main/java; then echo 'Privileged secret marker found in Android source' >&2; exit 1; fi
-          zip -qr GAWONE_Management_v0.1.0_PILOT_M0_SOURCE.zip gawone-management-pilot
+          zip -qr GAWONE_Management_v0.2.0_PILOT_M1_SOURCE.zip gawone-management-pilot
 
       - uses: actions/setup-java@v4
         with:
@@ -52,29 +54,29 @@ jobs:
         working-directory: gawone-management-pilot
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify Management M0 APK
+      - name: Verify Management M1 APK
         shell: bash
         run: |
           APK=gawone-management-pilot/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Management_v0.1.0_PILOT_M0.apk
-          unzip -t GAWONE_Management_v0.1.0_PILOT_M0.apk >/dev/null
-          sha256sum GAWONE_Management_v0.1.0_PILOT_M0.apk | tee GAWONE_Management_v0.1.0_PILOT_M0_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Management_v0.1.0_PILOT_M0.apk > GAWONE_Management_v0.1.0_PILOT_M0_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone.management' versionCode='1' versionName='0.1.0-pilot-m0'" GAWONE_Management_v0.1.0_PILOT_M0_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Management_v0.1.0_PILOT_M0.apk > GAWONE_Management_v0.1.0_PILOT_M0_SIGNATURE.txt
+          cp "$APK" GAWONE_Management_v0.2.0_PILOT_M1.apk
+          unzip -t GAWONE_Management_v0.2.0_PILOT_M1.apk >/dev/null
+          sha256sum GAWONE_Management_v0.2.0_PILOT_M1.apk | tee GAWONE_Management_v0.2.0_PILOT_M1_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Management_v0.2.0_PILOT_M1.apk > GAWONE_Management_v0.2.0_PILOT_M1_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone.management' versionCode='2' versionName='0.2.0-pilot-m1'" GAWONE_Management_v0.2.0_PILOT_M1_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Management_v0.2.0_PILOT_M1.apk > GAWONE_Management_v0.2.0_PILOT_M1_SIGNATURE.txt
           test -f gawone-management-pilot/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Management_v0.1.0_PILOT_M0
+          name: GAWONE_Management_v0.2.0_PILOT_M1
           if-no-files-found: error
           path: |
-            GAWONE_Management_v0.1.0_PILOT_M0.apk
-            GAWONE_Management_v0.1.0_PILOT_M0_SHA256.txt
-            GAWONE_Management_v0.1.0_PILOT_M0_SOURCE.zip
-            GAWONE_Management_v0.1.0_PILOT_M0_BADGING.txt
-            GAWONE_Management_v0.1.0_PILOT_M0_SIGNATURE.txt
+            GAWONE_Management_v0.2.0_PILOT_M1.apk
+            GAWONE_Management_v0.2.0_PILOT_M1_SHA256.txt
+            GAWONE_Management_v0.2.0_PILOT_M1_SOURCE.zip
+            GAWONE_Management_v0.2.0_PILOT_M1_BADGING.txt
+            GAWONE_Management_v0.2.0_PILOT_M1_SIGNATURE.txt
             gawone-management-pilot/app/build/reports/lint-results-release.html
 
   emulator_smoke:
@@ -86,7 +88,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: GAWONE_Management_v0.1.0_PILOT_M0
+          name: GAWONE_Management_v0.2.0_PILOT_M1
 
       - name: Prepare emulator reports
         shell: bash
@@ -99,7 +101,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Management M0 Android emulator gate
+      - name: Management M1 Android emulator gate
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -114,6 +116,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Management_v0.1.0_PILOT_M0_EMULATOR_GATE
+          name: GAWONE_Management_v0.2.0_PILOT_M1_EMULATOR_GATE
           if-no-files-found: warn
           path: emulator-reports
