@@ -15,8 +15,10 @@ jobs:
       - name: Reconstruct Management M0 source
         shell: bash
         run: |
-          cat gawone-management-m0-source.part00 gawone-management-m0-source.part01 > gawone-management-m0-source.b64
+          cat gawone-management-m0.small00 gawone-management-m0.small01 gawone-management-m0.small02 gawone-management-m0.small03 gawone-management-m0.small04 gawone-management-m0.small05 gawone-management-m0.small06 gawone-management-m0.small07 > gawone-management-m0-source.b64
+          test "$(wc -c < gawone-management-m0-source.b64)" -eq 25152
           base64 -d gawone-management-m0-source.b64 > gawone-management-m0-source.zip
+          unzip -t gawone-management-m0-source.zip >/dev/null
           unzip -q gawone-management-m0-source.zip
           test -f gawone-management-pilot/app/build.gradle.kts
           grep -q 'applicationId = "site.garsyanimultiusaha.gawone.management"' gawone-management-pilot/app/build.gradle.kts
@@ -24,7 +26,7 @@ jobs:
           grep -q 'versionName = "0.1.0-pilot-m0"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'AndroidKeyStore' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/SessionStore.kt
           grep -q 'Aplikasi tidak membawa service-role key' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
-          ! grep -R "service_role" gawone-management-pilot/app/src/main/java || false
+          if grep -R -n "service_role" gawone-management-pilot/app/src/main/java; then echo 'Privileged secret marker found in Android source' >&2; exit 1; fi
           zip -qr GAWONE_Management_v0.1.0_PILOT_M0_SOURCE.zip gawone-management-pilot
 
       - uses: actions/setup-java@v4
