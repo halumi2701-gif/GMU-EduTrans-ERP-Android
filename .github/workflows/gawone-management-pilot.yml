@@ -20,11 +20,13 @@ jobs:
           base64 -d gawone-management-m0-source.b64 > gawone-management-m0-source.zip
           unzip -t gawone-management-m0-source.zip >/dev/null
           unzip -q gawone-management-m0-source.zip
+          python gawone-management-m0-compile-fix.py
           test -f gawone-management-pilot/app/build.gradle.kts
           grep -q 'applicationId = "site.garsyanimultiusaha.gawone.management"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'versionCode = 1' gawone-management-pilot/app/build.gradle.kts
           grep -q 'versionName = "0.1.0-pilot-m0"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'AndroidKeyStore' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/SessionStore.kt
+          grep -q 'ExperimentalMaterial3Api' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'Aplikasi tidak membawa service-role key' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           if grep -R -n "service_role" gawone-management-pilot/app/src/main/java; then echo 'Privileged secret marker found in Android source' >&2; exit 1; fi
           zip -qr GAWONE_Management_v0.1.0_PILOT_M0_SOURCE.zip gawone-management-pilot
