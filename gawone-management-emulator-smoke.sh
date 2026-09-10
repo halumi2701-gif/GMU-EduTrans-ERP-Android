@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PKG="site.garsyanimultiusaha.gawone.management"
-APK="GAWONE_Management_v0.2.1_PILOT_M1_1.apk"
+APK="GAWONE_Management_v0.2.2_PILOT_M1_2.apk"
 REPORT_DIR="emulator-reports"
 mkdir -p "$REPORT_DIR"
 
@@ -59,6 +59,8 @@ check_no_crash "08-offline"
 
 adb shell settings put global airplane_mode_on 0 || true
 adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state false >/dev/null || true
-adb shell getprop ro.build.version.release > "$REPORT_DIR/09-android-version.txt"
-adb shell getprop ro.build.version.sdk > "$REPORT_DIR/10-api-level.txt"
-echo "GAWONE Management Pilot M1.1 emulator smoke gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
+adb shell dumpsys package "$PKG" > "$REPORT_DIR/09-package.txt" || true
+grep -Fq "${PKG}.fileprovider" "$REPORT_DIR/09-package.txt" || true
+adb shell getprop ro.build.version.release > "$REPORT_DIR/10-android-version.txt"
+adb shell getprop ro.build.version.sdk > "$REPORT_DIR/11-api-level.txt"
+echo "GAWONE Management Pilot M1.2 emulator smoke gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
