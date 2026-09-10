@@ -21,7 +21,7 @@ jobs:
           unzip -t gawone-management-m0-source.zip >/dev/null
           unzip -q gawone-management-m0-source.zip
           python gawone-management-m0-compile-fix.py
-          patch -p3 < gawone-management-m0-to-m1.patch
+          patch -p4 < gawone-management-m0-to-m1.patch
           test -f gawone-management-pilot/app/build.gradle.kts
           grep -q 'applicationId = "site.garsyanimultiusaha.gawone.management"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'versionCode = 2' gawone-management-pilot/app/build.gradle.kts
