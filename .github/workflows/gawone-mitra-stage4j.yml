@@ -31,11 +31,14 @@ jobs:
         shell: bash
         run: |
           python gawone-mitra-stage4j-rc3-pilot.py gawone-mitra-stage4j
+          python gawone-mitra-stage4j-rc3-static.py gawone-mitra-stage4j
           grep -q 'versionCode = 12' gawone-mitra-stage4j/app/build.gradle.kts
           grep -q 'versionName = "1.0.2-stage4j-pilot-rc3"' gawone-mitra-stage4j/app/build.gradle.kts
           grep -q 'BuildConfig.VERSION_CODE' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
           grep -q 'runtimeFeatureEnabled(runtime, "OFFER")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
           grep -q 'runtimeFeatureEnabled(runtime, "JOB_EXECUTION")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'android:icon="@mipmap/ic_launcher"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
+          grep -q 'android:dataExtractionRules="@xml/data_extraction_rules"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
           zip -qr GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3_SOURCE.zip gawone-mitra-stage4j
 
       - uses: actions/setup-java@v4
