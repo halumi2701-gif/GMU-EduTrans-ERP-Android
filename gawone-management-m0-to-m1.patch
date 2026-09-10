@@ -1,0 +1,135 @@
+diff -urN /mnt/data/mgmt_m0_compare/gawone-management-pilot/README.md /mnt/data/mgmt_m1_work/gawone-management-pilot/README.md
+--- /mnt/data/mgmt_m0_compare/gawone-management-pilot/README.md	2026-09-10 09:12:14.000000000 +0000
++++ /mnt/data/mgmt_m1_work/gawone-management-pilot/README.md	2026-09-10 10:07:41.648109758 +0000
+@@ -1,11 +1,11 @@
+-# GAWONE Management — Pilot M0
++# GAWONE Management — Pilot M1
+ 
+ Native Android operational console for controlled GAWONE pilot validation.
+ 
+ ## Build
+ - Package: `site.garsyanimultiusaha.gawone.management`
+ - Version code: `1`
+-- Version name: `0.1.0-pilot-m0`
++- Version name: `0.2.0-pilot-m1`
+ - Kotlin + Jetpack Compose
+ - minSdk 26 / targetSdk 35
+ - Supabase Phone OTP
+@@ -32,3 +32,10 @@
+ 
+ ## Release note
+ The CI release APK is debug-signed for QA/emulator/device testing only. Production signing is a later gate.
++
++
++## M1 Review & Action Console
++
++M1 adds server-authoritative review actions for current KYC documents and partner service skills. Actions are visible only when the authenticated internal user has `partner.verify`. Document decisions are limited to VERIFIED / REJECTED; service decisions are limited to VERIFIED / REJECTED. Every mutation goes through existing Supabase RPCs and RLS/permission checks.
++
++Partner application approval remains read-only in M1 because the `review_partner_application` `p_decision text` allowed values could not be re-verified from the backend connector during this build. No guessed approval action is shipped.
+diff -urN /mnt/data/mgmt_m0_compare/gawone-management-pilot/app/build.gradle.kts /mnt/data/mgmt_m1_work/gawone-management-pilot/app/build.gradle.kts
+--- /mnt/data/mgmt_m0_compare/gawone-management-pilot/app/build.gradle.kts	2026-09-10 09:09:39.000000000 +0000
++++ /mnt/data/mgmt_m1_work/gawone-management-pilot/app/build.gradle.kts	2026-09-10 10:07:41.647803685 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "site.garsyanimultiusaha.gawone.management"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 1
+-        versionName = "0.1.0-pilot-m0"
++        versionCode = 2
++        versionName = "0.2.0-pilot-m1"
+         buildConfigField("String", "SUPABASE_URL", "\"https://fhtxlojbguineyqayhai.supabase.co\"")
+         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h\"")
+     }
+diff -urN /mnt/data/mgmt_m0_compare/gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt /mnt/data/mgmt_m1_work/gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
+--- /mnt/data/mgmt_m0_compare/gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt	2026-09-10 09:56:55.000000000 +0000
++++ /mnt/data/mgmt_m1_work/gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt	2026-09-10 10:07:41.648037539 +0000
+@@ -67,7 +67,7 @@
+     suspend fun load(){loading=true;error=null;try{state=loadState(api)}catch(e:Exception){error=e.message?:"Gagal memuat"}finally{loading=false}}
+     LaunchedEffect(Unit){load()}
+     Scaffold(topBar={TopAppBar(title={Column{Text("GAWONE Management",fontWeight=FontWeight.Bold);Text("Pilot Operations · ${BuildConfig.VERSION_NAME}",style=MaterialTheme.typography.bodySmall,color=Color.Gray)}},actions={IconButton(onClick={scope.launch{load()}}){Icon(Icons.Default.Refresh,"Refresh")}})},bottomBar={NavigationBar{listOf(Icons.Default.Dashboard to "Beranda",Icons.Default.Badge to "Mitra",Icons.Default.ReceiptLong to "Order",Icons.Default.SupportAgent to "Dukungan",Icons.Default.AccountCircle to "Akun").forEachIndexed{i,p->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(p.first,p.second)},label={Text(p.second)})}}}){pad->
+-        Box(Modifier.fillMaxSize().padding(pad)){when{loading->CircularProgressIndicator(Modifier.align(Alignment.Center));error!=null->ErrorState(error!!){scope.launch{load()}};else->when(tab){0->Dashboard(state);1->PartnerScreen(state);2->OrderScreen(state);3->SupportScreen(state);else->AccountScreen(api,state,onLogout)}}}
++        Box(Modifier.fillMaxSize().padding(pad)){when{loading->CircularProgressIndicator(Modifier.align(Alignment.Center));error!=null->ErrorState(error!!){scope.launch{load()}};else->when(tab){0->Dashboard(state);1->PartnerScreen(api,state){scope.launch{load()}};2->OrderScreen(state);3->SupportScreen(state);else->AccountScreen(api,state,onLogout)}}}
+     }
+ }
+ 
+@@ -96,8 +96,78 @@
+     return ManagementState(roles,perms,calls[0],calls[1],calls[2],calls[3],calls[4],calls[5],calls[6],calls[7],calls[8],calls[9])
+ }
+ 
+-@Composable private fun Dashboard(s:ManagementState){Scrollable{SectionTitle("Command Center");Text("Status pilot dibaca langsung dari backend sesuai permission akun.",color=Color.Gray);Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){Metric("Mitra",s.partners.length(),Modifier.weight(1f));Metric("Presence",countWhere(s.presence,"status","ACTIVE"),Modifier.weight(1f))};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){Metric("Order",s.orders.length(),Modifier.weight(1f));Metric("Assignment",s.assignments.length(),Modifier.weight(1f))};StatusCard("KYC menunggu",countOnboardingPending(s.onboarding).toString(),"DOCUMENT_PENDING / KYC_REVIEW / SKILL_REVIEW");StatusCard("Offer aktif",countWhere(s.offers,"status","OFFERED").toString(),"Server authoritative");Info("Controlled Pilot","Booking/matching/offer/job execution tetap mengikuti gate backend. M0 tidak menyediakan bypass atau auto-approve.")}}
+-@Composable private fun PartnerScreen(s:ManagementState){Scrollable{SectionTitle("Mitra & KYC");if(s.partners.length()==0)Empty("Belum ada Mitra production. Instal APK Mitra Pilot RC3 dan selesaikan OTP + onboarding untuk memunculkan kandidat pertama.") else for(i in 0 until s.partners.length()){val p=s.partners.optJSONObject(i)?:continue;val id=p.optString("id");val on=findBy(s.onboarding,"partner_id",id);val docs=countWhere(s.docs,"partner_id",id);val serviceRows=filterBy(s.partnerServices,"partner_id",id);Card(Modifier.fillMaxWidth().padding(vertical=6.dp)){Column(Modifier.padding(16.dp)){Text("Mitra ${short(id)}",fontWeight=FontWeight.Bold);Text("Akun: ${p.optString("account_status","-")} · ${p.optString("availability_status","-")}");Text("Onboarding: ${on?.optString("status","-")?:"-"}");Text("Dokumen current: $docs · Service aktif: ${serviceRows.size}",color=Color.Gray);Text("Review mutation sengaja belum diaktifkan di M0 sampai action contract diverifikasi ulang.",style=MaterialTheme.typography.bodySmall,color=Color.Gray,modifier=Modifier.padding(top=6.dp))}}}}}
++@Composable private fun Dashboard(s:ManagementState){Scrollable{SectionTitle("Command Center");Text("Status pilot dibaca langsung dari backend sesuai permission akun.",color=Color.Gray);Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){Metric("Mitra",s.partners.length(),Modifier.weight(1f));Metric("Presence",countWhere(s.presence,"status","ACTIVE"),Modifier.weight(1f))};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){Metric("Order",s.orders.length(),Modifier.weight(1f));Metric("Assignment",s.assignments.length(),Modifier.weight(1f))};StatusCard("KYC menunggu",countOnboardingPending(s.onboarding).toString(),"DOCUMENT_PENDING / KYC_REVIEW / SKILL_REVIEW");StatusCard("Offer aktif",countWhere(s.offers,"status","OFFERED").toString(),"Server authoritative");Info("Management M1","Review dokumen KYC dan skill service memakai RPC server + permission partner.verify. Aktivasi aplikasi Mitra tetap read-only sampai decision contract dapat diverifikasi ulang.");Info("Controlled Pilot","Booking/matching/offer/job execution tetap mengikuti gate backend. M1 tidak menyediakan bypass gate pilot.")}}
++
++@Composable private fun PartnerScreen(api:ManagementApi,s:ManagementState,onChanged:()->Unit){
++    val canVerify=s.permissions.contains("partner.verify")
++    Scrollable{
++        SectionTitle("Mitra & KYC")
++        if(!canVerify) Info("Mode observasi","Akun ini dapat membaca data Mitra, tetapi tidak memiliki permission partner.verify.")
++        if(s.partners.length()==0) Empty("Belum ada Mitra production. Instal APK Mitra Pilot RC3 dan selesaikan OTP + onboarding untuk memunculkan kandidat pertama.")
++        else for(i in 0 until s.partners.length()){
++            val p=s.partners.optJSONObject(i)?:continue
++            val id=p.optString("id")
++            val on=findBy(s.onboarding,"partner_id",id)
++            val docRows=filterBy(s.docs,"partner_id",id)
++            val serviceRows=filterBy(s.partnerServices,"partner_id",id)
++            Card(Modifier.fillMaxWidth().padding(vertical=6.dp)){
++                Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
++                    Text("Mitra ${short(id)}",fontWeight=FontWeight.Bold)
++                    Text("Akun: ${p.optString("account_status","-")} · ${p.optString("availability_status","-")}")
++                    Text("Onboarding: ${on?.optString("status","-")?:"-"}")
++                    Text("Dokumen current: ${docRows.size} · Service aktif: ${serviceRows.size}",color=Color.Gray)
++                    if(docRows.isNotEmpty()){
++                        HorizontalDivider()
++                        Text("Dokumen KYC",fontWeight=FontWeight.SemiBold)
++                        docRows.forEach{d->DocumentReviewRow(api,d,canVerify,onChanged)}
++                    }
++                    if(serviceRows.isNotEmpty()){
++                        HorizontalDivider()
++                        Text("Verifikasi Service",fontWeight=FontWeight.SemiBold)
++                        serviceRows.forEach{r->
++                            val service=findBy(s.services,"id",r.optString("service_id"))
++                            ServiceReviewRow(api,id,r,service,canVerify,onChanged)
++                        }
++                    }
++                    Text("Approval/rejection aplikasi Mitra belum diberi tombol: parameter p_decision bertipe text dan allowed values belum dapat diverifikasi dari konektor backend saat ini.",style=MaterialTheme.typography.bodySmall,color=Color.Gray)
++                }
++            }
++        }
++    }
++}
++
++@Composable private fun DocumentReviewRow(api:ManagementApi,d:JSONObject,enabled:Boolean,onChanged:()->Unit){
++    val scope=rememberCoroutineScope();var busy by remember{mutableStateOf(false)};var msg by remember{mutableStateOf("")};var action by remember{mutableStateOf<String?>(null)};var reason by remember{mutableStateOf("")}
++    val status=d.optString("status","-");val reviewable=status in setOf("SUBMITTED","IN_REVIEW","REQUIRES_UPDATE")
++    Surface(shape=RoundedCornerShape(14.dp),color=Soft,modifier=Modifier.fillMaxWidth()){
++        Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
++            Text(d.optString("document_type","Dokumen"),fontWeight=FontWeight.Medium)
++            Text(status,style=MaterialTheme.typography.bodySmall,color=Color.Gray)
++            if(enabled&&reviewable) Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
++                Button(onClick={action="VERIFIED"},enabled=!busy){Text("Verifikasi")}
++                OutlinedButton(onClick={action="REJECTED"},enabled=!busy){Text("Tolak")}
++            }
++            if(msg.isNotBlank()) Text(msg,style=MaterialTheme.typography.bodySmall,color=if(msg.startsWith("Gagal"))MaterialTheme.colorScheme.error else Green)
++        }
++    }
++    if(action!=null) AlertDialog(onDismissRequest={if(!busy)action=null},title={Text(if(action=="VERIFIED")"Verifikasi dokumen?" else "Tolak dokumen?")},text={Column{Text("Keputusan dicatat server dan tunduk pada permission partner.verify.");if(action=="REJECTED")OutlinedTextField(reason,{reason=it},label={Text("Alasan penolakan")},modifier=Modifier.fillMaxWidth().padding(top=10.dp))}},confirmButton={Button(onClick={scope.launch{busy=true;try{api.rpc("review_partner_document",JSONObject().put("p_document_id",d.optString("id")).put("p_decision",action).put("p_reason",if(reason.isBlank())JSONObject.NULL else reason));msg="Berhasil: ${action}";action=null;reason="";onChanged()}catch(e:Exception){msg="Gagal: ${e.message}";action=null}finally{busy=false}}},enabled=!busy&&(action!="REJECTED"||reason.isNotBlank())){Text("Konfirmasi")}},dismissButton={TextButton(onClick={action=null},enabled=!busy){Text("Batal")}})
++}
++
++@Composable private fun ServiceReviewRow(api:ManagementApi,partnerId:String,row:JSONObject,service:JSONObject?,enabled:Boolean,onChanged:()->Unit){
++    val scope=rememberCoroutineScope();var busy by remember{mutableStateOf(false)};var msg by remember{mutableStateOf("")};var action by remember{mutableStateOf<String?>(null)};var reason by remember{mutableStateOf("")}
++    val status=row.optString("verification_status","-");val code=service?.optString("code")?.ifBlank{null}?:"-";val name=service?.optString("name")?.ifBlank{null}?:code;val skill=row.optString("skill_level").ifBlank{"STANDARD"};val reviewable=status in setOf("NOT_VERIFIED","IN_REVIEW","REJECTED","EXPIRED")
++    Surface(shape=RoundedCornerShape(14.dp),color=Soft,modifier=Modifier.fillMaxWidth()){
++        Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
++            Text(name,fontWeight=FontWeight.Medium);Text("$code · $status · skill $skill",style=MaterialTheme.typography.bodySmall,color=Color.Gray)
++            if(enabled&&reviewable&&code!="-") Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
++                Button(onClick={action="VERIFIED"},enabled=!busy){Text("Verifikasi")}
++                OutlinedButton(onClick={action="REJECTED"},enabled=!busy){Text("Tolak")}
++            }
++            if(msg.isNotBlank()) Text(msg,style=MaterialTheme.typography.bodySmall,color=if(msg.startsWith("Gagal"))MaterialTheme.colorScheme.error else Green)
++        }
++    }
++    if(action!=null) AlertDialog(onDismissRequest={if(!busy)action=null},title={Text(if(action=="VERIFIED")"Verifikasi service?" else "Tolak service?")},text={Column{Text("Service $code akan diproses oleh RPC review_partner_service.");if(action=="REJECTED")OutlinedTextField(reason,{reason=it},label={Text("Alasan penolakan")},modifier=Modifier.fillMaxWidth().padding(top=10.dp))}},confirmButton={Button(onClick={scope.launch{busy=true;try{api.rpc("review_partner_service",JSONObject().put("p_partner_id",partnerId).put("p_service_code",code).put("p_decision",action).put("p_skill_level",skill).put("p_expires_at",JSONObject.NULL).put("p_reason",if(reason.isBlank())JSONObject.NULL else reason));msg="Berhasil: $code ${action}";action=null;reason="";onChanged()}catch(e:Exception){msg="Gagal: ${e.message}";action=null}finally{busy=false}}},enabled=!busy&&(action!="REJECTED"||reason.isNotBlank())){Text("Konfirmasi")}},dismissButton={TextButton(onClick={action=null},enabled=!busy){Text("Batal")}})
++}
+ @Composable private fun OrderScreen(s:ManagementState){Scrollable{SectionTitle("Order & Assignment");if(s.orders.length()==0)Empty("Belum ada transaksi production.") else for(i in 0 until s.orders.length()){val o=s.orders.optJSONObject(i)?:continue;Card(Modifier.fillMaxWidth().padding(vertical=5.dp)){Column(Modifier.padding(16.dp)){Text(o.optString("order_no",short(o.optString("id"))),fontWeight=FontWeight.Bold);Text("Status ${o.optString("status","-")} · pekerja ${o.optInt("required_workers",1)}");Text("Offers ${countWhere(s.offers,"order_id",o.optString("id"))} · Assignments ${countWhere(s.assignments,"order_id",o.optString("id"))}",color=Color.Gray)}}}}}
+ @Composable private fun SupportScreen(s:ManagementState){Scrollable{SectionTitle("Dukungan Mitra");if(s.support.length()==0)Empty("Belum ada tiket dukungan Mitra.") else for(i in 0 until s.support.length()){val t=s.support.optJSONObject(i)?:continue;Card(Modifier.fillMaxWidth().padding(vertical=5.dp)){Column(Modifier.padding(16.dp)){Text(t.optString("subject","Tiket"),fontWeight=FontWeight.Bold);Text("${t.optString("status","-")} · ${t.optString("priority","-")}");Text(t.optString("category","-"),color=Color.Gray)}}}}}
+ @Composable private fun AccountScreen(api:ManagementApi,s:ManagementState,onLogout:()->Unit){Scrollable{SectionTitle("Akun Internal");Info("Role",s.roles.joinToString().ifBlank{"-"});Info("Permission",s.permissions.sorted().joinToString().ifBlank{"-"});Info("User",short(api.userId().orEmpty()));Button(onClick={api.logout();onLogout()},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Logout,null);Spacer(Modifier.width(8.dp));Text("Keluar")};Text("No service-role secret · Android Keystore session · RLS server tetap otoritatif.",style=MaterialTheme.typography.bodySmall,color=Color.Gray)}}
