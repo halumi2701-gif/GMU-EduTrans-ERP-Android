@@ -1,4 +1,4 @@
-name: GAWONE Management Pilot M1.2
+name: GAWONE Management Pilot M1.3
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Reconstruct proven M1 and apply M1.1 + M1.2 hardening
+      - name: Reconstruct proven M1 and apply M1.1 + M1.2 + M1.3 hardening
         shell: bash
         run: |
           cat gawone-management-m0.small00 gawone-management-m0.small01 gawone-management-m0.small02 gawone-management-m0.small03 gawone-management-m0.small04 gawone-management-m0.small05 gawone-management-m0.small06 gawone-management-m0.small07 > gawone-management-m0-source.b64
@@ -24,24 +24,27 @@ jobs:
           patch -p4 < gawone-management-m0-to-m1.patch
           python gawone-management-m1-1-hardening.py gawone-management-pilot
           python gawone-management-m1-2-kyc-preview.py gawone-management-pilot
+          python gawone-management-m1-3-secure-viewer.py gawone-management-pilot
 
           test -f gawone-management-pilot/app/build.gradle.kts
           grep -q 'applicationId = "site.garsyanimultiusaha.gawone.management"' gawone-management-pilot/app/build.gradle.kts
-          grep -q 'versionCode = 4' gawone-management-pilot/app/build.gradle.kts
-          grep -q 'versionName = "0.2.2-pilot-m1.2"' gawone-management-pilot/app/build.gradle.kts
+          grep -q 'versionCode = 5' gawone-management-pilot/app/build.gradle.kts
+          grep -q 'versionName = "0.2.3-pilot-m1.3"' gawone-management-pilot/app/build.gradle.kts
           grep -q 'AndroidKeyStore' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/SessionStore.kt
           grep -q 'api.rpc("review_partner_document"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'api.rpc("review_partner_service"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'storage_path,mime_type' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'downloadStorage("partner-kyc-private"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'storage/v1/object/authenticated' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/ManagementApi.kt
-          grep -q 'androidx.core.content.FileProvider' gawone-management-pilot/app/src/main/AndroidManifest.xml
-          grep -q 'android:exported="false"' gawone-management-pilot/app/src/main/AndroidManifest.xml
+          grep -q 'SecureEvidenceDialog' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
+          grep -q 'PdfRenderer' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'FLAG_SECURE' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
           grep -q 'setOf("DOCUMENT_PENDING","KYC_REVIEW","SKILL_REVIEW")' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt
-          if grep -q 'api.rpc("review_partner_application"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt; then echo 'Unverified partner application mutation must not ship in M1.2' >&2; exit 1; fi
+          if grep -q 'androidx.core.content.FileProvider' gawone-management-pilot/app/src/main/AndroidManifest.xml; then echo 'FileProvider must not ship in M1.3' >&2; exit 1; fi
+          if grep -q 'Intent.ACTION_VIEW' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt; then echo 'External evidence viewer must not ship in M1.3' >&2; exit 1; fi
+          if grep -q 'api.rpc("review_partner_application"' gawone-management-pilot/app/src/main/java/site/garsyanimultiusaha/gawone/management/MainActivity.kt; then echo 'Unverified partner application mutation must not ship in M1.3' >&2; exit 1; fi
           if grep -R -n "service_role" gawone-management-pilot/app/src/main/java; then echo 'Privileged secret marker found in Android source' >&2; exit 1; fi
-          zip -qr GAWONE_Management_v0.2.2_PILOT_M1_2_SOURCE.zip gawone-management-pilot
+          zip -qr GAWONE_Management_v0.2.3_PILOT_M1_3_SOURCE.zip gawone-management-pilot
 
       - uses: actions/setup-java@v4
         with:
@@ -64,29 +67,29 @@ jobs:
         working-directory: gawone-management-pilot
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify Management M1.2 APK
+      - name: Verify Management M1.3 APK
         shell: bash
         run: |
           APK=gawone-management-pilot/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Management_v0.2.2_PILOT_M1_2.apk
-          unzip -t GAWONE_Management_v0.2.2_PILOT_M1_2.apk >/dev/null
-          sha256sum GAWONE_Management_v0.2.2_PILOT_M1_2.apk | tee GAWONE_Management_v0.2.2_PILOT_M1_2_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Management_v0.2.2_PILOT_M1_2.apk > GAWONE_Management_v0.2.2_PILOT_M1_2_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone.management' versionCode='4' versionName='0.2.2-pilot-m1.2'" GAWONE_Management_v0.2.2_PILOT_M1_2_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Management_v0.2.2_PILOT_M1_2.apk > GAWONE_Management_v0.2.2_PILOT_M1_2_SIGNATURE.txt
+          cp "$APK" GAWONE_Management_v0.2.3_PILOT_M1_3.apk
+          unzip -t GAWONE_Management_v0.2.3_PILOT_M1_3.apk >/dev/null
+          sha256sum GAWONE_Management_v0.2.3_PILOT_M1_3.apk | tee GAWONE_Management_v0.2.3_PILOT_M1_3_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Management_v0.2.3_PILOT_M1_3.apk > GAWONE_Management_v0.2.3_PILOT_M1_3_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone.management' versionCode='5' versionName='0.2.3-pilot-m1.3'" GAWONE_Management_v0.2.3_PILOT_M1_3_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Management_v0.2.3_PILOT_M1_3.apk > GAWONE_Management_v0.2.3_PILOT_M1_3_SIGNATURE.txt
           test -f gawone-management-pilot/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Management_v0.2.2_PILOT_M1_2
+          name: GAWONE_Management_v0.2.3_PILOT_M1_3
           if-no-files-found: error
           path: |
-            GAWONE_Management_v0.2.2_PILOT_M1_2.apk
-            GAWONE_Management_v0.2.2_PILOT_M1_2_SHA256.txt
-            GAWONE_Management_v0.2.2_PILOT_M1_2_SOURCE.zip
-            GAWONE_Management_v0.2.2_PILOT_M1_2_BADGING.txt
-            GAWONE_Management_v0.2.2_PILOT_M1_2_SIGNATURE.txt
+            GAWONE_Management_v0.2.3_PILOT_M1_3.apk
+            GAWONE_Management_v0.2.3_PILOT_M1_3_SHA256.txt
+            GAWONE_Management_v0.2.3_PILOT_M1_3_SOURCE.zip
+            GAWONE_Management_v0.2.3_PILOT_M1_3_BADGING.txt
+            GAWONE_Management_v0.2.3_PILOT_M1_3_SIGNATURE.txt
             gawone-management-pilot/app/build/reports/lint-results-release.html
 
   emulator_smoke:
@@ -98,7 +101,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: GAWONE_Management_v0.2.2_PILOT_M1_2
+          name: GAWONE_Management_v0.2.3_PILOT_M1_3
 
       - name: Prepare emulator reports
         shell: bash
@@ -111,7 +114,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Management M1.2 Android emulator gate
+      - name: Management M1.3 Android emulator gate
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -126,6 +129,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Management_v0.2.2_PILOT_M1_2_EMULATOR_GATE
+          name: GAWONE_Management_v0.2.3_PILOT_M1_3_EMULATOR_GATE
           if-no-files-found: warn
           path: emulator-reports
