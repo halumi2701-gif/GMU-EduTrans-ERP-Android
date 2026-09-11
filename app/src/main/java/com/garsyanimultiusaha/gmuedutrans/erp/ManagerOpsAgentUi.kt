@@ -1,6 +1,5 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,17 +18,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 /**
- * Root wrapper that keeps the existing ERP shell intact and adds the Manager EduTrans
- * Ops Agent only on the Manager dashboard.
+ * Keeps the existing ERP shell intact and adds the Manager EduTrans Ops Agent
+ * only when the Manager is on the Home dashboard.
  */
 @Composable
 fun GmuNativeAppWithManagerAgent(vm: MainViewModel = viewModel()) {
@@ -71,10 +71,7 @@ private fun BoxScope.ManagerOpsAgentDock(vm: MainViewModel, session: SessionStat
             Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White.copy(alpha = .12f)
-            ) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color.White.copy(alpha = .12f)) {
                 Icon(
                     Icons.Rounded.AutoAwesome,
                     contentDescription = null,
@@ -144,6 +141,26 @@ private fun ManagerOpsAgentPanel(
     val readiness = managerReadiness(vm, nextTrip?.id)
     val pendingApprovals = vm.table("approvals").count { it.text("status") == "Pending" }
 
+    var costSnapshot by remember(nextTrip?.id) { mutableStateOf<ManagerCostSnapshot?>(null) }
+    var costError by remember(nextTrip?.id) { mutableStateOf<String?>(null) }
+    val api = remember { SupabaseApi() }
+
+    LaunchedEffect(nextTrip?.id, session.accessToken) {
+        val bookingId = nextTrip?.id ?: return@LaunchedEffect
+        runCatching {
+            api.getRows(session.accessToken, "trip_costs", "created_at.desc")
+                .filter { it.text("booking_id") == bookingId }
+        }.onSuccess { rows ->
+            val rab = rows.sumOf { it.number("rab_amount") }
+            val actual = rows.sumOf { it.number("actual_amount") }
+            costSnapshot = ManagerCostSnapshot(rab = rab, actual = actual)
+            costError = null
+        }.onFailure {
+            costSnapshot = null
+            costError = "RAB operasional belum dapat dibaca untuk role ini."
+        }
+    }
+
     Column(
         Modifier
             .fillMaxWidth()
@@ -152,10 +169,7 @@ private fun ManagerOpsAgentPanel(
             .padding(bottom = 36.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = GmuDark
-            ) {
+            Surface(shape = RoundedCornerShape(18.dp), color = GmuDark) {
                 Icon(
                     Icons.Rounded.AutoAwesome,
                     contentDescription = null,
@@ -166,22 +180,17 @@ private fun ManagerOpsAgentPanel(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(ManagerOpsAgent.displayName, fontSize = 20.sp, fontWeight = FontWeight.Black, color = GmuDark)
-                Text(
-                    "Assistant operasional • ${session.profile.role}",
-                    fontSize = 11.sp,
-                    color = Color.Gray
-                )
+                Text("Assistant operasional • ${session.profile.role}", fontSize = 11.sp, color = Color.Gray)
             }
         }
 
         Spacer(Modifier.height(16.dp))
-
         Card(
             shape = RoundedCornerShape(22.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(Modifier.padding(16.dp)) {
-                Text("Morning / Daily Ops Brief", fontWeight = FontWeight.Black, color = GmuDark)
+                Text("Daily Ops Brief", fontWeight = FontWeight.Black, color = GmuDark)
                 Spacer(Modifier.height(8.dp))
                 if (nextTrip == null) {
                     Text("Belum ada trip aktif atau mendatang.", fontSize = 12.sp, color = Color.Gray)
@@ -236,16 +245,19 @@ private fun ManagerOpsAgentPanel(
         Spacer(Modifier.height(10.dp))
 
         ManagerOpsAgent.quickActions.chunked(2).forEach { actions ->
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 actions.forEach { action ->
                     AgentActionCard(
                         title = action,
                         icon = iconForAgentAction(action),
                         modifier = Modifier.weight(1f),
-                        onClick = { onNavigate(destinationForAgentAction(action)) }
+                        onClick = {
+                            if (action == "Analisis RAB") {
+                                agentReply = rabAnalysisText(costSnapshot, costError)
+                            } else {
+                                onNavigate(destinationForAgentAction(action))
+                            }
+                        }
                     )
                 }
                 if (actions.size == 1) Spacer(Modifier.weight(1f))
@@ -270,10 +282,16 @@ private fun ManagerOpsAgentPanel(
                     trailingIcon = {
                         IconButton(
                             onClick = {
-                                val result = routeManagerCommand(command)
-                                agentReply = result.first
-                                command = ""
-                                result.second?.let(onNavigate)
+                                val normalized = command.lowercase().trim()
+                                if ("rab" in normalized || "biaya" in normalized || "cost" in normalized) {
+                                    agentReply = rabAnalysisText(costSnapshot, costError)
+                                    command = ""
+                                } else {
+                                    val result = routeManagerCommand(command)
+                                    agentReply = result.first
+                                    command = ""
+                                    result.second?.let(onNavigate)
+                                }
                             },
                             enabled = command.isNotBlank()
                         ) {
@@ -301,14 +319,11 @@ private fun ManagerOpsAgentPanel(
     }
 }
 
-private data class ManagerReadiness(
-    val score: Int,
-    val missing: List<String>
-)
+private data class ManagerReadiness(val score: Int, val missing: List<String>)
+private data class ManagerCostSnapshot(val rab: Double, val actual: Double)
 
 private fun managerReadiness(vm: MainViewModel, bookingId: String?): ManagerReadiness {
     if (bookingId.isNullOrBlank()) return ManagerReadiness(0, emptyList())
-
     val checks = listOf(
         "Rundown" to vm.table("rundown_items").any { it.text("booking_id") == bookingId },
         "Manifest" to vm.table("manifests").any { it.text("booking_id") == bookingId },
@@ -317,12 +332,25 @@ private fun managerReadiness(vm: MainViewModel, bookingId: String?): ManagerRead
         "Documents" to (vm.table("documents").count { it.text("booking_id") == bookingId } >= 5)
     )
     val completed = checks.count { it.second }
-    val score = completed * 100 / checks.size
     return ManagerReadiness(
-        score = score,
+        score = completed * 100 / checks.size,
         missing = checks.filterNot { it.second }.map { it.first }
     )
 }
+
+private fun rabAnalysisText(snapshot: ManagerCostSnapshot?, error: String?): String {
+    if (snapshot == null) return error ?: "RAB sedang dimuat. Coba lagi beberapa saat."
+    val variance = snapshot.rab - snapshot.actual
+    val status = when {
+        snapshot.rab <= 0.0 -> "RAB belum diisi."
+        variance < 0.0 -> "Aktual melewati RAB sebesar ${formatIdr(-variance)}. Perlu perhatian Manager."
+        else -> "Masih tersedia ${formatIdr(variance)} dari RAB operasional."
+    }
+    return "RAB ${formatIdr(snapshot.rab)} • Aktual ${formatIdr(snapshot.actual)}. $status"
+}
+
+private fun formatIdr(value: Double): String =
+    NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(value)
 
 @Composable
 private fun AgentActionCard(
@@ -348,7 +376,7 @@ private fun AgentActionCard(
             }
             Spacer(Modifier.height(10.dp))
             Text(title, fontSize = 12.sp, fontWeight = FontWeight.Black, color = GmuDark)
-            Text("Buka →", fontSize = 10.sp, color = GmuGreen)
+            Text(if (title == "Analisis RAB") "Analisis →" else "Buka →", fontSize = 10.sp, color = GmuGreen)
         }
     }
 }
@@ -357,7 +385,6 @@ private fun destinationForAgentAction(action: String): AppPage = when (action) {
     "Siapkan Trip", "Buat Rundown", "Cek Kesiapan", "Buat Operation Sheet" -> AppPage.OPERATIONS
     "Susun Crew" -> AppPage.TEAM_HR
     "Cek Vendor" -> AppPage.VENDORS
-    "Analisis RAB" -> AppPage.PLANNING
     "Buat Laporan" -> AppPage.REPORTS
     else -> AppPage.OPERATIONS
 }
@@ -382,8 +409,6 @@ private fun routeManagerCommand(command: String): Pair<String, AppPage?> {
             "Saya buka Vendor & PO agar Manager dapat mengecek konfirmasi dan kebutuhan vendor." to AppPage.VENDORS
         "crew" in normalized || "tim" in normalized || "tl" in normalized ->
             "Saya buka Team & HR untuk menyusun atau mengecek assignment crew." to AppPage.TEAM_HR
-        "rab" in normalized || "biaya" in normalized || "cost" in normalized ->
-            "Saya buka Planning & Control untuk mengecek RAB operasional dan kebutuhan approval." to AppPage.PLANNING
         "laporan" in normalized || "report" in normalized || "evaluasi" in normalized ->
             "Saya buka Reports untuk menyiapkan laporan dan evaluasi trip." to AppPage.REPORTS
         "dokumen" in normalized || "folder" in normalized ->
