@@ -131,7 +131,6 @@ object ManagerEduTransPolicy {
         AppPage.DASHBOARD,
         AppPage.BOOKINGS,
         AppPage.CUSTOMERS,
-        AppPage.PLANNING,
         AppPage.OPERATIONS,
         AppPage.VENDORS,
         AppPage.TRIP_FOLDER,
