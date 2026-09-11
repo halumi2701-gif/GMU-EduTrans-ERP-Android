@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     launchTarget = null
                 }
             }
-            GmuNativeAppWithManagerOpsControlPanel(vm)
+            GmuNativeAppWithManagerOpsPublishControl(vm)
         }
     }
 
