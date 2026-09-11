@@ -108,32 +108,68 @@ enum class AppPage {
 
 enum class MainTab { HOME, BOOKING, TRIP, FINANCE, MORE }
 
+object ErpRoles {
+    const val OWNER = "Owner"
+    const val DIRECTOR = "Director"
+    const val DIRECTOR_ID = "Direktur"
+    const val MANAGER_EDUTRANS = "Manager EduTrans"
+    const val LEGACY_MANAGER = "Manager"
+
+    fun isDirector(role: String): Boolean = role == DIRECTOR || role == DIRECTOR_ID
+    fun isManagerEduTrans(role: String): Boolean = role == MANAGER_EDUTRANS || role == LEGACY_MANAGER
+}
+
 object FinancialAccess {
-    fun canView(role: String): Boolean = role == "Owner" || role == "Manager"
+    /** Full-company financial visibility is restricted to Owner and Director. */
+    fun canView(role: String): Boolean = role == ErpRoles.OWNER || ErpRoles.isDirector(role)
+}
+
+object ManagerEduTransPolicy {
+    const val approvalLimitIdr: Long = 2_000_000L
+
+    val operationalPages: Set<AppPage> = setOf(
+        AppPage.DASHBOARD,
+        AppPage.BOOKINGS,
+        AppPage.CUSTOMERS,
+        AppPage.PLANNING,
+        AppPage.OPERATIONS,
+        AppPage.VENDORS,
+        AppPage.TRIP_FOLDER,
+        AppPage.WORKFLOW,
+        AppPage.SOP,
+        AppPage.REPORTS,
+        AppPage.CLOSING,
+        AppPage.TEAM_HR,
+        AppPage.AUDIT,
+        AppPage.PROFILE
+    )
+
+    fun requiresDirectorApproval(amountIdr: Long): Boolean = amountIdr > approvalLimitIdr
 }
 
 object RoleAccess {
-    fun pages(role: String): Set<AppPage> = when (role) {
-        "Owner" -> AppPage.entries.toSet()
-        "Manager" -> AppPage.entries.toSet() - AppPage.USERS
-        "Admin" -> setOf(
+    fun pages(role: String): Set<AppPage> = when {
+        role == ErpRoles.OWNER -> AppPage.entries.toSet()
+        ErpRoles.isDirector(role) -> AppPage.entries.toSet() - AppPage.USERS
+        ErpRoles.isManagerEduTrans(role) -> ManagerEduTransPolicy.operationalPages
+        role == "Admin" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.QUOTATIONS, AppPage.PACKAGE_MASTER, AppPage.CUSTOMERS,
             AppPage.OPERATIONS, AppPage.TRIP_FOLDER, AppPage.WORKFLOW,
             AppPage.SOP, AppPage.REPORTS, AppPage.AUDIT, AppPage.PROFILE
         )
-        "Sales" -> setOf(
+        role == "Sales" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS,
             AppPage.CUSTOMERS, AppPage.PROFILE
         )
-        "Finance" -> setOf(
+        role == "Finance" -> setOf(
             AppPage.DASHBOARD, AppPage.PROFILE
         )
-        "Operation" -> setOf(
+        role == "Operation" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.OPERATIONS,
             AppPage.VENDORS, AppPage.TRIP_FOLDER, AppPage.WORKFLOW,
             AppPage.SOP, AppPage.REPORTS, AppPage.AUDIT, AppPage.PROFILE
         )
-        "TL" -> setOf(
+        role == "TL" -> setOf(
             AppPage.DASHBOARD, AppPage.OPERATIONS, AppPage.TRIP_FOLDER,
             AppPage.SOP, AppPage.REPORTS, AppPage.PROFILE
         )
