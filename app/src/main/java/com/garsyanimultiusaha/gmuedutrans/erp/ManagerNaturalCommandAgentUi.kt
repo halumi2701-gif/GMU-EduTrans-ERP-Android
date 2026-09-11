@@ -23,8 +23,8 @@ import java.util.Locale
 
 /**
  * Natural-language command layer for Manager EduTrans.
- * It resolves a trip, builds a safe operational draft, then requires one explicit
- * Manager confirmation before any mutation is written to ERP.
+ * The agent resolves a trip, prepares a safe operational draft, then requires
+ * one explicit Manager confirmation before any mutation is written to ERP.
  */
 @Composable
 fun GmuNativeAppWithManagerNaturalAgent(vm: MainViewModel = viewModel()) {
@@ -279,10 +279,7 @@ private fun ManagerNaturalCommandSheet(vm: MainViewModel, session: SessionState)
                                 scope.launch {
                                     try {
                                         currentDraft.mutations.forEach { mutation ->
-                                            when (mutation) {
-                                                is NaturalMutation.Insert -> api.insertRow(session.accessToken, mutation.table, mutation.values)
-                                                is NaturalMutation.Update -> api.updateRow(session.accessToken, mutation.table, mutation.id, mutation.values)
-                                            }
+                                            api.insertRow(session.accessToken, mutation.table, mutation.values)
                                         }
                                         api.audit(
                                             session.accessToken,
@@ -366,29 +363,20 @@ private data class NaturalCommandDraft(
     val mutations: List<NaturalMutation>
 )
 
-private sealed interface NaturalMutation {
-    val table: String
-
-    data class Insert(
-        override val table: String,
-        val values: Map<String, Any?>
-    ) : NaturalMutation
-
-    data class Update(
-        override val table: String,
-        val id: String,
-        val values: Map<String, Any?>
-    ) : NaturalMutation
-}
+private data class NaturalMutation(
+    val table: String,
+    val values: Map<String, Any?>
+)
 
 private fun interpretNaturalManagerCommand(command: String, bookings: List<Booking>): NaturalInterpretation {
     val normalized = normalizeNatural(command)
+    val padded = " $normalized "
     val action = when {
         listOf("siapkan", "persiapkan", "lengkapi", "semua kebutuhan").any { normalized.contains(it) } -> NaturalAgentAction.PREPARE_TRIP
         normalized.contains("rundown") -> NaturalAgentAction.RUNDOWN
         normalized.contains("operation sheet") || normalized.contains("ops sheet") -> NaturalAgentAction.OPERATION_SHEET
-        listOf("crew", "tour leader", " tl ", "susun tim", "assign tim").any { normalized.contains(it) } -> NaturalAgentAction.CREW
-        normalized.contains("vendor") || normalized.contains(" po ") -> NaturalAgentAction.CHECK_VENDOR
+        listOf("crew", "tour leader", " tl ", "susun tim", "assign tim").any { padded.contains(it) } -> NaturalAgentAction.CREW
+        normalized.contains("vendor") || padded.contains(" po ") -> NaturalAgentAction.CHECK_VENDOR
         normalized.contains("rab") || normalized.contains("biaya") || normalized.contains("cost") -> NaturalAgentAction.CHECK_RAB
         normalized.contains("kesiapan") || normalized.contains("ready") || normalized.contains("siap belum") -> NaturalAgentAction.CHECK_READINESS
         else -> NaturalAgentAction.UNKNOWN
@@ -396,13 +384,12 @@ private fun interpretNaturalManagerCommand(command: String, bookings: List<Booki
 
     if (action == NaturalAgentAction.UNKNOWN) {
         return NaturalInterpretation(
-            action = action,
-            resolved = null,
-            candidates = emptyList(),
-            message = "Perintah belum dikenali. Coba: Siapkan trip..., Buat rundown..., Susun crew..., Cek vendor..., Cek RAB..., atau Cek kesiapan...."
+            action,
+            null,
+            emptyList(),
+            "Perintah belum dikenali. Coba: Siapkan trip..., Buat rundown..., Susun crew..., Cek vendor..., Cek RAB..., atau Cek kesiapan...."
         )
     }
-
     if (bookings.isEmpty()) {
         return NaturalInterpretation(action, null, emptyList(), "Tidak ada booking aktif yang bisa dikerjakan.")
     }
@@ -410,7 +397,6 @@ private fun interpretNaturalManagerCommand(command: String, bookings: List<Booki
     val dateHint = resolveNaturalDateHint(normalized)
     val scored = bookings.map { booking -> booking to scoreNaturalBooking(normalized, dateHint, booking) }
         .sortedWith(compareByDescending<Pair<Booking, Int>> { it.second }.thenBy { it.first.tripDate })
-
     val top = scored.first()
     val second = scored.getOrNull(1)
     val hasUsefulTarget = top.second >= 30
@@ -418,24 +404,22 @@ private fun interpretNaturalManagerCommand(command: String, bookings: List<Booki
 
     if (hasUsefulTarget && uniqueEnough) {
         return NaturalInterpretation(
-            action = action,
-            resolved = top.first,
-            candidates = emptyList(),
-            message = "Trip dikenali otomatis: ${top.first.bookingNo} • ${top.first.customerName}. Saya menyiapkan hasil untuk direview."
+            action,
+            top.first,
+            emptyList(),
+            "Trip dikenali otomatis: ${top.first.bookingNo} • ${top.first.customerName}. Saya menyiapkan hasil untuk direview."
         )
     }
-
     if (bookings.size == 1) {
         return NaturalInterpretation(action, bookings.first(), emptyList(), "Hanya ada satu trip aktif. Agent menggunakan ${bookings.first().bookingNo}.")
     }
 
-    val candidateList = scored.filter { it.second > 0 }.take(5).map { it.first }
-        .ifEmpty { bookings.take(5) }
+    val candidateList = scored.filter { it.second > 0 }.take(5).map { it.first }.ifEmpty { bookings.take(5) }
     return NaturalInterpretation(
-        action = action,
-        resolved = null,
-        candidates = candidateList,
-        message = if (dateHint != null) "Ada beberapa trip yang cocok dengan tanggal $dateHint. Pilih trip yang dimaksud." else "Agent belum yakin trip mana yang dimaksud. Pilih salah satu kandidat."
+        action,
+        null,
+        candidateList,
+        if (dateHint != null) "Ada beberapa trip yang cocok dengan tanggal $dateHint. Pilih trip yang dimaksud." else "Agent belum yakin trip mana yang dimaksud. Pilih salah satu kandidat."
     )
 }
 
@@ -450,34 +434,51 @@ private fun scoreNaturalBooking(command: String, dateHint: String?, booking: Boo
     if (customer.length >= 4 && command.contains(customer)) score += 90
     if (program.length >= 4 && command.contains(program)) score += 70
 
-    val stop = setOf("siapkan", "persiapkan", "lengkapi", "semua", "kebutuhan", "trip", "hari", "buat", "cek", "kesiapan", "rundown", "crew", "tim", "vendor", "rab", "biaya", "besok", "lusa", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu", "terdekat")
-    val tokens = command.split(" ").filter { it.length >= 3 && it !in stop }.toSet()
+    val stop = setOf(
+        "siapkan", "persiapkan", "lengkapi", "semua", "kebutuhan", "trip", "hari", "buat", "cek",
+        "kesiapan", "rundown", "crew", "tim", "vendor", "rab", "biaya", "besok", "lusa",
+        "senin", "selasa", "rabu", "kamis", "jumat", "sabtu", "minggu", "terdekat"
+    )
+    val tokens = command.split(' ').filter { it.length >= 3 && it !in stop }.toSet()
     tokens.forEach { token ->
-        if (customer.split(" ").contains(token)) score += 18
-        if (program.split(" ").contains(token)) score += 12
+        if (customer.split(' ').contains(token)) score += 18
+        if (program.split(' ').contains(token)) score += 12
         if (bookingNo.contains(token)) score += 25
     }
     return score
 }
 
-private fun normalizeNatural(value: String): String = value
-    .lowercase(Locale("id", "ID"))
-    .replace(Regex("[^a-z0-9/\- ]"), " ")
-    .replace(Regex("\\s+"), " ")
-    .trim()
+private fun normalizeNatural(value: String): String {
+    val cleaned = value.lowercase(Locale("id", "ID")).map { c ->
+        if (c.isLetterOrDigit() || c == '/' || c == '-' || c == ' ') c else ' '
+    }.joinToString("")
+    return cleaned.split(' ').filter { it.isNotBlank() }.joinToString(" ")
+}
 
 private fun resolveNaturalDateHint(text: String): String? {
-    Regex("\\b20\\d{2}-\\d{2}-\\d{2}\\b").find(text)?.value?.let { return it }
-    Regex("\\b(\\d{1,2})[/-](\\d{1,2})[/-](20\\d{2})\\b").find(text)?.let { match ->
-        val day = match.groupValues[1].toIntOrNull() ?: return@let
-        val month = match.groupValues[2].toIntOrNull() ?: return@let
-        val year = match.groupValues[3].toIntOrNull() ?: return@let
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.YEAR, year)
-            set(Calendar.MONTH, month - 1)
-            set(Calendar.DAY_OF_MONTH, day)
+    val tokens = text.split(' ').filter { it.isNotBlank() }
+    tokens.firstOrNull { token ->
+        token.length == 10 && token[4] == '-' && token[7] == '-' && token.filter { it.isDigit() }.length == 8
+    }?.let { return it }
+
+    tokens.firstOrNull { token ->
+        (token.contains('/') || token.count { it == '-' } == 2) && token.length in 8..10
+    }?.let { token ->
+        val separator = if (token.contains('/')) '/' else '-'
+        val parts = token.split(separator)
+        if (parts.size == 3) {
+            val day = parts[0].toIntOrNull()
+            val month = parts[1].toIntOrNull()
+            val year = parts[2].toIntOrNull()
+            if (day != null && month != null && year != null && year >= 2000) {
+                val cal = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month - 1)
+                    set(Calendar.DAY_OF_MONTH, day)
+                }
+                return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
+            }
         }
-        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
     }
 
     val cal = Calendar.getInstance()
@@ -516,19 +517,17 @@ private fun buildNaturalCommandDraft(
     documents: List<ErpRow>,
     tripCosts: List<ErpRow>,
     userId: String
-): NaturalCommandDraft {
-    return when (action) {
-        NaturalAgentAction.RUNDOWN -> naturalRundownDraft(booking, rundownRows)
-        NaturalAgentAction.OPERATION_SHEET -> naturalOperationSheetDraft(booking, operationSheets, userId)
-        NaturalAgentAction.CREW -> naturalCrewDraft(booking, profiles, assignments, userId)
-        NaturalAgentAction.CHECK_VENDOR -> naturalVendorCheck(booking, vendorPos)
-        NaturalAgentAction.CHECK_RAB -> naturalRabCheck(booking, tripCosts)
-        NaturalAgentAction.CHECK_READINESS -> naturalReadinessCheck(booking, rundownRows, operationSheets, assignments, vendorPos, manifests, documents, tripCosts)
-        NaturalAgentAction.PREPARE_TRIP -> naturalPrepareTripDraft(
-            booking, rundownRows, operationSheets, profiles, assignments, vendorPos, manifests, documents, tripCosts, userId
-        )
-        NaturalAgentAction.UNKNOWN -> NaturalCommandDraft("Perintah belum dikenali", "Tidak ada aksi.", emptyList(), emptyList())
-    }
+): NaturalCommandDraft = when (action) {
+    NaturalAgentAction.RUNDOWN -> naturalRundownDraft(booking, rundownRows)
+    NaturalAgentAction.OPERATION_SHEET -> naturalOperationSheetDraft(booking, operationSheets, userId)
+    NaturalAgentAction.CREW -> naturalCrewDraft(booking, profiles, assignments, userId)
+    NaturalAgentAction.CHECK_VENDOR -> naturalVendorCheck(booking, vendorPos)
+    NaturalAgentAction.CHECK_RAB -> naturalRabCheck(booking, tripCosts)
+    NaturalAgentAction.CHECK_READINESS -> naturalReadinessCheck(booking, rundownRows, operationSheets, assignments, vendorPos, manifests, documents, tripCosts)
+    NaturalAgentAction.PREPARE_TRIP -> naturalPrepareTripDraft(
+        booking, rundownRows, operationSheets, profiles, assignments, vendorPos, manifests, documents, tripCosts, userId
+    )
+    NaturalAgentAction.UNKNOWN -> NaturalCommandDraft("Perintah belum dikenali", "Tidak ada aksi.", emptyList(), emptyList())
 }
 
 private fun naturalRundownDraft(booking: Booking, rows: List<ErpRow>): NaturalCommandDraft {
@@ -541,6 +540,7 @@ private fun naturalRundownDraft(booking: Booking, rows: List<ErpRow>): NaturalCo
             emptyList()
         )
     }
+
     val meeting = booking.meetingPoint.ifBlank { "Titik kumpul sesuai booking" }
     val plan = listOf(
         Triple("06:30", "Registrasi peserta & briefing keberangkatan", meeting),
@@ -553,7 +553,7 @@ private fun naturalRundownDraft(booking: Booking, rows: List<ErpRow>): NaturalCo
         Triple("13:00", "Perjalanan kembali", "Titik kepulangan")
     )
     val mutations = plan.map { (time, activity, location) ->
-        NaturalMutation.Insert(
+        NaturalMutation(
             "rundown_items",
             mapOf(
                 "booking_id" to booking.id,
@@ -581,9 +581,12 @@ private fun naturalOperationSheetDraft(booking: Booking, rows: List<ErpRow>, use
             emptyList()
         )
     }
+
     val transport = if (booking.programName.contains("kereta", true) || booking.programName.contains("stasiun", true)) {
         "Kereta / transport terkonfirmasi"
-    } else "Transport sesuai booking / vendor"
+    } else {
+        "Transport sesuai booking / vendor"
+    }
     val equipment = listOfNotNull(
         "Manifest & absensi",
         "P3K",
@@ -591,6 +594,7 @@ private fun naturalOperationSheetDraft(booking: Booking, rows: List<ErpRow>, use
         "Dokumen vendor",
         booking.specialRequirements.takeIf { it.isNotBlank() }?.let { "Kebutuhan khusus: $it" }
     ).joinToString(", ")
+
     return NaturalCommandDraft(
         "Draft Operation Sheet • ${booking.bookingNo}",
         "Operation Sheet draft siap direview.",
@@ -601,7 +605,7 @@ private fun naturalOperationSheetDraft(booking: Booking, rows: List<ErpRow>, use
             "Equipment: $equipment"
         ),
         listOf(
-            NaturalMutation.Insert(
+            NaturalMutation(
                 "operation_sheets",
                 mapOf(
                     "booking_id" to booking.id,
@@ -633,6 +637,7 @@ private fun naturalCrewDraft(
             emptyList()
         )
     }
+
     val active = profiles.filter { it.text("is_active") != "false" }
     val tl = active.firstOrNull { it.text("role").equals("TL", true) }
     val operation = active.firstOrNull { it.text("role").equals("Operation", true) }
@@ -645,9 +650,10 @@ private fun naturalCrewDraft(
             emptyList()
         )
     }
+
     val mutations = selected.map { staff ->
         val role = staff.text("role").ifBlank { "Crew" }
-        NaturalMutation.Insert(
+        NaturalMutation(
             "staff_assignments",
             mapOf(
                 "staff_id" to staff.id,
@@ -672,8 +678,10 @@ private fun naturalVendorCheck(booking: Booking, vendorPos: List<ErpRow>): Natur
     val pos = vendorPos.filter { it.text("booking_id") == booking.id }
     val lines = if (pos.isEmpty()) {
         listOf("Belum ada PO/vendor yang terkait booking ini", "Manager perlu memilih dan mengonfirmasi vendor")
-    } else pos.map { row ->
-        "${row.text("po_no").ifBlank { "PO Vendor" }} • ${row.text("status").ifBlank { "status belum diisi" }} • ${row.text("description")}".trim()
+    } else {
+        pos.map { row ->
+            "${row.text("po_no").ifBlank { "PO Vendor" }} • ${row.text("status").ifBlank { "status belum diisi" }} • ${row.text("description")}".trim()
+        }
     }
     return NaturalCommandDraft(
         "Vendor Check • ${booking.bookingNo}",
@@ -777,19 +785,16 @@ private fun naturalReadinessChecks(
     manifests: List<ErpRow>,
     documents: List<ErpRow>,
     tripCosts: List<ErpRow>
-): List<Pair<String, Boolean>> {
-    return listOf(
-        "Rundown" to rundownRows.any { it.text("booking_id") == booking.id },
-        "Operation Sheet" to operationSheets.any { it.text("booking_id") == booking.id },
-        "Crew" to assignments.any { it.text("title").contains(booking.bookingNo, true) && it.text("status") !in listOf("Cancelled", "Done", "Completed") },
-        "Vendor/PO" to vendorPos.any { it.text("booking_id") == booking.id },
-        "Manifest" to manifests.any { it.text("booking_id") == booking.id },
-        "Dokumen" to (documents.count { it.text("booking_id") == booking.id } >= 5),
-        "RAB Operasional" to tripCosts.any { it.text("booking_id") == booking.id && it.number("rab_amount") > 0.0 }
-    )
-}
+): List<Pair<String, Boolean>> = listOf(
+    "Rundown" to rundownRows.any { it.text("booking_id") == booking.id },
+    "Operation Sheet" to operationSheets.any { it.text("booking_id") == booking.id },
+    "Crew" to assignments.any { it.text("title").contains(booking.bookingNo, true) && it.text("status") !in listOf("Cancelled", "Done", "Completed") },
+    "Vendor/PO" to vendorPos.any { it.text("booking_id") == booking.id },
+    "Manifest" to manifests.any { it.text("booking_id") == booking.id },
+    "Dokumen" to (documents.count { it.text("booking_id") == booking.id } >= 5),
+    "RAB Operasional" to tripCosts.any { it.text("booking_id") == booking.id && it.number("rab_amount") > 0.0 }
+)
 
 private fun naturalRupiah(value: Double): String {
-    val rounded = value.toLong()
-    return "Rp" + String.format(Locale("id", "ID"), "%,d", rounded).replace(',', '.')
+    return "Rp" + String.format(Locale("id", "ID"), "%,d", value.toLong()).replace(',', '.')
 }
