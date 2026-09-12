@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     launchTarget = null
                 }
             }
-            GmuNativeAppWithRecipientPolicyGate(vm)
+            GmuNativeAppWithApprovalAuthority(vm)
         }
     }
 
