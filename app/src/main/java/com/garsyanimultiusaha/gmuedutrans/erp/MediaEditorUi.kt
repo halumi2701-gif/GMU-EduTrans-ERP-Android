@@ -213,6 +213,13 @@ fun ProgramPackageMediaDialog(
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    TextButton(
+                                        onClick = {
+                                            cover = url
+                                            gallery = gallery.toMutableList().also { it.removeAt(index) }
+                                        },
+                                        enabled = !busy
+                                    ) { Text("Jadikan Cover") }
                                     if (index > 0) {
                                         TextButton(onClick = {
                                             gallery = gallery.toMutableList().also {
@@ -250,7 +257,7 @@ fun ProgramPackageMediaDialog(
 
                 item {
                     Text(
-                        "Format: JPG, PNG, WebP • Maks. 8 MB/foto. Media ACTIVE otomatis dipakai Web Customer.",
+                        "Format: JPG, PNG, WebP • Maks. 8 MB/foto • Cover disarankan rasio 16:9. Media ACTIVE otomatis dipakai Web Customer.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
