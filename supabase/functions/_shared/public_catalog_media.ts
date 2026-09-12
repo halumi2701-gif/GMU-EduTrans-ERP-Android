@@ -53,6 +53,7 @@ export function publicPackage(row: JsonRecord, estimatedTotal?: number | null) {
     effective_from: row.effective_from ?? null,
     effective_until: row.effective_until ?? null,
     cover_image_url: publicHttpsUrl(row.cover_image_url),
+    program_cover_image_url: publicHttpsUrl(row.program_cover_image_url),
     gallery_urls: stringList(row.gallery_urls, 5)
       .map(publicHttpsUrl)
       .filter((url): url is string => Boolean(url)),
