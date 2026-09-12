@@ -26,10 +26,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Recipient policy UI. This wrapper is intentionally not wired into MainActivity
- * until the server-side recipient policy endpoint is deployed and verified.
- */
+/** Recipient-policy UI. Visibility is controlled by RecipientPolicyActivationGate. */
 @Composable
 fun RecipientPolicyCenterPreview(session: SessionState) {
     val canEdit = session.profile.role == ErpRoles.OWNER
@@ -301,7 +298,7 @@ private class RecipientPolicyAdminApi {
     }
 
     private fun call(accessToken: String, payload: JSONObject): JSONObject {
-        val conn = (URL(BuildConfig.SUPABASE_URL + "/functions/v1/gmu-notification-delivery-admin").openConnection() as HttpURLConnection).apply {
+        val conn = (URL(BuildConfig.SUPABASE_URL + "/functions/v1/gmu-recipient-policy-admin").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 15000
             readTimeout = 25000
