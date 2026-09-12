@@ -20,7 +20,9 @@ fun PackageMasterHubScreen(
     onNotice: (String) -> Unit
 ) {
     var tab by remember { mutableStateOf("Paket") }
-    var mediaPackage by remember { mutableStateOf<PackageMasterItem?>(null) }
+    var mediaTable by remember { mutableStateOf("") }
+    var mediaId by remember { mutableStateOf("") }
+    var mediaName by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -42,32 +44,48 @@ fun PackageMasterHubScreen(
         if (tab == "Paket") {
             PackageMasterScreen(vm, session, onNotice)
         } else {
-            PackageMediaMasterTab(
+            ProgramPackageMediaMasterTab(
+                programs = vm.table("programs").filter { it.text("is_active") != "false" },
                 packages = vm.packageMaster,
                 busy = vm.actionBusy,
-                onEditMedia = { mediaPackage = it }
+                onEditProgram = { program ->
+                    mediaTable = "programs"
+                    mediaId = program.id
+                    mediaName = program.text("name").ifBlank { "Program GMU EduTrans" }
+                },
+                onEditPackage = { pkg ->
+                    mediaTable = "program_packages"
+                    mediaId = pkg.id
+                    mediaName = pkg.name
+                }
             )
         }
     }
 
-    mediaPackage?.let { pkg ->
+    if (mediaTable.isNotBlank() && mediaId.isNotBlank()) {
         ProgramPackageMediaDialogAuto(
             vm = vm,
             session = session,
-            table = "program_packages",
-            entityId = pkg.id,
-            entityName = pkg.name,
-            onDismiss = { mediaPackage = null },
+            table = mediaTable,
+            entityId = mediaId,
+            entityName = mediaName,
+            onDismiss = {
+                mediaTable = ""
+                mediaId = ""
+                mediaName = ""
+            },
             onNotice = onNotice
         )
     }
 }
 
 @Composable
-private fun PackageMediaMasterTab(
+private fun ProgramPackageMediaMasterTab(
+    programs: List<ErpRow>,
     packages: List<PackageMasterItem>,
     busy: Boolean,
-    onEditMedia: (PackageMasterItem) -> Unit
+    onEditProgram: (ErpRow) -> Unit,
+    onEditPackage: (PackageMasterItem) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -82,7 +100,7 @@ private fun PackageMediaMasterTab(
                 Column(Modifier.padding(14.dp)) {
                     Text("Media Sync", fontWeight = FontWeight.Black)
                     Text(
-                        "Upload cover dan galeri dari ERP. Paket ACTIVE otomatis memakai media ini di Web Customer.",
+                        "Upload cover dan galeri Program maupun Paket dari ERP. Media publik tersinkron ke Web Customer.",
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
@@ -90,10 +108,48 @@ private fun PackageMediaMasterTab(
             }
         }
 
-        if (packages.isEmpty()) {
-            item { EmptyCard("Belum ada paket untuk dikelola medianya.") }
+        item {
+            Text("Program", fontWeight = FontWeight.Black, fontSize = 16.sp, color = GmuDark)
+        }
+        if (programs.isEmpty()) {
+            item { EmptyCard("Belum ada Program aktif untuk dikelola medianya.") }
         } else {
-            items(packages, key = { it.id }) { pkg ->
+            items(programs, key = { "program|" + it.id }) { program ->
+                Card(shape = RoundedCornerShape(18.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                program.text("name").ifBlank { "Program GMU EduTrans" },
+                                fontWeight = FontWeight.Black,
+                                color = GmuDark
+                            )
+                            Text(
+                                program.text("category").ifBlank { "Program Edukasi" },
+                                fontSize = 10.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Button(
+                            onClick = { onEditProgram(program) },
+                            enabled = !busy && program.id.isNotBlank()
+                        ) { Text("Media") }
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(4.dp))
+            Text("Paket", fontWeight = FontWeight.Black, fontSize = 16.sp, color = GmuDark)
+        }
+        if (packages.isEmpty()) {
+            item { EmptyCard("Belum ada Paket untuk dikelola medianya.") }
+        } else {
+            items(packages, key = { "package|" + it.id }) { pkg ->
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Row(
                         Modifier.fillMaxWidth().padding(14.dp),
@@ -111,7 +167,7 @@ private fun PackageMediaMasterTab(
                             StatusChip(pkg.status)
                         }
                         Button(
-                            onClick = { onEditMedia(pkg) },
+                            onClick = { onEditPackage(pkg) },
                             enabled = !busy && pkg.id.isNotBlank()
                         ) { Text("Media") }
                     }
