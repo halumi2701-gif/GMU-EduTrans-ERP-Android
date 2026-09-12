@@ -4,6 +4,7 @@ const allowedRoles = new Set([
   "Owner", "Director", "Direktur", "Manager", "Manager EduTrans", "Admin",
 ]);
 const allowedTables = new Set(["programs", "program_packages"]);
+const MEDIA_BUCKET = "edutrans-media";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,11 @@ function cover(value: unknown) {
   return raw.startsWith("https://") ? raw : null;
 }
 
+function mediaUrls(row: JsonRecord): string[] {
+  return [cover(row.cover_image_url), ...strings(row.gallery_urls)]
+    .filter((x): x is string => Boolean(x));
+}
+
 function serverKey(): string {
   const named = Deno.env.get("SUPABASE_SECRET_KEYS");
   if (named) {
@@ -47,8 +53,6 @@ function serverKey(): string {
 
 function adminHeaders(key: string): Record<string, string> {
   const h: Record<string, string> = { apikey: key };
-  // New sb_secret_* keys belong in apikey, not Authorization.
-  // Legacy service_role is a JWT and remains compatible as Bearer during migration.
   if (!key.startsWith("sb_secret_")) h.Authorization = `Bearer ${key}`;
   return h;
 }
@@ -69,6 +73,46 @@ async function serviceRest(path: string, init: RequestInit = {}) {
   const text = await response.text();
   if (!response.ok) throw new Error(`Media database gagal (${response.status}). ${text.slice(0, 180)}`);
   return text;
+}
+
+function entityFolder(table: string, entityId: string) {
+  const type = table === "programs" ? "program" : "package";
+  return `${type}/${entityId}/`;
+}
+
+function ownedStoragePath(urlValue: unknown, table: string, entityId: string): string | null {
+  const base = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "") ?? "";
+  const url = String(urlValue ?? "").trim();
+  const publicPrefix = `${base}/storage/v1/object/public/${MEDIA_BUCKET}/`;
+  const requiredFolder = entityFolder(table, entityId);
+  if (!base || !url.startsWith(publicPrefix)) return null;
+  const rawPath = url.slice(publicPrefix.length);
+  let path = rawPath;
+  try { path = decodeURIComponent(rawPath); } catch (_) {}
+  if (!path.startsWith(requiredFolder) || path.includes("..")) return null;
+  return path;
+}
+
+async function removeStoragePaths(paths: string[]): Promise<number> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (!unique.length) return 0;
+  const base = Deno.env.get("SUPABASE_URL");
+  const key = serverKey();
+  if (!base || !key) return 0;
+  const response = await fetch(`${base}/storage/v1/object/${MEDIA_BUCKET}`, {
+    method: "DELETE",
+    headers: {
+      ...adminHeaders(key),
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prefixes: unique }),
+  });
+  if (!response.ok) {
+    console.warn("Media cleanup gagal", response.status, (await response.text()).slice(0, 180));
+    return 0;
+  }
+  return unique.length;
 }
 
 async function currentUser(req: Request) {
@@ -158,12 +202,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "discard") {
+      const candidates = Array.isArray(body.urls) ? body.urls : [];
+      const paths = candidates
+        .map((url) => ownedStoragePath(url, table, entityId))
+        .filter((path): path is string => Boolean(path));
+      const removed = await removeStoragePaths(paths);
+      return json({ ok: true, removed, actor_role: actor.role });
+    }
+
     if (action === "save") {
+      const previousRows = JSON.parse(await serviceRest(
+        `${table}?select=cover_image_url,gallery_urls&id=eq.${encodeURIComponent(entityId)}&limit=1`,
+      )) as JsonRecord[];
+      const previous = previousRows[0] ?? {};
       const media = (body.media ?? {}) as JsonRecord;
       const payload = {
         cover_image_url: cover(media.cover_image_url),
         gallery_urls: strings(media.gallery_urls),
       };
+
       await serviceRest(
         `${table}?id=eq.${encodeURIComponent(entityId)}`,
         {
@@ -172,7 +230,15 @@ Deno.serve(async (req) => {
           body: JSON.stringify(payload),
         },
       );
-      return json({ ok: true, media: payload, actor_role: actor.role });
+
+      const retained = new Set(mediaUrls(payload));
+      const removedOldPaths = mediaUrls(previous)
+        .filter((url) => !retained.has(url))
+        .map((url) => ownedStoragePath(url, table, entityId))
+        .filter((path): path is string => Boolean(path));
+      const cleaned = await removeStoragePaths(removedOldPaths);
+
+      return json({ ok: true, media: payload, cleaned, actor_role: actor.role });
     }
 
     return json({ error: "Action tidak dikenal." }, 400);
