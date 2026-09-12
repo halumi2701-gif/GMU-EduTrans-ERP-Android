@@ -5,12 +5,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 @Composable
@@ -89,14 +95,32 @@ fun ProgramPackageMediaDialog(
         title = { Text("Media • $entityName") },
         text = {
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 620.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
                     Text("Cover", fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(6.dp))
-                    if (cover.isBlank()) Text("Belum ada cover.", style = MaterialTheme.typography.bodySmall)
-                    else Text(cover, style = MaterialTheme.typography.bodySmall)
+                    if (cover.isBlank()) {
+                        Text("Belum ada cover.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        AsyncImage(
+                            model = cover,
+                            contentDescription = "Preview cover $entityName",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(170.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            cover,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
@@ -119,30 +143,49 @@ fun ProgramPackageMediaDialog(
 
                 itemsIndexed(gallery) { index, url ->
                     Card {
-                        Column(Modifier.padding(10.dp)) {
-                            Text("Foto ${index + 1}", fontWeight = FontWeight.Bold)
-                            Text(url, style = MaterialTheme.typography.bodySmall)
-                            Spacer(Modifier.height(6.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                if (index > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "Foto galeri ${index + 1} $entityName",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(86.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Foto ${index + 1}", fontWeight = FontWeight.Bold)
+                                Text(
+                                    url,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    if (index > 0) {
+                                        TextButton(onClick = {
+                                            gallery = gallery.toMutableList().also {
+                                                val item = it.removeAt(index)
+                                                it.add(index - 1, item)
+                                            }
+                                        }, enabled = !busy) { Text("↑") }
+                                    }
+                                    if (index < gallery.lastIndex) {
+                                        TextButton(onClick = {
+                                            gallery = gallery.toMutableList().also {
+                                                val item = it.removeAt(index)
+                                                it.add(index + 1, item)
+                                            }
+                                        }, enabled = !busy) { Text("↓") }
+                                    }
                                     TextButton(onClick = {
-                                        gallery = gallery.toMutableList().also {
-                                            val item = it.removeAt(index)
-                                            it.add(index - 1, item)
-                                        }
-                                    }) { Text("↑") }
+                                        gallery = gallery.toMutableList().also { it.removeAt(index) }
+                                    }, enabled = !busy) { Text("Hapus") }
                                 }
-                                if (index < gallery.lastIndex) {
-                                    TextButton(onClick = {
-                                        gallery = gallery.toMutableList().also {
-                                            val item = it.removeAt(index)
-                                            it.add(index + 1, item)
-                                        }
-                                    }) { Text("↓") }
-                                }
-                                TextButton(onClick = {
-                                    gallery = gallery.toMutableList().also { it.removeAt(index) }
-                                }) { Text("Hapus") }
                             }
                         }
                     }
