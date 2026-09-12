@@ -28,6 +28,7 @@ fun ProgramPackageMediaDialog(
     entityName: String,
     initial: MasterMediaState = MasterMediaState(),
     onDismiss: () -> Unit,
+    onSaved: () -> Unit = {},
     onNotice: (String) -> Unit
 ) {
     val allowedRole = session.profile.role in listOf(
@@ -74,6 +75,7 @@ fun ProgramPackageMediaDialog(
                 cover = media.coverImageUrl
                 gallery = media.galleryUrls
                 onNotice("Media berhasil disimpan.")
+                onSaved()
                 onDismiss()
             } catch (e: Exception) {
                 onNotice(e.message ?: "Media gagal disimpan.")
