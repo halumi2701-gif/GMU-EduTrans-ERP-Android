@@ -10,21 +10,28 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[char]));
 
+  function durationLabel(facilities) {
+    const item = (facilities || []).find((x) => /jam|durasi/i.test(String(x)));
+    return item ? String(item).replace(/^kegiatan\s+selama\s+/i, '') : null;
+  }
+
   function packageCard(pkg) {
     const facilities = Array.isArray(pkg.facilities) ? pkg.facilities : [];
+    const duration = durationLabel(facilities);
     const checklist = facilities.length
       ? `<div class="pkg-includes"><strong>Isi Paket</strong><ul>${facilities.map((item) => `<li>✓ ${esc(item)}</li>`).join('')}</ul></div>`
       : '';
     const total = pkg.estimated_total != null
       ? `<div class="pkg-total">Estimasi total: <strong>${rupiah(pkg.estimated_total)}</strong></div>`
       : '';
+    const durationChip = duration ? `<span>${esc(duration)}</span>` : '';
 
     return `<article class="card pkg pkg-v23">
       <span class="badge">${esc(pkg.program_name || 'EduTrip')}</span>
       <h3>${esc(pkg.name || 'Paket GMU EduTrans')}</h3>
       <p class="muted">${esc(pkg.description || '')}</p>
       <div class="price">${rupiah(pkg.price_per_pax)} <small>/ pax</small></div>
-      <div class="pkg-meta"><span>Minimum ${Number(pkg.min_pax || 1)} peserta</span><span>±2 jam</span></div>
+      <div class="pkg-meta"><span>Minimum ${Number(pkg.min_pax || 1)} peserta</span>${durationChip}</div>
       ${checklist}
       ${total}
       <button class="btn btn-g" style="width:100%" data-package-id="${esc(pkg.id)}">Pilih Paket</button>
