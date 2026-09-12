@@ -84,6 +84,23 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({})) as JsonRecord;
     const action = String(body.action ?? "load");
+
+    if (action === "catalog") {
+      const [programText, packageText] = await Promise.all([
+        serviceRest(
+          "programs?select=id,name,category,is_active&is_active=eq.true&order=sort_order.asc",
+        ),
+        serviceRest(
+          "program_packages?select=id,package_code,program_id,name,status,is_active&order=sort_order.asc",
+        ),
+      ]);
+      return json({
+        ok: true,
+        programs: JSON.parse(programText),
+        packages: JSON.parse(packageText),
+      });
+    }
+
     const table = String(body.table ?? "");
     const entityId = String(body.entity_id ?? "").trim();
     if (!allowedTables.has(table) || !entityId) return json({ error: "Target media tidak valid." }, 400);
