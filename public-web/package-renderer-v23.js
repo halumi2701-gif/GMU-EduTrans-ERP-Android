@@ -33,7 +33,7 @@
     const thumbs = [main, ...gallery.filter((x) => x !== main)].slice(0, 4);
     return `<div class="pkg-media">
       <img class="pkg-cover" src="${esc(main)}" alt="${esc(pkg.name || 'Paket GMU EduTrans')}" loading="lazy" decoding="async">
-      ${thumbs.length > 1 ? `<div class="pkg-gallery">${thumbs.map((src) => `<img src="${esc(src)}" alt="" loading="lazy" decoding="async">`).join('')}</div>` : ''}
+      ${thumbs.length > 1 ? `<div class="pkg-gallery">${thumbs.map((src, index) => `<button type="button" class="pkg-thumb${index === 0 ? ' is-active' : ''}" data-media-src="${esc(src)}" aria-label="Tampilkan foto ${index + 1}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>` : ''}
     </div>`;
   }
 
@@ -61,6 +61,22 @@
     </article>`;
   }
 
+  function wireMediaGallery(container) {
+    container.querySelectorAll('.pkg-v23').forEach((card) => {
+      const cover = card.querySelector('.pkg-cover');
+      if (!cover) return;
+      card.querySelectorAll('.pkg-thumb[data-media-src]').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          const src = safeMediaUrl(thumb.dataset.mediaSrc);
+          if (!src) return;
+          cover.src = src;
+          card.querySelectorAll('.pkg-thumb').forEach((x) => x.classList.remove('is-active'));
+          thumb.classList.add('is-active');
+        });
+      });
+    });
+  }
+
   function renderPackageCatalog(container, packages, onChoose) {
     if (!container) return;
     if (!Array.isArray(packages) || packages.length === 0) {
@@ -68,6 +84,7 @@
       return;
     }
     container.innerHTML = packages.map(packageCard).join('');
+    wireMediaGallery(container);
     container.querySelectorAll('[data-package-id]').forEach((button) => {
       button.addEventListener('click', () => onChoose?.(button.dataset.packageId));
     });
