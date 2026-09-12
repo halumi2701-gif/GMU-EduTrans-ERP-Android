@@ -130,6 +130,7 @@ object ManagerEduTransPolicy {
     val operationalPages: Set<AppPage> = setOf(
         AppPage.DASHBOARD,
         AppPage.BOOKINGS,
+        AppPage.PACKAGE_MASTER,
         AppPage.CUSTOMERS,
         AppPage.OPERATIONS,
         AppPage.VENDORS,
