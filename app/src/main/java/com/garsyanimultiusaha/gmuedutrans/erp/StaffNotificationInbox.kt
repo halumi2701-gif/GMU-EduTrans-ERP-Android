@@ -188,7 +188,7 @@ private class StaffNotificationApi {
     }
 
     private fun call(accessToken: String, payload: JSONObject): JSONObject {
-        val conn = (URL(BuildConfig.SUPABASE_URL + "/functions/v1/gmu-notification-delivery-admin").openConnection() as HttpURLConnection).apply {
+        val conn = (URL(BuildConfig.SUPABASE_URL + "/functions/v1/gmu-recipient-policy-admin").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 15000
             readTimeout = 25000
