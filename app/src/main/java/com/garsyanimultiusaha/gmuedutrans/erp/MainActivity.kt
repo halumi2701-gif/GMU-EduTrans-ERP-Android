@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     launchTarget = null
                 }
             }
-            GmuNativeAppWithApprovalAuthority(vm)
+            GmuNativeAppWithOwnerExecutiveExceptions(vm)
         }
     }
 
