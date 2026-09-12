@@ -52,6 +52,28 @@ object MediaRepository {
         Unit
     }
 
+    suspend fun discard(
+        accessToken: String,
+        table: String,
+        entityId: String,
+        urls: Collection<String>
+    ) = withContext(Dispatchers.IO) {
+        require(table in setOf("programs", "program_packages"))
+        val clean = urls.map { it.trim() }
+            .filter { it.startsWith("https://") }
+            .distinct()
+        if (clean.isEmpty()) return@withContext
+        request(
+            accessToken,
+            JSONObject()
+                .put("action", "discard")
+                .put("table", table)
+                .put("entity_id", entityId)
+                .put("urls", JSONArray(clean))
+        )
+        Unit
+    }
+
     private fun request(accessToken: String, payload: JSONObject): JSONObject {
         val endpoint = BuildConfig.SUPABASE_URL + "/functions/v1/internal-media-master"
         val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
