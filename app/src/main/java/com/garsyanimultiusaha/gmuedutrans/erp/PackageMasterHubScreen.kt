@@ -19,21 +19,40 @@ fun PackageMasterHubScreen(
     session: SessionState,
     onNotice: (String) -> Unit
 ) {
-    var tab by remember { mutableStateOf("Paket") }
+    val canManagePackages = session.profile.role in setOf("Owner", "Director", "Direktur", "Admin")
+    var tab by remember(session.profile.role) { mutableStateOf(if (canManagePackages) "Paket" else "Media") }
     var mediaTable by remember { mutableStateOf("") }
     var mediaId by remember { mutableStateOf("") }
     var mediaName by remember { mutableStateOf("") }
+    var catalog by remember { mutableStateOf(MediaMasterCatalog()) }
+    var catalogLoading by remember { mutableStateOf(false) }
+    var catalogError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(tab, session.accessToken) {
+        if (tab != "Media") return@LaunchedEffect
+        catalogLoading = true
+        catalogError = null
+        try {
+            catalog = MediaMasterCatalogRepository.load(session.accessToken)
+        } catch (e: Exception) {
+            catalogError = e.message ?: "Media Master gagal dimuat."
+        } finally {
+            catalogLoading = false
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
-                selected = tab == "Paket",
-                onClick = { tab = "Paket" },
-                label = { Text("Paket") }
-            )
+            if (canManagePackages) {
+                FilterChip(
+                    selected = tab == "Paket",
+                    onClick = { tab = "Paket" },
+                    label = { Text("Paket") }
+                )
+            }
             FilterChip(
                 selected = tab == "Media",
                 onClick = { tab = "Media" },
@@ -41,17 +60,18 @@ fun PackageMasterHubScreen(
             )
         }
 
-        if (tab == "Paket") {
+        if (tab == "Paket" && canManagePackages) {
             PackageMasterScreen(vm, session, onNotice)
         } else {
             ProgramPackageMediaMasterTab(
-                programs = vm.table("programs").filter { it.text("is_active") != "false" },
-                packages = vm.packageMaster,
+                catalog = catalog,
+                loading = catalogLoading,
+                error = catalogError,
                 busy = vm.actionBusy,
                 onEditProgram = { program ->
                     mediaTable = "programs"
                     mediaId = program.id
-                    mediaName = program.text("name").ifBlank { "Program GMU EduTrans" }
+                    mediaName = program.name
                 },
                 onEditPackage = { pkg ->
                     mediaTable = "program_packages"
@@ -81,12 +101,15 @@ fun PackageMasterHubScreen(
 
 @Composable
 private fun ProgramPackageMediaMasterTab(
-    programs: List<ErpRow>,
-    packages: List<PackageMasterItem>,
+    catalog: MediaMasterCatalog,
+    loading: Boolean,
+    error: String?,
     busy: Boolean,
-    onEditProgram: (ErpRow) -> Unit,
-    onEditPackage: (PackageMasterItem) -> Unit
+    onEditProgram: (MediaProgramItem) -> Unit,
+    onEditPackage: (MediaPackageItem) -> Unit
 ) {
+    val programNames = remember(catalog.programs) { catalog.programs.associate { it.id to it.name } }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         contentPadding = PaddingValues(bottom = 110.dp),
@@ -100,7 +123,7 @@ private fun ProgramPackageMediaMasterTab(
                 Column(Modifier.padding(14.dp)) {
                     Text("Media Sync", fontWeight = FontWeight.Black)
                     Text(
-                        "Upload cover dan galeri Program maupun Paket dari ERP. Media publik tersinkron ke Web Customer.",
+                        "Upload cover dan galeri Program maupun Paket dari ERP. Loader Media hanya membaca data konten publik, tanpa HPP, margin, atau fee internal.",
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
@@ -108,13 +131,31 @@ private fun ProgramPackageMediaMasterTab(
             }
         }
 
+        if (loading) {
+            item {
+                Card(shape = RoundedCornerShape(18.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                        Text("Memuat Media Master…", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        if (!error.isNullOrBlank()) {
+            item { EmptyCard(error) }
+        }
+
         item {
             Text("Program", fontWeight = FontWeight.Black, fontSize = 16.sp, color = GmuDark)
         }
-        if (programs.isEmpty()) {
+        if (!loading && catalog.programs.isEmpty()) {
             item { EmptyCard("Belum ada Program aktif untuk dikelola medianya.") }
         } else {
-            items(programs, key = { "program|" + it.id }) { program ->
+            items(catalog.programs, key = { "program|" + it.id }) { program ->
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Row(
                         Modifier.fillMaxWidth().padding(14.dp),
@@ -122,16 +163,8 @@ private fun ProgramPackageMediaMasterTab(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                program.text("name").ifBlank { "Program GMU EduTrans" },
-                                fontWeight = FontWeight.Black,
-                                color = GmuDark
-                            )
-                            Text(
-                                program.text("category").ifBlank { "Program Edukasi" },
-                                fontSize = 10.sp,
-                                color = Color.Gray
-                            )
+                            Text(program.name, fontWeight = FontWeight.Black, color = GmuDark)
+                            Text(program.category, fontSize = 10.sp, color = Color.Gray)
                         }
                         Button(
                             onClick = { onEditProgram(program) },
@@ -146,10 +179,10 @@ private fun ProgramPackageMediaMasterTab(
             Spacer(Modifier.height(4.dp))
             Text("Paket", fontWeight = FontWeight.Black, fontSize = 16.sp, color = GmuDark)
         }
-        if (packages.isEmpty()) {
+        if (!loading && catalog.packages.isEmpty()) {
             item { EmptyCard("Belum ada Paket untuk dikelola medianya.") }
         } else {
-            items(packages, key = { "package|" + it.id }) { pkg ->
+            items(catalog.packages, key = { "package|" + it.id }) { pkg ->
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Row(
                         Modifier.fillMaxWidth().padding(14.dp),
@@ -159,7 +192,9 @@ private fun ProgramPackageMediaMasterTab(
                         Column(Modifier.weight(1f)) {
                             Text(pkg.name, fontWeight = FontWeight.Black, color = GmuDark)
                             Text(
-                                pkg.packageCode + " • " + pkg.programName,
+                                listOf(pkg.packageCode, programNames[pkg.programId].orEmpty())
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" • "),
                                 fontSize = 10.sp,
                                 color = Color.Gray
                             )
