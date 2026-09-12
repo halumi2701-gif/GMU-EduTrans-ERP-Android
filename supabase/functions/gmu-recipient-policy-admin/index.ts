@@ -40,6 +40,7 @@ const matrix: Record<string, { scope: string; roles: string[] }> = {
 };
 
 const severities = new Set(["INFO", "WARNING", "CRITICAL"]);
+const staffInboxRoles = new Set(["Manager EduTrans", "Operation", "Finance", "TL"]);
 
 function normalizedRole(role: string): string {
   if (role === "Direktur") return "Director";
@@ -54,6 +55,10 @@ function isOwner(role: string): boolean {
 function isDirectorOrOwner(role: string): boolean {
   const normalized = normalizedRole(role);
   return normalized === "Owner" || normalized === "Director";
+}
+
+function canUseStaffInbox(role: string): boolean {
+  return staffInboxRoles.has(normalizedRole(role));
 }
 
 Deno.serve(async (req: Request) => {
@@ -85,6 +90,16 @@ Deno.serve(async (req: Request) => {
 
   const body = await req.json().catch(() => ({}));
   const action = String(body?.action ?? "");
+
+  if (action === "health") {
+    return json({
+      ok: true,
+      service: "gmu-recipient-policy-admin",
+      role: normalizedRole(role),
+      policy_admin: isDirectorOrOwner(role),
+      staff_inbox: canUseStaffInbox(role),
+    });
+  }
 
   if (action === "recipient_policies") {
     if (!isDirectorOrOwner(role)) return json({ error: "forbidden" }, 403);
@@ -135,6 +150,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "staff_inbox") {
+    if (!canUseStaffInbox(role)) return json({ error: "forbidden" }, 403);
     const { data, error } = await admin.rpc("gmu_staff_notification_inbox", {
       p_user_id: user.id,
       p_role: role,
@@ -145,8 +161,9 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "mark_staff_notification_read") {
-    const id = Number(body?.id ?? 0);
-    if (!Number.isInteger(id) || id <= 0) return json({ error: "invalid_notification_id" }, 400);
+    if (!canUseStaffInbox(role)) return json({ error: "forbidden" }, 403);
+    const id = String(body?.id ?? "").trim();
+    if (!id || id.length > 128) return json({ error: "invalid_notification_id" }, 400);
     const { data, error } = await admin.rpc("gmu_staff_notification_mark_read", {
       p_id: id,
       p_user_id: user.id,
@@ -158,6 +175,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "mark_all_staff_notifications_read") {
+    if (!canUseStaffInbox(role)) return json({ error: "forbidden" }, 403);
     const { data, error } = await admin.rpc("gmu_staff_notification_mark_all_read", {
       p_user_id: user.id,
       p_role: role,
