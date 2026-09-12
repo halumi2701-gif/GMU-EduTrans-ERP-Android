@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
           ...row,
           program_name: program?.name ?? null,
           program_category: program?.category ?? null,
+          program_cover_image_url: program?.cover_image_url ?? null,
         };
         return publicPackage(enriched, num(row.price_per_pax) * pax);
       });
