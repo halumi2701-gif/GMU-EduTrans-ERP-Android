@@ -40,6 +40,7 @@ fun ProgramPackageMediaDialog(
     val scope = rememberCoroutineScope()
     var cover by remember(entityId) { mutableStateOf(initial.coverImageUrl) }
     var gallery by remember(entityId) { mutableStateOf(initial.galleryUrls.take(GmuMediaSync.MAX_GALLERY_IMAGES)) }
+    var uploadedThisSession by remember(entityId) { mutableStateOf<List<String>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
 
     fun uploadPicked(uri: android.net.Uri, coverMode: Boolean) {
@@ -49,6 +50,7 @@ fun ProgramPackageMediaDialog(
             try {
                 val type = if (table == "programs") "program" else "package"
                 val url = GmuMediaSync.upload(context, session.accessToken, uri, type, entityId)
+                uploadedThisSession = (uploadedThisSession + url).distinct()
                 if (coverMode) cover = url
                 else if (gallery.size < GmuMediaSync.MAX_GALLERY_IMAGES) gallery = gallery + url
                 onNotice("Gambar berhasil diupload.")
@@ -56,6 +58,32 @@ fun ProgramPackageMediaDialog(
                 onNotice(e.message ?: "Upload gambar gagal.")
             } finally {
                 busy = false
+            }
+        }
+    }
+
+    fun cancelMedia() {
+        if (busy) return
+        val discard = uploadedThisSession
+        if (discard.isEmpty()) {
+            onDismiss()
+            return
+        }
+        busy = true
+        scope.launch {
+            try {
+                MediaRepository.discard(
+                    accessToken = session.accessToken,
+                    table = table,
+                    entityId = entityId,
+                    urls = discard
+                )
+            } catch (e: Exception) {
+                onNotice("Media belum disimpan. Cleanup file sementara akan dicoba lagi saat pengelolaan berikutnya.")
+            } finally {
+                uploadedThisSession = emptyList()
+                busy = false
+                onDismiss()
             }
         }
     }
@@ -72,6 +100,23 @@ fun ProgramPackageMediaDialog(
                     entityId = entityId,
                     media = media
                 )
+
+                val retained = (listOf(media.coverImageUrl) + media.galleryUrls)
+                    .filter { it.isNotBlank() }
+                    .toSet()
+                val unusedUploads = uploadedThisSession.filterNot { it in retained }
+                if (unusedUploads.isNotEmpty()) {
+                    runCatching {
+                        MediaRepository.discard(
+                            accessToken = session.accessToken,
+                            table = table,
+                            entityId = entityId,
+                            urls = unusedUploads
+                        )
+                    }
+                }
+
+                uploadedThisSession = emptyList()
                 cover = media.coverImageUrl
                 gallery = media.galleryUrls
                 onNotice("Media berhasil disimpan.")
@@ -93,7 +138,7 @@ fun ProgramPackageMediaDialog(
     }
 
     AlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        onDismissRequest = { if (!busy) cancelMedia() },
         title = { Text("Media • $entityName") },
         text = {
             LazyColumn(
@@ -218,7 +263,7 @@ fun ProgramPackageMediaDialog(
             ) { Text(if (busy) "Menyimpan…" else "Simpan Media") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") }
+            TextButton(onClick = ::cancelMedia, enabled = !busy) { Text("Batal") }
         }
     )
 }
