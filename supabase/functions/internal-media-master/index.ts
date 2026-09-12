@@ -109,16 +109,34 @@ Deno.serve(async (req) => {
     if (action === "catalog") {
       const [programText, packageText] = await Promise.all([
         serviceRest(
-          "programs?select=id,name,category,is_active&is_active=eq.true&order=sort_order.asc",
+          "programs?select=id,name,category,is_active,cover_image_url,gallery_urls&is_active=eq.true&order=sort_order.asc",
         ),
         serviceRest(
-          "program_packages?select=id,package_code,program_id,name,status,is_active&order=sort_order.asc",
+          "program_packages?select=id,package_code,program_id,name,status,is_active,cover_image_url,gallery_urls&order=sort_order.asc",
         ),
       ]);
+      const programRows = JSON.parse(programText) as JsonRecord[];
+      const packageRows = JSON.parse(packageText) as JsonRecord[];
       return json({
         ok: true,
-        programs: JSON.parse(programText),
-        packages: JSON.parse(packageText),
+        programs: programRows.map((row) => ({
+          id: row.id ?? null,
+          name: row.name ?? null,
+          category: row.category ?? null,
+          is_active: row.is_active === true,
+          cover_image_url: cover(row.cover_image_url),
+          gallery_urls: strings(row.gallery_urls),
+        })),
+        packages: packageRows.map((row) => ({
+          id: row.id ?? null,
+          package_code: row.package_code ?? null,
+          program_id: row.program_id ?? null,
+          name: row.name ?? null,
+          status: row.status ?? null,
+          is_active: row.is_active === true,
+          cover_image_url: cover(row.cover_image_url),
+          gallery_urls: strings(row.gallery_urls),
+        })),
       });
     }
 
