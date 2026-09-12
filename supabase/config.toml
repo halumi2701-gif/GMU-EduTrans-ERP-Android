@@ -1,7 +1,9 @@
 # GMU EduTrans Edge Function authentication policy.
-# Authenticated internal ERP function: keep platform JWT verification enabled.
+# Internal Media Master validates the signed-in user and role inside the handler
+# through Supabase Auth + profiles. Platform verify_jwt is disabled so the
+# function remains compatible with asymmetric JWT signing-key rotation.
 [functions.internal-media-master]
-verify_jwt = true
+verify_jwt = false
 
 # Customer catalog is intentionally public; handler only returns allow-listed public fields.
 [functions.public-package-catalog]
