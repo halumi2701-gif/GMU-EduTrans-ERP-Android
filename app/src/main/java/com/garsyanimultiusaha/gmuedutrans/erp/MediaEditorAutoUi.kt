@@ -18,6 +18,7 @@ fun ProgramPackageMediaDialogAuto(
     entityId: String,
     entityName: String,
     onDismiss: () -> Unit,
+    onSaved: () -> Unit = {},
     onNotice: (String) -> Unit
 ) {
     var loading by remember(entityId) { mutableStateOf(true) }
@@ -55,6 +56,7 @@ fun ProgramPackageMediaDialogAuto(
             entityName = entityName,
             initial = initial,
             onDismiss = onDismiss,
+            onSaved = onSaved,
             onNotice = onNotice
         )
     }
