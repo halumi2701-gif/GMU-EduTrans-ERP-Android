@@ -1,5 +1,6 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,10 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 @Composable
 fun PackageMasterHubScreen(
@@ -27,8 +31,9 @@ fun PackageMasterHubScreen(
     var catalog by remember { mutableStateOf(MediaMasterCatalog()) }
     var catalogLoading by remember { mutableStateOf(false) }
     var catalogError by remember { mutableStateOf<String?>(null) }
+    var mediaRefreshKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(tab, session.accessToken) {
+    LaunchedEffect(tab, session.accessToken, mediaRefreshKey) {
         if (tab != "Media") return@LaunchedEffect
         catalogLoading = true
         catalogError = null
@@ -94,9 +99,47 @@ fun PackageMasterHubScreen(
                 mediaId = ""
                 mediaName = ""
             },
+            onSaved = {
+                mediaRefreshKey++
+            },
             onNotice = onNotice
         )
     }
+}
+
+@Composable
+private fun MediaThumb(url: String, label: String) {
+    val shape = RoundedCornerShape(14.dp)
+    if (url.isNotBlank()) {
+        AsyncImage(
+            model = url,
+            contentDescription = label,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(72.dp).clip(shape)
+        )
+    } else {
+        Box(
+            modifier = Modifier.size(72.dp).clip(shape).background(Color(0xFFE9ECEF)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Belum\nada foto", fontSize = 9.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+private fun MediaStatusLine(hasOwnCover: Boolean, galleryCount: Int, fallbackProgramCover: Boolean = false) {
+    val coverText = when {
+        hasOwnCover -> "Cover ✓"
+        fallbackProgramCover -> "Cover Program ↗"
+        else -> "Cover belum ada"
+    }
+    Text(
+        "$coverText • Galeri ${galleryCount.coerceIn(0, 5)}/5",
+        fontSize = 10.sp,
+        color = if (hasOwnCover || fallbackProgramCover) GmuGreen else Color.Gray,
+        fontWeight = FontWeight.SemiBold
+    )
 }
 
 @Composable
@@ -108,7 +151,7 @@ private fun ProgramPackageMediaMasterTab(
     onEditProgram: (MediaProgramItem) -> Unit,
     onEditPackage: (MediaPackageItem) -> Unit
 ) {
-    val programNames = remember(catalog.programs) { catalog.programs.associate { it.id to it.name } }
+    val programsById = remember(catalog.programs) { catalog.programs.associateBy { it.id } }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -123,7 +166,7 @@ private fun ProgramPackageMediaMasterTab(
                 Column(Modifier.padding(14.dp)) {
                     Text("Media Sync", fontWeight = FontWeight.Black)
                     Text(
-                        "Upload cover dan galeri Program maupun Paket dari ERP. Loader Media hanya membaca data konten publik, tanpa HPP, margin, atau fee internal.",
+                        "Kelola cover dan galeri Program/Paket dari ERP. Status media terlihat langsung; loader ini tidak membaca HPP, margin, atau fee internal.",
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
@@ -158,13 +201,16 @@ private fun ProgramPackageMediaMasterTab(
             items(catalog.programs, key = { "program|" + it.id }) { program ->
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Row(
-                        Modifier.fillMaxWidth().padding(14.dp),
+                        Modifier.fillMaxWidth().padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        MediaThumb(program.coverImageUrl, "Cover ${program.name}")
                         Column(Modifier.weight(1f)) {
                             Text(program.name, fontWeight = FontWeight.Black, color = GmuDark)
                             Text(program.category, fontSize = 10.sp, color = Color.Gray)
+                            Spacer(Modifier.height(4.dp))
+                            MediaStatusLine(program.coverImageUrl.isNotBlank(), program.galleryCount)
                         }
                         Button(
                             onClick = { onEditProgram(program) },
@@ -183,20 +229,30 @@ private fun ProgramPackageMediaMasterTab(
             item { EmptyCard("Belum ada Paket untuk dikelola medianya.") }
         } else {
             items(catalog.packages, key = { "package|" + it.id }) { pkg ->
+                val program = programsById[pkg.programId]
+                val effectiveCover = pkg.coverImageUrl.ifBlank { program?.coverImageUrl.orEmpty() }
+                val usingProgramCover = pkg.coverImageUrl.isBlank() && !program?.coverImageUrl.isNullOrBlank()
                 Card(shape = RoundedCornerShape(18.dp)) {
                     Row(
-                        Modifier.fillMaxWidth().padding(14.dp),
+                        Modifier.fillMaxWidth().padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        MediaThumb(effectiveCover, "Cover ${pkg.name}")
                         Column(Modifier.weight(1f)) {
                             Text(pkg.name, fontWeight = FontWeight.Black, color = GmuDark)
                             Text(
-                                listOf(pkg.packageCode, programNames[pkg.programId].orEmpty())
+                                listOf(pkg.packageCode, program?.name.orEmpty())
                                     .filter { it.isNotBlank() }
                                     .joinToString(" • "),
                                 fontSize = 10.sp,
                                 color = Color.Gray
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            MediaStatusLine(
+                                hasOwnCover = pkg.coverImageUrl.isNotBlank(),
+                                galleryCount = pkg.galleryCount,
+                                fallbackProgramCover = usingProgramCover
                             )
                             Spacer(Modifier.height(4.dp))
                             StatusChip(pkg.status)
