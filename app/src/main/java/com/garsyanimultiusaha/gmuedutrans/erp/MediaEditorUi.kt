@@ -211,15 +211,16 @@ fun ProgramPackageMediaDialog(
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(Modifier.height(6.dp))
+                                Spacer(Modifier.height(4.dp))
+                                TextButton(
+                                    onClick = {
+                                        cover = url
+                                        gallery = gallery.toMutableList().also { it.removeAt(index) }
+                                    },
+                                    enabled = !busy,
+                                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
+                                ) { Text("Jadikan Cover") }
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    TextButton(
-                                        onClick = {
-                                            cover = url
-                                            gallery = gallery.toMutableList().also { it.removeAt(index) }
-                                        },
-                                        enabled = !busy
-                                    ) { Text("Jadikan Cover") }
                                     if (index > 0) {
                                         TextButton(onClick = {
                                             gallery = gallery.toMutableList().also {
