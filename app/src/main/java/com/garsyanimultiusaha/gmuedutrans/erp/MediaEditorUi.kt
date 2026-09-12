@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 
 @Composable
 fun ProgramPackageMediaDialog(
@@ -48,6 +47,30 @@ fun ProgramPackageMediaDialog(
                 onNotice("Gambar berhasil diupload.")
             } catch (e: Exception) {
                 onNotice(e.message ?: "Upload gambar gagal.")
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun saveMedia() {
+        if (busy) return
+        busy = true
+        scope.launch {
+            try {
+                val media = MasterMediaState(cover, gallery).normalized()
+                MediaRepository.save(
+                    accessToken = session.accessToken,
+                    table = table,
+                    entityId = entityId,
+                    media = media
+                )
+                cover = media.coverImageUrl
+                gallery = media.galleryUrls
+                onNotice("Media berhasil disimpan.")
+                onDismiss()
+            } catch (e: Exception) {
+                onNotice(e.message ?: "Media gagal disimpan.")
             } finally {
                 busy = false
             }
@@ -145,23 +168,9 @@ fun ProgramPackageMediaDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val media = MasterMediaState(cover, gallery).normalized()
-                    vm.update(
-                        table = table,
-                        id = entityId,
-                        values = mapOf(
-                            "cover_image_url" to media.coverImageUrl.ifBlank { null },
-                            "gallery_urls" to JSONArray(media.galleryUrls)
-                        ),
-                        successMessage = "Media berhasil disimpan."
-                    ) { ok, msg ->
-                        onNotice(msg)
-                        if (ok) onDismiss()
-                    }
-                },
+                onClick = ::saveMedia,
                 enabled = !busy && !vm.actionBusy
-            ) { Text("Simpan Media") }
+            ) { Text(if (busy) "Menyimpan…" else "Simpan Media") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") }
