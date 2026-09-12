@@ -1,0 +1,143 @@
+name: Deploy Supabase Media Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "Ketik DEPLOY untuk menerapkan Media Sync ke production"
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "DEPLOY"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmu-edutrans-supabase-production
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
+  STATION_PROGRAM_ID: 8d9c065b-124b-4e56-9180-23600018b04e
+  STATION_PACKAGE_CODE: PKG-GMU-00008
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm_production == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: latest
+
+      - name: Validate deployment credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}" || { echo "SUPABASE_ACCESS_TOKEN belum tersedia di GitHub Secrets."; exit 1; }
+          supabase --version
+
+      - name: Link production project
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          else
+            supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          fi
+
+      - name: Inspect migration state
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list
+
+      - name: Dry-run production migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --dry-run
+
+      - name: Apply production migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push
+
+      - name: Deploy internal Media Master
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy internal-media-master --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Deploy public package catalog v10
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy public-package-catalog --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Verify station package at 20 pax
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-package-catalog"
+          curl --fail --silent --show-error \
+            "$endpoint?program_id=$STATION_PROGRAM_ID&trip_date=2026-09-12&pax=20" \
+            -o /tmp/catalog20.json
+
+          jq -e --arg code "$STATION_PACKAGE_CODE" '
+            .version == "v10-media-sync" and
+            .catalog_status == "AVAILABLE" and
+            ((.items | map(select(.package_code == $code)) | first) as $p |
+              $p != null and
+              $p.price_per_pax == 46000 and
+              $p.min_pax == 20 and
+              ($p.facilities | length) >= 10 and
+              $p.estimated_total == 920000 and
+              ($p | has("price_note") | not) and
+              ($p | has("hpp") | not) and
+              ($p | has("base_cost") | not) and
+              ($p | has("manager_fee") | not) and
+              ($p | has("sales_fee") | not) and
+              ($p | has("mitra_fee") | not) and
+              ($p | has("profit") | not) and
+              ($p | has("margin") | not)
+            )
+          ' /tmp/catalog20.json
+
+      - name: Verify minimum 20 rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-package-catalog"
+          curl --fail --silent --show-error \
+            "$endpoint?program_id=$STATION_PROGRAM_ID&trip_date=2026-09-12&pax=19" \
+            -o /tmp/catalog19.json
+
+          jq -e --arg code "$STATION_PACKAGE_CODE" '
+            (.items | map(select(.package_code == $code)) | length) == 0
+          ' /tmp/catalog19.json
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "GMU EduTrans Media Sync production verification passed."
+          echo "Package: $STATION_PACKAGE_CODE"
+          echo "Price: Rp46.000/pax"
+          echo "Minimum: 20 peserta"
+          echo "Baseline 20 pax: Rp920.000"
