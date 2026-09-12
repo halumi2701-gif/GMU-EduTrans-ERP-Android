@@ -16,7 +16,9 @@ data class MediaProgramItem(
     val id: String,
     val name: String,
     val category: String,
-    val active: Boolean
+    val active: Boolean,
+    val coverImageUrl: String = "",
+    val galleryCount: Int = 0
 )
 
 data class MediaPackageItem(
@@ -25,7 +27,9 @@ data class MediaPackageItem(
     val programId: String,
     val name: String,
     val status: String,
-    val active: Boolean
+    val active: Boolean,
+    val coverImageUrl: String = "",
+    val galleryCount: Int = 0
 )
 
 data class MediaMasterCatalog(
@@ -47,7 +51,9 @@ object MediaMasterCatalogRepository {
                         id = x.optString("id", ""),
                         name = x.optString("name", "Program GMU EduTrans"),
                         category = x.optString("category", "Program Edukasi"),
-                        active = x.optBoolean("is_active", false)
+                        active = x.optBoolean("is_active", false),
+                        coverImageUrl = x.optString("cover_image_url", "").takeIf { it != "null" }.orEmpty(),
+                        galleryCount = x.optJSONArray("gallery_urls")?.length()?.coerceIn(0, 5) ?: 0
                     )
                 )
             }
@@ -63,7 +69,9 @@ object MediaMasterCatalogRepository {
                         programId = x.optString("program_id", ""),
                         name = x.optString("name", "Paket GMU EduTrans"),
                         status = x.optString("status", "DRAFT"),
-                        active = x.optBoolean("is_active", false)
+                        active = x.optBoolean("is_active", false),
+                        coverImageUrl = x.optString("cover_image_url", "").takeIf { it != "null" }.orEmpty(),
+                        galleryCount = x.optJSONArray("gallery_urls")?.length()?.coerceIn(0, 5) ?: 0
                     )
                 )
             }
