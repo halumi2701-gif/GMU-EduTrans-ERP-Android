@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     launchTarget = null
                 }
             }
-            GmuNativeAppWithOwnerReviewGate(vm)
+            GmuNativeAppWithExecutiveDecisionInbox(vm)
         }
     }
 
