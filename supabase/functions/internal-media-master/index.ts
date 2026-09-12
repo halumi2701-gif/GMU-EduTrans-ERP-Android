@@ -31,15 +31,36 @@ function cover(value: unknown) {
   return raw.startsWith("https://") ? raw : null;
 }
 
+function serverKey(): string {
+  const named = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (named) {
+    try {
+      const parsed = JSON.parse(named) as Record<string, string>;
+      if (parsed.default) return parsed.default;
+    } catch (_) {
+      // Fall through to single-key / legacy environments.
+    }
+  }
+  return Deno.env.get("SUPABASE_SECRET_KEY") ||
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+}
+
+function adminHeaders(key: string): Record<string, string> {
+  const h: Record<string, string> = { apikey: key };
+  // New sb_secret_* keys belong in apikey, not Authorization.
+  // Legacy service_role is a JWT and remains compatible as Bearer during migration.
+  if (!key.startsWith("sb_secret_")) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 async function serviceRest(path: string, init: RequestInit = {}) {
   const base = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!base || !serviceKey) throw new Error("Media backend belum terkonfigurasi.");
+  const key = serverKey();
+  if (!base || !key) throw new Error("Media backend belum terkonfigurasi.");
   const response = await fetch(`${base}/rest/v1/${path}`, {
     ...init,
     headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
+      ...adminHeaders(key),
       Accept: "application/json",
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
@@ -54,11 +75,11 @@ async function currentUser(req: Request) {
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return null;
   const base = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!base || !serviceKey) throw new Error("Media backend belum terkonfigurasi.");
+  const key = serverKey();
+  if (!base || !key) throw new Error("Media backend belum terkonfigurasi.");
 
   const userResponse = await fetch(`${base}/auth/v1/user`, {
-    headers: { apikey: serviceKey, Authorization: auth },
+    headers: { apikey: key, Authorization: auth },
   });
   if (!userResponse.ok) return null;
   const user = await userResponse.json();
