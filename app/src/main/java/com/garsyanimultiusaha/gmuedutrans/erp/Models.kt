@@ -3,10 +3,20 @@ package com.garsyanimultiusaha.gmuedutrans.erp
 data class StaffProfile(
     val id: String,
     val fullName: String,
-    val role: String,
+    var role: String,
     val active: Boolean,
     val phone: String = ""
-)
+) {
+    init {
+        // Compatibility bridge while older Android screens are migrated away from literal "Manager".
+        // A backend profile may already use canonical "Manager EduTrans"; keeping the access-role
+        // legacy-compatible avoids sudden module loss without widening financial visibility.
+        role = ErpRoles.compatibilityAccessRole(role)
+    }
+
+    val canonicalRole: String get() = ErpRoles.canonical(role)
+    val roleLabel: String get() = ErpRoles.displayName(role)
+}
 
 data class SessionState(
     val accessToken: String,
@@ -117,6 +127,23 @@ object ErpRoles {
 
     fun isDirector(role: String): Boolean = role == DIRECTOR || role == DIRECTOR_ID
     fun isManagerEduTrans(role: String): Boolean = role == MANAGER_EDUTRANS || role == LEGACY_MANAGER
+
+    fun canonical(role: String): String = when {
+        isDirector(role) -> DIRECTOR
+        isManagerEduTrans(role) -> MANAGER_EDUTRANS
+        else -> role
+    }
+
+    /**
+     * Temporary Android compatibility representation for the Manager EduTrans role.
+     * Full-company finance remains controlled separately by FinancialAccess.
+     */
+    fun compatibilityAccessRole(role: String): String = when (role) {
+        MANAGER_EDUTRANS -> LEGACY_MANAGER
+        else -> role
+    }
+
+    fun displayName(role: String): String = canonical(role)
 }
 
 object FinancialAccess {
