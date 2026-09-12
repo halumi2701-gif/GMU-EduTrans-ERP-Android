@@ -4,12 +4,12 @@
 
 type JsonRecord = Record<string, unknown>;
 
-function stringList(value: unknown): string[] {
+function stringList(value: unknown, maxItems = 50): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => String(item ?? '').trim())
     .filter(Boolean)
-    .slice(0, 5);
+    .slice(0, maxItems);
 }
 
 function publicHttpsUrl(value: unknown): string | null {
@@ -32,7 +32,7 @@ export function publicProgram(row: JsonRecord) {
     short_description: row.short_description ?? null,
     min_pax: row.min_pax ?? null,
     cover_image_url: publicHttpsUrl(row.cover_image_url),
-    gallery_urls: stringList(row.gallery_urls)
+    gallery_urls: stringList(row.gallery_urls, 5)
       .map(publicHttpsUrl)
       .filter((url): url is string => Boolean(url)),
   };
@@ -49,11 +49,11 @@ export function publicPackage(row: JsonRecord, estimatedTotal?: number | null) {
     description: row.description ?? null,
     price_per_pax: row.price_per_pax ?? null,
     min_pax: row.min_pax ?? null,
-    facilities: stringList(row.facilities),
+    facilities: stringList(row.facilities, 50),
     effective_from: row.effective_from ?? null,
     effective_until: row.effective_until ?? null,
     cover_image_url: publicHttpsUrl(row.cover_image_url),
-    gallery_urls: stringList(row.gallery_urls)
+    gallery_urls: stringList(row.gallery_urls, 5)
       .map(publicHttpsUrl)
       .filter((url): url is string => Boolean(url)),
     estimated_total: estimatedTotal ?? null,
