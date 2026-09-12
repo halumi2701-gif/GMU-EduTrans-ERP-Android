@@ -275,7 +275,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice = { notice = it })
                 AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice = { notice = it })
                 AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice = { notice = it })
-                AppPage.PACKAGE_MASTER -> PackageMasterScreen(vm, session, onNotice = { notice = it })
+                AppPage.PACKAGE_MASTER -> PackageMasterHubScreen(vm, session, onNotice = { notice = it })
                 AppPage.PRICING_MASTER -> PricingMasterScreen(vm, session, onNotice = { notice = it })
                 AppPage.PAYMENT_GATEWAY -> PaymentGatewayScreen(vm, session, onNotice = { notice = it })
                 AppPage.CUSTOMERS -> CustomerScreen(vm, session, onNotice = { notice = it })
