@@ -6,7 +6,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 object MediaRepository {
     suspend fun load(
@@ -15,14 +14,17 @@ object MediaRepository {
         entityId: String
     ): MasterMediaState = withContext(Dispatchers.IO) {
         require(table in setOf("programs", "program_packages"))
-        val id = URLEncoder.encode(entityId, "UTF-8")
-        val path = "/rest/v1/$table?select=cover_image_url,gallery_urls&id=eq.$id&limit=1"
-        val arr = JSONArray(request("GET", path, accessToken, null))
-        if (arr.length() == 0) return@withContext MasterMediaState()
-        val row = arr.optJSONObject(0) ?: JSONObject()
+        val root = request(
+            accessToken,
+            JSONObject()
+                .put("action", "load")
+                .put("table", table)
+                .put("entity_id", entityId)
+        )
+        val media = root.optJSONObject("media") ?: JSONObject()
         MasterMediaState(
-            coverImageUrl = row.optString("cover_image_url", ""),
-            galleryUrls = row.optJSONArray("gallery_urls").toStringList()
+            coverImageUrl = media.optString("cover_image_url", ""),
+            galleryUrls = media.optJSONArray("gallery_urls").toStringList()
         ).normalized()
     }
 
@@ -34,38 +36,44 @@ object MediaRepository {
     ) = withContext(Dispatchers.IO) {
         require(table in setOf("programs", "program_packages"))
         val clean = media.normalized()
-        val payload = JSONObject()
-            .put("cover_image_url", clean.coverImageUrl.ifBlank { JSONObject.NULL })
-            .put("gallery_urls", JSONArray(clean.galleryUrls))
-            .toString()
-        val id = URLEncoder.encode(entityId, "UTF-8")
-        request("PATCH", "/rest/v1/$table?id=eq.$id", accessToken, payload)
+        request(
+            accessToken,
+            JSONObject()
+                .put("action", "save")
+                .put("table", table)
+                .put("entity_id", entityId)
+                .put(
+                    "media",
+                    JSONObject()
+                        .put("cover_image_url", clean.coverImageUrl.ifBlank { JSONObject.NULL })
+                        .put("gallery_urls", JSONArray(clean.galleryUrls))
+                )
+        )
+        Unit
     }
 
-    private fun request(
-        method: String,
-        path: String,
-        accessToken: String,
-        body: String?
-    ): String {
-        val conn = (URL(BuildConfig.SUPABASE_URL + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
+    private fun request(accessToken: String, payload: JSONObject): JSONObject {
+        val endpoint = BuildConfig.SUPABASE_URL + "/functions/v1/internal-media-master"
+        val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
             connectTimeout = 15_000
             readTimeout = 20_000
+            doOutput = true
             setRequestProperty("Authorization", "Bearer $accessToken")
             setRequestProperty("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Content-Type", "application/json")
-            if (method == "PATCH") setRequestProperty("Prefer", "return=minimal")
-            if (body != null) doOutput = true
         }
-        if (body != null) conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+        conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
         val status = conn.responseCode
         val stream = if (status in 200..299) conn.inputStream else conn.errorStream
         val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
         conn.disconnect()
-        if (status !in 200..299) error("Media Master gagal ($status). ${text.take(180)}")
-        return text
+        if (status !in 200..299) {
+            val detail = runCatching { JSONObject(text).optString("error") }.getOrNull().orEmpty()
+            error(detail.ifBlank { "Media Master gagal ($status). ${text.take(180)}" })
+        }
+        return JSONObject(text.ifBlank { "{}" })
     }
 
     private fun JSONArray?.toStringList(): List<String> {
