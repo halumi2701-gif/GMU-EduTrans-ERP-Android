@@ -35,6 +35,26 @@ function text(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function serverKey(): string {
+  const named = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (named) {
+    try {
+      const parsed = JSON.parse(named) as Record<string, string>;
+      if (parsed.default) return parsed.default;
+    } catch (_) {
+      // Fall through for local/legacy environments.
+    }
+  }
+  return Deno.env.get("SUPABASE_SECRET_KEY") ||
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+}
+
+function adminHeaders(key: string): Record<string, string> {
+  const h: Record<string, string> = { apikey: key };
+  if (!key.startsWith("sb_secret_")) h.Authorization = `Bearer ${key}`;
+  return h;
+}
+
 function activeForTrip(row: Row, tripDate: string, pax: number) {
   if (row.is_active !== true) return false;
   if (text(row.status).toUpperCase() !== "ACTIVE") return false;
@@ -50,13 +70,12 @@ function activeForTrip(row: Row, tripDate: string, pax: number) {
 
 async function rest(path: string): Promise<Row[]> {
   const base = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!base || !serviceKey) throw new Error("Backend catalog belum terkonfigurasi.");
+  const key = serverKey();
+  if (!base || !key) throw new Error("Backend catalog belum terkonfigurasi.");
 
   const response = await fetch(`${base}/rest/v1/${path}`, {
     headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
+      ...adminHeaders(key),
       Accept: "application/json",
     },
   });
