@@ -106,7 +106,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
         with:
-          version: latest
+          version: v2.117.0
 
       - name: Validate deployment credentials
         shell: bash
@@ -172,6 +172,7 @@ jobs:
         shell: bash
         run: |
           echo "GMU EduTrans Media Sync production verification passed."
+          echo "Supabase CLI: v2.117.0"
           echo "Direct Supabase endpoint: PASS"
           echo "Customer domain proxy: PASS"
           echo "Package: PKG-GMU-00008"
