@@ -21,6 +21,7 @@ concurrency:
 
 env:
   SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
+  CUSTOMER_CATALOG_PROXY: https://edutrans.garsyanimultiusaha.site/api/proxy?slug=public-package-catalog
 
 jobs:
   deploy:
@@ -64,6 +65,43 @@ jobs:
           test -f supabase/functions/internal-media-master/index.ts
           test -f supabase/functions/public-package-catalog/index.ts
           test -f supabase/config.toml
+
+      - name: Capture and validate pre-deploy customer baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deployment-snapshots
+          base="${CUSTOMER_CATALOG_PROXY}&program_id=8d9c065b-124b-4e56-9180-23600018b04e&trip_date=2026-09-12"
+          curl --fail --silent --show-error "${base}&pax=20" -o deployment-snapshots/customer-before-pax20.json
+          curl --fail --silent --show-error "${base}&pax=19" -o deployment-snapshots/customer-before-pax19.json
+
+          jq -e '
+            .catalog_status == "AVAILABLE" and
+            ((.items | map(select(.package_code == "PKG-GMU-00008")) | first) as $p |
+              $p != null and
+              $p.price_per_pax == 46000 and
+              $p.min_pax == 20 and
+              ($p.facilities | length) == 10 and
+              $p.estimated_total == 920000
+            ) and
+            ([.. | objects | keys[]? | ascii_downcase |
+              select(. == "price_note" or . == "hpp" or . == "base_cost" or
+                     . == "manager_fee" or . == "sales_fee" or . == "mitra_fee" or
+                     . == "profit" or . == "margin" or . == "pricing_policy")
+            ] | length == 0)
+          ' deployment-snapshots/customer-before-pax20.json
+
+          jq -e '
+            (.items | map(select(.package_code == "PKG-GMU-00008")) | length) == 0
+          ' deployment-snapshots/customer-before-pax19.json
+
+      - name: Upload pre-deploy customer snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmu-media-sync-predeploy-customer-snapshot
+          path: deployment-snapshots/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
@@ -117,17 +155,25 @@ jobs:
           set -euo pipefail
           supabase functions deploy public-package-catalog --project-ref "$SUPABASE_PROJECT_ID"
 
-      - name: Verify production Media Catalog contract
+      - name: Verify direct production Media Catalog contract
         shell: bash
         run: |
           set -euo pipefail
           endpoint="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-package-catalog"
           bash scripts/verify-media-catalog.sh "$endpoint"
 
+      - name: Verify customer proxy Media Catalog contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/verify-media-catalog.sh "$CUSTOMER_CATALOG_PROXY"
+
       - name: Deployment summary
         shell: bash
         run: |
           echo "GMU EduTrans Media Sync production verification passed."
+          echo "Direct Supabase endpoint: PASS"
+          echo "Customer domain proxy: PASS"
           echo "Package: PKG-GMU-00008"
           echo "Price: Rp46.000/pax"
           echo "Minimum: 20 peserta"
@@ -135,3 +181,4 @@ jobs:
           echo "Media: HTTPS, gallery max 5, Program cover fallback supported"
           echo "Baseline 20 pax: Rp920.000"
           echo "Public financial leak guard: recursive"
+          echo "Pre-deploy customer snapshot: retained 30 days"
