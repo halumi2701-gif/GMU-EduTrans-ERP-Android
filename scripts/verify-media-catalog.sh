@@ -10,9 +10,13 @@ curl --fail --silent --show-error \
   "$endpoint?program_id=$program_id&trip_date=$trip_date&pax=20" \
   -o /tmp/gmu-catalog20.json
 
-jq -e --arg code "$package_code" '
+jq -e --arg code "$package_code" --arg trip_date "$trip_date" '
   .version == "v10-media-sync" and
   .catalog_status == "AVAILABLE" and
+  .catalog_scope == "PROGRAM" and
+  .custom_trip_available == true and
+  .as_of == $trip_date and
+  .trip_date == $trip_date and
   ((.items | map(select(.package_code == $code)) | first) as $p |
     $p != null and
     $p.price_per_pax == 46000 and
@@ -32,6 +36,7 @@ jq -e --arg code "$package_code" '
   ) and
   (.programs | type) == "array" and
   (.programs | all(
+    has("sort_order") and
     has("cover_image_url") and
     has("gallery_urls") and
     (.gallery_urls | type) == "array" and
@@ -75,4 +80,4 @@ jq -e --arg code "$package_code" '
 ' /tmp/gmu-catalog19.json
 
 echo "GMU EduTrans Media Catalog verification passed."
-echo "Rp46.000/pax | min 20 | 10 facilities | HTTPS media <=5 | recursive finance leak guard"
+echo "v9-compatible | Rp46.000/pax | min 20 | 10 facilities | HTTPS media <=5 | recursive finance leak guard"
