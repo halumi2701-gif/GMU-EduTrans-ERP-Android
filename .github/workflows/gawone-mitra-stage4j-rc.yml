@@ -27,7 +27,8 @@ jobs:
           grep -q 'Stage4GCommunicationPanel' "$ROOT/Stage4JHomeShell.kt"
           grep -q 'Stage4FWalletPanel' "$ROOT/Stage4JHomeShell.kt"
           grep -q 'request_partner_payout' "$ROOT/Stage4FWallet.kt"
-          grep -q 'respond_to_partner_offer' "$ROOT/Stage4DOffer.kt"
+          grep -q 'accept_assignment_offer' "$ROOT/Stage4DOffer.kt"
+          grep -q 'reject_assignment_offer' "$ROOT/Stage4DOffer.kt"
           grep -q 'partner_assignment_action' "$ROOT/Stage4EExecution.kt"
           grep -q 'send_order_chat_message' "$ROOT/Stage4GCommunication.kt"
           grep -q 'versionCode = 13' gawone-mitra-stage4j/app/build.gradle.kts
