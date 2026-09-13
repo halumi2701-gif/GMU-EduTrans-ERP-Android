@@ -6,8 +6,14 @@ program_id="8d9c065b-124b-4e56-9180-23600018b04e"
 package_code="PKG-GMU-00008"
 trip_date="2026-09-12"
 
+if [[ "$endpoint" == *"?"* ]]; then
+  sep="&"
+else
+  sep="?"
+fi
+
 curl --fail --silent --show-error \
-  "$endpoint?program_id=$program_id&trip_date=$trip_date&pax=20" \
+  "${endpoint}${sep}program_id=$program_id&trip_date=$trip_date&pax=20" \
   -o /tmp/gmu-catalog20.json
 
 jq -e --arg code "$package_code" --arg trip_date "$trip_date" '
@@ -72,7 +78,7 @@ jq -e '
 ' /tmp/gmu-catalog20.json
 
 curl --fail --silent --show-error \
-  "$endpoint?program_id=$program_id&trip_date=$trip_date&pax=19" \
+  "${endpoint}${sep}program_id=$program_id&trip_date=$trip_date&pax=19" \
   -o /tmp/gmu-catalog19.json
 
 jq -e --arg code "$package_code" '
