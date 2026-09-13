@@ -23,15 +23,47 @@ jq -e --arg code "$package_code" '
     ($p | has("program_cover_image_url")) and
     ($p | has("gallery_urls")) and
     (($p.gallery_urls | type) == "array") and
-    ($p | has("price_note") | not) and
-    ($p | has("hpp") | not) and
-    ($p | has("base_cost") | not) and
-    ($p | has("manager_fee") | not) and
-    ($p | has("sales_fee") | not) and
-    ($p | has("mitra_fee") | not) and
-    ($p | has("profit") | not) and
-    ($p | has("margin") | not)
-  )
+    ($p.gallery_urls | length) <= 5 and
+    ([
+      $p.cover_image_url,
+      $p.program_cover_image_url,
+      ($p.gallery_urls[]? // null)
+    ] | all(. == null or (type == "string" and startswith("https://"))))
+  ) and
+  (.programs | type) == "array" and
+  (.programs | all(
+    has("cover_image_url") and
+    has("gallery_urls") and
+    (.gallery_urls | type) == "array" and
+    (.gallery_urls | length) <= 5 and
+    ([.cover_image_url, (.gallery_urls[]? // null)] |
+      all(. == null or (type == "string" and startswith("https://"))))
+  ))
+' /tmp/gmu-catalog20.json
+
+# Security invariant: forbidden internal-pricing keys must not occur anywhere
+# in the public response, including future nested structures.
+jq -e '
+  [
+    .. | objects | keys[]? |
+    ascii_downcase |
+    select(
+      . == "price_note" or
+      . == "hpp" or
+      . == "base_cost" or
+      . == "manager_fee" or
+      . == "sales_fee" or
+      . == "mitra_fee" or
+      . == "partner_fee" or
+      . == "profit" or
+      . == "margin" or
+      . == "margin_pct" or
+      . == "target_margin_pct" or
+      . == "floor_margin_pct" or
+      . == "cost_templates" or
+      . == "pricing_policy"
+    )
+  ] | length == 0
 ' /tmp/gmu-catalog20.json
 
 curl --fail --silent --show-error \
@@ -43,4 +75,4 @@ jq -e --arg code "$package_code" '
 ' /tmp/gmu-catalog19.json
 
 echo "GMU EduTrans Media Catalog verification passed."
-echo "Rp46.000/pax | min 20 | 10 facilities | media contract safe"
+echo "Rp46.000/pax | min 20 | 10 facilities | HTTPS media <=5 | recursive finance leak guard"
