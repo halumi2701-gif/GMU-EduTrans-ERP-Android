@@ -132,6 +132,8 @@ Deno.serve(async (req) => {
       version: "v10-media-sync",
       catalog_status: eligible.length ? "AVAILABLE" : "NO_ACTIVE_PACKAGE",
       catalog_scope: customBrowse ? "ALL_ACTIVE_PACKAGES" : "PROGRAM",
+      custom_trip_available: true,
+      as_of: tripDate,
       program_id: requestedProgramId || null,
       trip_date: tripDate,
       pax,
