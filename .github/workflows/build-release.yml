@@ -27,6 +27,17 @@ jobs:
       - name: Verify public web media renderer contract
         run: node scripts/verify-public-web-media.js
 
+      - name: Validate Media Sync contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/verify-media-catalog.sh
+          bash -n scripts/verify-media-migrations.sh
+          bash scripts/verify-media-migrations.sh
+          test -f supabase/functions/public-package-catalog/index.ts
+          test -f supabase/functions/internal-media-master/index.ts
+          test -f supabase/config.toml
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
