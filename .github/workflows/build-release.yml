@@ -14,6 +14,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate public web JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find public-web -type f -name '*.js' -print0)
+          node --check scripts/verify-public-web-media.js
+
+      - name: Verify public web media renderer contract
+        run: node scripts/verify-public-web-media.js
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
@@ -28,7 +41,8 @@ jobs:
       - name: Use exact GMU EduTrans logo
         run: |
           rm -f app/src/main/res/drawable/ic_launcher_gmu.xml
-          curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"             -o app/src/main/res/drawable/ic_launcher_gmu.jpg
+          curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo" \
+            -o app/src/main/res/drawable/ic_launcher_gmu.jpg
           file app/src/main/res/drawable/ic_launcher_gmu.jpg
 
       - name: Reject WebView usage
