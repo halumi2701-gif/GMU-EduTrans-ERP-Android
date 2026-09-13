@@ -1,1 +1,62 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GMU EduTrans — Paket & Harga v23 Preview</title><style>:root{--g:#0D7A57;--ink:#17211C;--muted:#66726B;--bg:#F7F8F6;--line:#E6E9E6}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}.wrap{max-width:1080px;margin:auto;padding:32px 20px}.head{text-align:center;margin-bottom:22px}.head h1{margin:0 0 8px;font-size:32px}.muted{color:var(--muted);font-size:12px;line-height:1.6}.packages{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(28,54,39,.055)}.badge{display:inline-block;background:#EAF6F0;color:var(--g);border-radius:999px;padding:5px 9px;font-size:9px;font-weight:900}.pkg-v23{display:flex;flex-direction:column;gap:10px}.pkg-v23 h3{margin:4px 0;font-size:20px}.price{font-size:25px;font-weight:900;color:var(--g)}.pkg-meta{display:flex;gap:8px;flex-wrap:wrap}.pkg-meta span{padding:6px 10px;border-radius:999px;background:#EEF8F2;color:#166B4B;font-size:10px;font-weight:800}.pkg-includes{border-top:1px solid var(--line);padding-top:10px}.pkg-includes strong{font-size:12px}.pkg-includes ul{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:7px}.pkg-includes li{font-size:11px;line-height:1.45;color:#48524C}.pkg-total{padding:9px 10px;border-radius:10px;background:#F7F8F6;font-size:11px}.btn{border:0;border-radius:14px;padding:13px 18px;font-weight:800;background:var(--g);color:#fff}.notice{padding:14px;border-radius:14px;background:#fff;border:1px solid var(--line)}@media(max-width:760px){.packages{grid-template-columns:1fr}}</style></head><body><main class="wrap"><div class="head"><div class="badge">GMU EDUTRANS</div><h1>Paket & Harga</h1><p class="muted">Preview v23 — data paket ACTIVE tersinkron dari ERP.</p></div><div id="packageCards" class="packages"><div class="notice">Memuat paket aktif...</div></div></main><script>const ENDPOINT='https://edutrans.garsyanimultiusaha.site/api/proxy?slug=public-package-catalog&pax=20&trip_date=2026-09-12';const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');function card(p){const fs=Array.isArray(p.facilities)?p.facilities:[];const dur=fs.find(x=>/jam|durasi/i.test(String(x)));return '<article class="card pkg-v23"><span class="badge">'+esc(p.program_name||'EduTrip')+'</span><h3>'+esc(p.name)+'</h3><p class="muted">'+esc(p.description||'')+'</p><div class="price">'+rp(p.price_per_pax)+' <small>/ pax</small></div><div class="pkg-meta"><span>Minimum '+Number(p.min_pax||1)+' peserta</span>'+(dur?'<span>'+esc(String(dur).replace(/^kegiatan\s+selama\s+/i,''))+'</span>':'')+'</div><div class="pkg-includes"><strong>Isi Paket</strong><ul>'+fs.map(x=>'<li>✓ '+esc(x)+'</li>').join('')+'</ul></div>'+(p.estimated_total!=null?'<div class="pkg-total">Estimasi total 20 peserta: <strong>'+rp(p.estimated_total)+'</strong></div>':'')+'<button class="btn">Pilih Paket</button></article>'}fetch(ENDPOINT,{cache:'no-store'}).then(r=>r.json()).then(d=>{const items=Array.isArray(d.items)?d.items:[];document.getElementById('packageCards').innerHTML=items.length?items.map(card).join(''):'<div class="notice">Belum ada paket aktif.</div>'}).catch(()=>{document.getElementById('packageCards').innerHTML='<div class="notice">Preview tidak dapat memuat katalog.</div>'})</script></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GMU EduTrans — Paket & Harga Media Preview</title>
+  <link rel="stylesheet" href="./package-renderer-v23.css">
+  <style>
+    :root{--g:#0D7A57;--ink:#17211C;--muted:#66726B;--bg:#F7F8F6;--line:#E6E9E6}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:1080px;margin:auto;padding:32px 20px}.head{text-align:center;margin-bottom:22px}.head h1{margin:0 0 8px;font-size:32px}
+    .muted{color:var(--muted);font-size:12px;line-height:1.6}.packages{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(28,54,39,.055)}
+    .badge{display:inline-block;background:#EAF6F0;color:var(--g);border-radius:999px;padding:5px 9px;font-size:9px;font-weight:900}
+    .pkg-v23{display:flex;flex-direction:column;gap:10px}.pkg-v23 h3{margin:4px 0;font-size:20px}.price{font-size:25px;font-weight:900;color:var(--g)}
+    .pkg-meta{display:flex;gap:8px;flex-wrap:wrap}.pkg-meta span{padding:6px 10px;border-radius:999px;background:#EEF8F2;color:#166B4B;font-size:10px;font-weight:800}
+    .pkg-includes{border-top:1px solid var(--line);padding-top:10px}.pkg-includes strong{font-size:12px}.pkg-includes ul{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:7px}
+    .pkg-includes li{font-size:11px;line-height:1.45;color:#48524C}.pkg-total{padding:9px 10px;border-radius:10px;background:#F7F8F6;font-size:11px}
+    .btn{border:0;border-radius:14px;padding:13px 18px;font-weight:800;background:var(--g);color:#fff}.notice{padding:14px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:16px}
+    @media(max-width:760px){.packages{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="head">
+      <div class="badge">GMU EDUTRANS · ERP MEDIA SYNC</div>
+      <h1>Paket & Harga</h1>
+      <p class="muted">Cover dan galeri berasal dari Program / Package Master ERP. Jika cover Paket kosong, otomatis memakai cover Program.</p>
+    </div>
+    <div id="previewStatus" class="notice">Memuat paket aktif...</div>
+    <div id="packageCards" class="packages"></div>
+  </main>
+
+  <script src="./package-renderer-v23.js"></script>
+  <script>
+    const ENDPOINT = 'https://edutrans.garsyanimultiusaha.site/api/proxy?slug=public-package-catalog&program_id=8d9c065b-124b-4e56-9180-23600018b04e&pax=20&trip_date=2026-09-12';
+    const cards = document.getElementById('packageCards');
+    const status = document.getElementById('previewStatus');
+
+    function choosePreview(id) {
+      const item = (window.__previewPackages || []).find((x) => String(x.id) === String(id));
+      status.textContent = item ? `Paket dipilih: ${item.name}. Pada web production pilihan ini diteruskan ke form booking.` : 'Paket dipilih.';
+    }
+
+    fetch(ENDPOINT, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        const items = Array.isArray(data.items) ? data.items : [];
+        window.__previewPackages = items;
+        status.textContent = `${items.length} paket ACTIVE · Rp46.000/pax · minimum 20 peserta · data publik dari ERP`;
+        window.GMU_PACKAGE_RENDERER_V23.renderPackageCatalog(cards, items, choosePreview);
+      })
+      .catch(() => {
+        status.textContent = 'Preview tidak dapat memuat katalog live. Source renderer tetap tersedia untuk verifikasi lokal/deployment preview.';
+        cards.innerHTML = '<div class="card" style="grid-column:1/-1">Katalog belum dapat dimuat.</div>';
+      });
+  </script>
+</body>
+</html>
