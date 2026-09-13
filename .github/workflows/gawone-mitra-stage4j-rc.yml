@@ -1,4 +1,4 @@
-name: GAWONE Mitra Stage 4J RC1
+name: GAWONE Mitra Stage 4J E2E Pilot
 
 on:
   push:
@@ -12,11 +12,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify cumulative E2E source contract
+        shell: bash
+        run: |
+          ROOT="gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra"
+          grep -q 'Stage4DOfferPanel' "$ROOT/Stage4JHomeShell.kt"
+          grep -q 'Stage4EExecutionPanel' "$ROOT/Stage4JHomeShell.kt"
+          grep -q 'Stage4GCommunicationPanel' "$ROOT/Stage4JHomeShell.kt"
+          grep -q 'Stage4FWalletPanel' "$ROOT/Stage4JHomeShell.kt"
+          grep -q 'request_partner_payout' "$ROOT/Stage4FWallet.kt"
+          grep -q 'respond_to_partner_offer' "$ROOT/Stage4DOffer.kt"
+          grep -q 'partner_assignment_action' "$ROOT/Stage4EExecution.kt"
+          grep -q 'send_order_chat_message' "$ROOT/Stage4GCommunication.kt"
+          grep -q 'versionCode = 13' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'versionName = "1.0.3-e2e-pilot"' gawone-mitra-stage4j/app/build.gradle.kts
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -45,10 +60,11 @@ jobs:
       - name: Release lint
         run: gradle -p gawone-mitra-stage4j --no-daemon :app:lintRelease
 
-      - name: Build installable RC test APK
+      - name: Build installable E2E test APK
         run: gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:assembleDebug
 
       - name: Validate APK metadata
+        shell: bash
         run: |
           APK="gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
@@ -56,27 +72,30 @@ jobs:
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" | tee apk-badging.txt
           grep "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
-          grep "versionCode='10'" apk-badging.txt
-          grep "versionName='1.0.0-rc1-test'" apk-badging.txt
+          grep "versionCode='13'" apk-badging.txt
+          grep "versionName='1.0.3-e2e-pilot-test'" apk-badging.txt
+          unzip -t "$APK" >/dev/null
+          sha256sum "$APK" | tee apk-sha256.txt
 
       - name: Prepare artifact
         run: |
           mkdir -p artifact-stage4j
-          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0-RC1-test.apk
-          sha256sum artifact-stage4j/GAWONE-Mitra-v1.0-RC1-test.apk | tee artifact-stage4j/SHA256.txt
+          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.3-E2E-Pilot-test.apk
+          cp apk-sha256.txt artifact-stage4j/SHA256.txt
           cp apk-badging.txt artifact-stage4j/APK_BADGING.txt
           cat > artifact-stage4j/README.txt <<'EOF'
-          GAWONE Mitra v1.0 RC1 test APK
+          GAWONE Mitra v1.0.3 E2E Pilot test APK
           Package: site.garsyanimultiusaha.gawone.mitra.debug
-          Purpose: Stage 4J device QA / installation test
+          Baseline: full cumulative Stage 4J (Presence + Offer + Job + Wallet/Payout + Chat + Account + Runtime hardening)
+          Pilot service: CLEANING first. Ride/Car/Delivery follow after trusted Maps/route production gate.
           Signing: Android debug signing (test only)
           Production Play Store signing is intentionally NOT included.
           EOF
 
-      - name: Upload Stage 4J RC APK
+      - name: Upload Stage 4J E2E Pilot APK
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Mitra-v1.0-RC1-test-APK
+          name: GAWONE-Mitra-v1.0.3-E2E-Pilot-test-APK
           path: artifact-stage4j/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
