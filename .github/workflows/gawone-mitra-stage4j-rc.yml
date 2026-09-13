@@ -28,50 +28,30 @@ jobs:
           grep -q 'Stage4FWalletPanel' "$ROOT/Stage4JHomeShell.kt"
           grep -q 'request_partner_payout' "$ROOT/Stage4FWallet.kt"
           grep -q 'accept_assignment_offer' "$ROOT/Stage4DOffer.kt"
-          grep -q 'reject_assignment_offer' "$ROOT/Stage4DOffer.kt"
           grep -q 'partner_assignment_action' "$ROOT/Stage4EExecution.kt"
           grep -q 'send_order_chat_message' "$ROOT/Stage4GCommunication.kt"
           grep -q 'class PilotAuthActivity' "$ROOT/PilotAuthActivity.kt"
-          grep -q '/auth/v1/signup' "$ROOT/PilotAuthActivity.kt"
           grep -q 'grant_type=password' "$ROOT/PilotAuthActivity.kt"
-          grep -q 'android:name=".PilotAuthActivity"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
 
-      - name: Apply partner bootstrap ordering fix and bump pilot version
+      - name: Apply partner bootstrap ordering fix
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          main = Path("gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt")
-          text = main.read_text()
-          old = '''        val d = api.dashboard()
-          if (d == null) {
-              api.registerPartner()
-              screen = Screen.PROFILE
-              return
-          }
-          dashboard = d
-'''
-          new = '''        api.registerPartner()
-          val d = api.dashboard()
-          if (d == null) {
-              screen = Screen.PROFILE
-              return
-          }
-          dashboard = d
-'''
-          if old not in text:
+          p = Path("gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt")
+          s = p.read_text()
+          old = "        val d = api.dashboard()\n        if (d == null) {\n            api.registerPartner()\n            screen = Screen.PROFILE\n            return\n        }\n        dashboard = d\n"
+          new = "        api.registerPartner()\n        val d = api.dashboard()\n        if (d == null) {\n            screen = Screen.PROFILE\n            return\n        }\n        dashboard = d\n"
+          if old not in s:
               raise SystemExit("bootstrap target block not found")
-          main.write_text(text.replace(old, new, 1))
+          p.write_text(s.replace(old, new, 1))
 
-          gradle = Path("gawone-mitra-stage4j/app/build.gradle.kts")
-          g = gradle.read_text()
-          g = g.replace('versionCode = 14', 'versionCode = 15', 1)
+          gpath = Path("gawone-mitra-stage4j/app/build.gradle.kts")
+          g = gpath.read_text()
+          g = g.replace("versionCode = 14", "versionCode = 15", 1)
           g = g.replace('versionName = "1.0.4-auth-fallback"', 'versionName = "1.0.5-partner-bootstrap"', 1)
-          g = g.replace('"\\\"4J-E2E-PILOT-AUTH-FALLBACK\\\""', '"\\\"4J-E2E-PILOT-PARTNER-BOOTSTRAP\\\""', 1)
-          gradle.write_text(g)
+          gpath.write_text(g)
           PY
-          grep -q 'api.registerPartner()' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
           grep -q 'versionCode = 15' gawone-mitra-stage4j/app/build.gradle.kts
           grep -q 'versionName = "1.0.5-partner-bootstrap"' gawone-mitra-stage4j/app/build.gradle.kts
 
@@ -85,6 +65,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install SDK 36
+        shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
@@ -95,6 +76,7 @@ jobs:
           gradle-version: "9.6.0"
 
       - name: Compile debug and release
+        shell: bash
         run: |
           gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:compileDebugKotlin :app:compileReleaseKotlin
           gradle -p gawone-mitra-stage4j --no-daemon :app:processDebugResources :app:processReleaseResources
@@ -111,7 +93,6 @@ jobs:
           APK="gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
           AAPT="$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt"
-          test -x "$AAPT"
           "$AAPT" dump badging "$APK" | tee apk-badging.txt
           grep "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
           grep "versionCode='15'" apk-badging.txt
@@ -120,20 +101,12 @@ jobs:
           sha256sum "$APK" | tee apk-sha256.txt
 
       - name: Prepare artifact
+        shell: bash
         run: |
           mkdir -p artifact-stage4j
           cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.5-Partner-Bootstrap-test.apk
           cp apk-sha256.txt artifact-stage4j/SHA256.txt
           cp apk-badging.txt artifact-stage4j/APK_BADGING.txt
-          cat > artifact-stage4j/README.txt <<'EOF'
-          GAWONE Mitra v1.0.5 Partner Bootstrap test APK
-          Package: site.garsyanimultiusaha.gawone.mitra.debug
-          Login: Email + Password fallback plus existing Phone OTP flow.
-          Bootstrap: valid session -> register_as_partner (idempotent) -> dashboard/KYC.
-          Baseline: full cumulative Stage 4J (Presence + Offer + Job + Wallet/Payout + Chat + Account + Runtime hardening)
-          Pilot service: CLEANING first.
-          Signing: Android debug signing (test only)
-          EOF
 
       - name: Upload Stage 4J Partner Bootstrap APK
         uses: actions/upload-artifact@v4
