@@ -55,8 +55,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f supabase/migrations/20260912000100_add_program_package_media.sql
-          test -f supabase/migrations/20260912000200_create_edutrans_media_storage.sql
+          test -f supabase/migrations/20260912153500_add_program_package_media.sql
+          test -f supabase/migrations/20260912153800_create_edutrans_media_bucket.sql
           test -f supabase/functions/internal-media-master/index.ts
           test -f supabase/functions/public-package-catalog/index.ts
           test -f supabase/config.toml
