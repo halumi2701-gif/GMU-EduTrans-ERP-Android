@@ -22,13 +22,13 @@ android {
         applicationId = "site.garsyanimultiusaha.gawone.mitra"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.0.0-rc1"
+        versionCode = 13
+        versionName = "1.0.3-e2e-pilot"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://fhtxlojbguineyqayhai.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h\"")
         buildConfigField("boolean", "PUSH_PROVIDER_CONFIGURED", "false")
-        buildConfigField("String", "BUILD_STAGE", "\"4J\"")
+        buildConfigField("String", "BUILD_STAGE", "\"4J-E2E-PILOT\"")
     }
 
     signingConfigs {
