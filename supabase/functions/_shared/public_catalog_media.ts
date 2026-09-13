@@ -31,6 +31,7 @@ export function publicProgram(row: JsonRecord) {
     category: row.category ?? null,
     short_description: row.short_description ?? null,
     min_pax: row.min_pax ?? null,
+    sort_order: row.sort_order ?? null,
     cover_image_url: publicHttpsUrl(row.cover_image_url),
     gallery_urls: stringList(row.gallery_urls, 5)
       .map(publicHttpsUrl)
