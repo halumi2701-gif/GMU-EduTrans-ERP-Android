@@ -3,9 +3,10 @@ set -euo pipefail
 
 schema="supabase/migrations/20260912153500_add_program_package_media.sql"
 storage="supabase/migrations/20260912153800_create_edutrans_media_bucket.sql"
+deploy_workflow=".github/workflows/deploy-supabase-media.yml"
 
-for file in "$schema" "$storage"; do
-  test -f "$file" || { echo "Missing migration: $file"; exit 1; }
+for file in "$schema" "$storage" "$deploy_workflow"; do
+  test -f "$file" || { echo "Missing Media Sync file: $file"; exit 1; }
 done
 
 # Media metadata contract.
@@ -31,5 +32,17 @@ for role in "Owner" "Director" "Direktur" "Manager" "Manager EduTrans" "Admin"; 
   grep -Fq "'$role'" "$storage" || { echo "Missing storage role: $role"; exit 1; }
 done
 
-echo "GMU Media migration contract passed."
+# Production deployment safety contract.
+grep -Fq 'confirm_production == '\''DEPLOY'\''' "$deploy_workflow"
+grep -Fq 'gmu-edutrans-supabase-production' "$deploy_workflow"
+grep -Fq 'version: v2.117.0' "$deploy_workflow"
+grep -Fq 'Capture and validate pre-deploy customer baseline' "$deploy_workflow"
+grep -Fq 'gmu-media-sync-predeploy-customer-snapshot' "$deploy_workflow"
+grep -Fq 'supabase db push --dry-run' "$deploy_workflow"
+grep -Fq 'Verify direct production Media Catalog contract' "$deploy_workflow"
+grep -Fq 'Verify customer proxy Media Catalog contract' "$deploy_workflow"
+grep -Fq 'https://edutrans.garsyanimultiusaha.site/api/proxy?slug=public-package-catalog' "$deploy_workflow"
+
+echo "GMU Media migration + deployment contract passed."
 echo "Program+Package media | gallery<=5 | HTTPS cover | 8MiB | JPG/PNG/WebP | authenticated role upload"
+echo "Production guard | DEPLOY confirmation | CLI v2.117.0 | pre-snapshot | dry-run | direct+customer verification"
