@@ -93,6 +93,20 @@ function ownedStoragePath(urlValue: unknown, table: string, entityId: string): s
   return path;
 }
 
+function ownedMediaUrl(value: unknown, table: string, entityId: string): string | null {
+  const raw = String(value ?? "").trim();
+  return ownedStoragePath(raw, table, entityId) ? raw : null;
+}
+
+function ownedMediaList(value: unknown, table: string, entityId: string, max = 5): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => ownedMediaUrl(item, table, entityId))
+    .filter((url): url is string => Boolean(url))
+    .filter((url, index, list) => list.indexOf(url) === index)
+    .slice(0, max);
+}
+
 async function removeStoragePaths(paths: string[]): Promise<number> {
   const unique = [...new Set(paths.filter(Boolean))];
   if (!unique.length) return 0;
@@ -192,7 +206,8 @@ Deno.serve(async (req) => {
       const rows = JSON.parse(await serviceRest(
         `${table}?select=cover_image_url,gallery_urls&id=eq.${encodeURIComponent(entityId)}&limit=1`,
       )) as JsonRecord[];
-      const row = rows[0] ?? {};
+      if (!rows.length) return json({ error: "Program/Paket tidak ditemukan." }, 404);
+      const row = rows[0];
       return json({
         ok: true,
         media: {
@@ -215,11 +230,15 @@ Deno.serve(async (req) => {
       const previousRows = JSON.parse(await serviceRest(
         `${table}?select=cover_image_url,gallery_urls&id=eq.${encodeURIComponent(entityId)}&limit=1`,
       )) as JsonRecord[];
-      const previous = previousRows[0] ?? {};
+      if (!previousRows.length) return json({ error: "Program/Paket tidak ditemukan." }, 404);
+      const previous = previousRows[0];
       const media = (body.media ?? {}) as JsonRecord;
+      const newCover = ownedMediaUrl(media.cover_image_url, table, entityId);
+      const newGallery = ownedMediaList(media.gallery_urls, table, entityId)
+        .filter((url) => url !== newCover);
       const payload = {
-        cover_image_url: cover(media.cover_image_url),
-        gallery_urls: strings(media.gallery_urls),
+        cover_image_url: newCover,
+        gallery_urls: newGallery,
       };
 
       await serviceRest(
