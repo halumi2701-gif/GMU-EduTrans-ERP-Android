@@ -22,6 +22,10 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done < <(find public-web -type f -name '*.js' -print0)
+          node --check scripts/verify-public-web-media.js
+
+      - name: Verify public web media renderer contract
+        run: node scripts/verify-public-web-media.js
 
       - name: Validate media catalog verification script
         shell: bash
