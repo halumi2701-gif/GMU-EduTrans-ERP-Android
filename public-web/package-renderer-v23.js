@@ -27,10 +27,10 @@
   function mediaBlock(pkg) {
     const cover = safeMediaUrl(pkg.cover_image_url || pkg.image_url || pkg.program_cover_image_url);
     const galleryRaw = Array.isArray(pkg.gallery_urls) ? pkg.gallery_urls : (Array.isArray(pkg.images) ? pkg.images : []);
-    const gallery = galleryRaw.map(safeMediaUrl).filter(Boolean).filter((x) => x !== cover).slice(0, 4);
+    const gallery = galleryRaw.map(safeMediaUrl).filter(Boolean).filter((x) => x !== cover).slice(0, 5);
     if (!cover && !gallery.length) return '';
     const main = cover || gallery[0];
-    const thumbs = [main, ...gallery.filter((x) => x !== main)].slice(0, 4);
+    const thumbs = [main, ...gallery.filter((x) => x !== main)].slice(0, 6);
     return `<div class="pkg-media">
       <img class="pkg-cover" src="${esc(main)}" alt="${esc(pkg.name || 'Paket GMU EduTrans')}" loading="lazy" decoding="async">
       ${thumbs.length > 1 ? `<div class="pkg-gallery">${thumbs.map((src, index) => `<button type="button" class="pkg-thumb${index === 0 ? ' is-active' : ''}" data-media-src="${esc(src)}" aria-label="Tampilkan foto ${index + 1}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async"></button>`).join('')}</div>` : ''}
