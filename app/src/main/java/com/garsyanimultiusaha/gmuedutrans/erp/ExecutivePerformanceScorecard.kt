@@ -276,7 +276,9 @@ private fun scoreDueDate(row: ErpRow): Date? = runCatching {
 private fun scoreCompletionDelta(row: ErpRow): Double? {
     val completion = scoreCompletionDate(row) ?: return null
     val due = scoreDueDate(row) ?: return null
-    return (completion.time - due.time) / 86_400_000.0
+    val dayFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }
+    val completionDay = dayFormatter.parse(dayFormatter.format(completion)) ?: return null
+    return (completionDay.time - due.time) / 86_400_000.0
 }
 
 private fun scoreSlaEvaluation(row: ErpRow): Double? {
