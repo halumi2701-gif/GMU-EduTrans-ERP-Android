@@ -71,6 +71,17 @@ for (const forbidden of ['455000', '130000', '235000', '25.54']) {
   assert(!html.includes(forbidden), `internal finance value must not render: ${forbidden}`);
 }
 
+// Booking invariant: Media Sync is presentation-only. Choosing a package must pass
+// only the package ID into the existing booking flow, never the full package/media object.
+assert(
+  /onChoose\?\.\(button\.dataset\.packageId\)/.test(source),
+  'Pilih Paket must pass only data-package-id to the existing booking callback'
+);
+assert(
+  !/onChoose\?\.\((?:pkg|package|packages|window\.packages)/.test(source),
+  'booking callback must never receive package/media objects'
+);
+
 const packageCover = 'https://gtgnwasijweewmaubvyg.supabase.co/storage/v1/object/public/edutrans-media/package/package-1/cover.webp';
 const packageCoverHtml = renderer.packageCard({
   id: 'package-1',
@@ -86,4 +97,4 @@ assert(packageCoverHtml.includes(packageCover), 'package cover must override Pro
 assert(!packageCoverHtml.includes(programCover), 'Program fallback must not replace an explicit package cover');
 
 console.log('GMU public web media renderer contract passed.');
-console.log('Program fallback | 5 gallery | 10 facilities | safe HTML | finance fields hidden');
+console.log('Program fallback | 5 gallery | 10 facilities | package-id-only booking | safe HTML | finance fields hidden');
