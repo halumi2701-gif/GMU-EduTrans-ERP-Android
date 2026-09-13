@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                     launchTarget = null
                 }
             }
-            GmuNativeAppWithExecutivePerformanceScorecard(vm)
+            GmuNativeAppWithExecutiveTrendAccountability(vm)
         }
     }
 
