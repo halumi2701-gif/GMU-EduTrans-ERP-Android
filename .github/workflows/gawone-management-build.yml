@@ -1,0 +1,53 @@
+name: Build GAWONE Management M2.22 RC3
+
+on:
+  push:
+    branches: [ "gawone-management-m2-22-build" ]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GAWONE_SUPABASE_URL: https://fhtxlojbguineyqayhai.supabase.co
+      GAWONE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Verify M2.22 contract markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -R "get_management_runtime_config" -n app/src/main/java
+          grep -R "get_my_management_bootstrap" -n app/src/main/java
+          grep -R "get_my_management_navigation" -n app/src/main/java
+          grep -R "get_management_queue" -n app/src/main/java
+          grep -R "get_management_detail" -n app/src/main/java
+          grep -R "execute_management_action" -n app/src/main/java
+          if grep -R "android.webkit.WebView\|<WebView" -n app/src/main; then exit 1; fi
+      - name: Build debug and release APKs
+        run: gradle --no-daemon :app:assembleDebug :app:assembleRelease
+      - name: Verify APKs
+        run: |
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release-unsigned.apk
+          ls -lh app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release-unsigned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Management-M2.22-RC3-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Management-M2.22-RC3-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 14
