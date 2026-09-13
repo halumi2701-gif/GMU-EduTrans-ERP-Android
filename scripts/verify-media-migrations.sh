@@ -4,8 +4,10 @@ set -euo pipefail
 schema="supabase/migrations/20260912153500_add_program_package_media.sql"
 storage="supabase/migrations/20260912153800_create_edutrans_media_bucket.sql"
 deploy_workflow=".github/workflows/deploy-supabase-media.yml"
+public_proxy="public-web/api/proxy.js"
+proxy_contract="scripts/verify-public-proxy.js"
 
-for file in "$schema" "$storage" "$deploy_workflow"; do
+for file in "$schema" "$storage" "$deploy_workflow" "$public_proxy" "$proxy_contract"; do
   test -f "$file" || { echo "Missing Media Sync file: $file"; exit 1; }
 done
 
@@ -32,6 +34,12 @@ for role in "Owner" "Director" "Direktur" "Manager" "Manager EduTrans" "Admin"; 
   grep -Fq "'$role'" "$storage" || { echo "Missing storage role: $role"; exit 1; }
 done
 
+# Public proxy safety contract. This is also executed by the production deploy
+# workflow because that workflow calls this validation script before migrations.
+node --check "$public_proxy"
+node --check "$proxy_contract"
+node "$proxy_contract"
+
 # Production deployment safety contract.
 grep -Fq 'confirm_production == '\''DEPLOY'\''' "$deploy_workflow"
 grep -Fq 'gmu-edutrans-supabase-production' "$deploy_workflow"
@@ -45,4 +53,5 @@ grep -Fq 'https://edutrans.garsyanimultiusaha.site/api/proxy?slug=public-package
 
 echo "GMU Media migration + deployment contract passed."
 echo "Program+Package media | gallery<=5 | HTTPS cover | 8MiB | JPG/PNG/WebP | authenticated role upload"
+echo "Public proxy | GET retry once | POST no retry | public allowlist | publishable key only"
 echo "Production guard | DEPLOY confirmation | CLI v2.117.0 | pre-snapshot | dry-run | direct+customer verification"
