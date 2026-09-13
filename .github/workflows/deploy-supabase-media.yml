@@ -21,8 +21,6 @@ concurrency:
 
 env:
   SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
-  STATION_PROGRAM_ID: 8d9c065b-124b-4e56-9180-23600018b04e
-  STATION_PACKAGE_CODE: PKG-GMU-00008
 
 jobs:
   deploy:
@@ -38,6 +36,30 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
+
+      - name: Validate public web JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find public-web -type f -name '*.js' -print0)
+          node --check scripts/verify-public-web-media.js
+          bash -n scripts/verify-media-catalog.sh
+
+      - name: Verify public web media renderer contract
+        run: node scripts/verify-public-web-media.js
+
+      - name: Verify Media Sync deployment bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/20260912000100_add_program_package_media.sql
+          test -f supabase/migrations/20260912000200_create_edutrans_media_storage.sql
+          test -f supabase/functions/internal-media-master/index.ts
+          test -f supabase/functions/public-package-catalog/index.ts
+          test -f supabase/config.toml
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
@@ -91,53 +113,21 @@ jobs:
           set -euo pipefail
           supabase functions deploy public-package-catalog --project-ref "$SUPABASE_PROJECT_ID"
 
-      - name: Verify station package at 20 pax
+      - name: Verify production Media Catalog contract
         shell: bash
         run: |
           set -euo pipefail
           endpoint="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-package-catalog"
-          curl --fail --silent --show-error \
-            "$endpoint?program_id=$STATION_PROGRAM_ID&trip_date=2026-09-12&pax=20" \
-            -o /tmp/catalog20.json
-
-          jq -e --arg code "$STATION_PACKAGE_CODE" '
-            .version == "v10-media-sync" and
-            .catalog_status == "AVAILABLE" and
-            ((.items | map(select(.package_code == $code)) | first) as $p |
-              $p != null and
-              $p.price_per_pax == 46000 and
-              $p.min_pax == 20 and
-              ($p.facilities | length) >= 10 and
-              $p.estimated_total == 920000 and
-              ($p | has("price_note") | not) and
-              ($p | has("hpp") | not) and
-              ($p | has("base_cost") | not) and
-              ($p | has("manager_fee") | not) and
-              ($p | has("sales_fee") | not) and
-              ($p | has("mitra_fee") | not) and
-              ($p | has("profit") | not) and
-              ($p | has("margin") | not)
-            )
-          ' /tmp/catalog20.json
-
-      - name: Verify minimum 20 rule
-        shell: bash
-        run: |
-          set -euo pipefail
-          endpoint="https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-package-catalog"
-          curl --fail --silent --show-error \
-            "$endpoint?program_id=$STATION_PROGRAM_ID&trip_date=2026-09-12&pax=19" \
-            -o /tmp/catalog19.json
-
-          jq -e --arg code "$STATION_PACKAGE_CODE" '
-            (.items | map(select(.package_code == $code)) | length) == 0
-          ' /tmp/catalog19.json
+          bash scripts/verify-media-catalog.sh "$endpoint"
 
       - name: Deployment summary
         shell: bash
         run: |
           echo "GMU EduTrans Media Sync production verification passed."
-          echo "Package: $STATION_PACKAGE_CODE"
+          echo "Package: PKG-GMU-00008"
           echo "Price: Rp46.000/pax"
           echo "Minimum: 20 peserta"
+          echo "Facilities: exactly 10"
+          echo "Media: HTTPS, gallery max 5, Program cover fallback supported"
           echo "Baseline 20 pax: Rp920.000"
+          echo "Public financial leak guard: recursive"
