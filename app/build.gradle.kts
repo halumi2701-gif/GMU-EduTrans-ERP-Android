@@ -1,42 +1,53 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
-fun esc(v: String) = "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-
+fun quoted(v: String) = "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 val supabaseUrl = providers.gradleProperty("GAWONE_SUPABASE_URL")
     .orElse(providers.environmentVariable("GAWONE_SUPABASE_URL"))
-    .orElse("https://fhtxlojbguineyqayhai.supabase.co")
-    .get()
-val supabaseKey = providers.gradleProperty("GAWONE_SUPABASE_PUBLISHABLE_KEY")
+    .orElse("https://fhtxlojbguineyqayhai.supabase.co").get()
+val publishableKey = providers.gradleProperty("GAWONE_SUPABASE_PUBLISHABLE_KEY")
     .orElse(providers.environmentVariable("GAWONE_SUPABASE_PUBLISHABLE_KEY"))
-    .orElse("sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h")
-    .get()
+    .orElse("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX").get()
 
 android {
     namespace = "site.garsyanimultiusaha.gawone.management"
     compileSdk = 35
-
     defaultConfig {
         applicationId = "site.garsyanimultiusaha.gawone.management"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0-m2.22-rc3"
-        buildConfigField("String", "SUPABASE_URL", esc(supabaseUrl))
-        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", esc(supabaseKey))
-        buildConfigField("String", "BACKEND_CONTRACT", "\"M2.22\"")
+        versionCode = 3
+        versionName = "1.0.1-m2.22-full-rc2"
+        buildConfigField("String", "SUPABASE_URL", quoted(supabaseUrl))
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", quoted(publishableKey))
+        buildConfigField("String", "BACKEND_CONTRACT", quoted("M2.22"))
     }
-
-    buildFeatures { buildConfig = true }
-
-    buildTypes {
-        debug { applicationIdSuffix = ".debug"; versionNameSuffix = "-debug" }
-        release { isMinifyEnabled = false; isShrinkResources = false }
-    }
-
+    buildFeatures { compose = true; buildConfig = true }
+    composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    kotlinOptions { jvmTarget = "17" }
+    buildTypes {
+        debug { applicationIdSuffix = ".debug"; versionNameSuffix = "-debug" }
+        release { isMinifyEnabled = false; isShrinkResources = false }
+    }
+}
+
+dependencies {
+    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation("androidx.activity:activity-compose:1.9.1")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 }
