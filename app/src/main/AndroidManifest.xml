@@ -5,7 +5,7 @@
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:label="GAWONE Management"
-        android:theme="@style/Theme.GawoneManagement">
+        android:theme="@style/Theme.GAWONEManagement">
         <activity
             android:name=".FullMainActivity"
             android:exported="true">
