@@ -11,18 +11,25 @@ old = '''                val mapsReady=featureEnabled(runtime,"MAPS")
                 items(pilotServices){service->ServiceCard(service){onService(service)}}'''
 new = '''                val mapsReady=featureEnabled(runtime,"MAPS")
                 val codes=listOf("RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE")
+                val controlledPilotCodes=setOf("CLEANING")
                 val byCode=services.associateBy{it.code.uppercase()}
                 item{NineServicesSummary(services,mapsReady)}
                 if(!mapsReady)item{PilotNoticeCard()}
                 items(codes){code->
                     val service=byCode[code]
                     val routeReady=mapsReady || code !in setOf("RIDE","CAR","DELIVERY")
-                    if(service!=null && service.availability=="AVAILABLE" && routeReady){
+                    val pilotEnabled=code in controlledPilotCodes
+                    val liveNow=service!=null && service.availability=="AVAILABLE" && routeReady && pilotEnabled
+                    if(liveNow && service!=null){
                         ServiceCard(service){onService(service)}
                     }else{
                         PlannedServiceCard(
                             serviceTitle(code),
-                            if(!routeReady) "Menunggu Maps + routing production" else "Belum tersedia di area Anda"
+                            when{
+                                !routeReady -> "Menunggu Maps + routing production"
+                                !pilotEnabled -> "Dibuka bertahap setelah gate booking & matching siap"
+                                else -> "Belum tersedia di area Anda"
+                            }
                         )
                     }
                 }'''
@@ -47,8 +54,9 @@ helper = r'''private fun serviceTitle(code:String):String = when(code){
 @Composable
 fun NineServicesSummary(services:List<ServiceUi>, mapsReady:Boolean){
     val codes=listOf("RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE")
-    val live=services.filter{it.availability=="AVAILABLE"}.map{it.code.uppercase()}.toSet()
-    val ready=codes.count{code -> live.contains(code) && (mapsReady || code !in setOf("RIDE","CAR","DELIVERY"))}
+    val controlledPilotCodes=setOf("CLEANING")
+    val available=services.filter{it.availability=="AVAILABLE"}.map{it.code.uppercase()}.toSet()
+    val ready=codes.count{code -> code in controlledPilotCodes && available.contains(code) && (mapsReady || code !in setOf("RIDE","CAR","DELIVERY"))}
 
     Surface(
         color=Color.White,
@@ -133,6 +141,7 @@ result = main.read_text()
 for token in [
     '9 layanan GAWONE',
     '"RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE"',
+    'controlledPilotCodes=setOf("CLEANING")',
     'fun NineServicesSummary',
     'fun PlannedServiceCard'
 ]:
