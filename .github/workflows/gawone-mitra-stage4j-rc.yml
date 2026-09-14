@@ -1,4 +1,4 @@
-name: GAWONE Mitra Stage 4J Partner Bootstrap Pilot
+name: GAWONE Mitra Stage 4J Email Primary Pilot
 
 on:
   push:
@@ -30,30 +30,83 @@ jobs:
           grep -q 'accept_assignment_offer' "$ROOT/Stage4DOffer.kt"
           grep -q 'partner_assignment_action' "$ROOT/Stage4EExecution.kt"
           grep -q 'send_order_chat_message' "$ROOT/Stage4GCommunication.kt"
-          grep -q 'class PilotAuthActivity' "$ROOT/PilotAuthActivity.kt"
-          grep -q 'grant_type=password' "$ROOT/PilotAuthActivity.kt"
+          grep -q 'class MitraLoginActivity' "$ROOT/MitraLoginActivity.kt"
+          grep -q 'grant_type=password' "$ROOT/MitraLoginActivity.kt"
+          grep -q 'register_as_partner' "$ROOT/MitraLoginActivity.kt"
+          grep -q 'android:name=".MitraLoginActivity"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
 
-      - name: Apply partner bootstrap ordering fix
+      - name: Apply email-primary navigation and partner bootstrap fixes
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           p = Path("gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt")
           s = p.read_text()
+
           old = "        val d = api.dashboard()\n        if (d == null) {\n            api.registerPartner()\n            screen = Screen.PROFILE\n            return\n        }\n        dashboard = d\n"
           new = "        api.registerPartner()\n        val d = api.dashboard()\n        if (d == null) {\n            screen = Screen.PROFILE\n            return\n        }\n        dashboard = d\n"
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          old = "        if (api.readSession() == null) {\n            screen = Screen.PHONE\n            return\n        }\n"
+          new = "        if (api.readSession() == null) {\n            throw ApiException(\"AUTH_REQUIRED\")\n        }\n"
           if old not in s:
-              raise SystemExit("bootstrap target block not found")
-          p.write_text(s.replace(old, new, 1))
+              raise SystemExit("missing no-session bootstrap block")
+          s = s.replace(old, new, 1)
+
+          old = '''    LaunchedEffect(Unit) {
+        runCatching { bootstrap() }.onFailure {
+            api.clearSession()
+            screen = Screen.PHONE
+            error = "Sesi lama tidak dapat dipakai. Silakan login kembali."
+        }
+    }
+'''
+          new = '''    LaunchedEffect(Unit) {
+        runCatching { bootstrap() }.onFailure {
+            api.clearSession()
+            context.startActivity(Intent(context, MitraLoginActivity::class.java))
+            (context as? ComponentActivity)?.finish()
+        }
+    }
+'''
+          if old not in s:
+              raise SystemExit("missing bootstrap failure block")
+          s = s.replace(old, new, 1)
+
+          old = '''                onLogout = {
+                    launchTask {
+                        api.signOut()
+                        phone = ""
+                        otp = ""
+                        screen = Screen.PHONE
+                    }
+                }
+'''
+          new = '''                onLogout = {
+                    launchTask {
+                        api.signOut()
+                        context.startActivity(Intent(context, MitraLoginActivity::class.java))
+                        (context as? ComponentActivity)?.finish()
+                    }
+                }
+'''
+          if old not in s:
+              raise SystemExit("missing logout block")
+          s = s.replace(old, new, 1)
+          p.write_text(s)
 
           gpath = Path("gawone-mitra-stage4j/app/build.gradle.kts")
           g = gpath.read_text()
-          g = g.replace("versionCode = 14", "versionCode = 15", 1)
-          g = g.replace('versionName = "1.0.4-auth-fallback"', 'versionName = "1.0.5-partner-bootstrap"', 1)
+          g = g.replace("versionCode = 14", "versionCode = 16", 1)
+          g = g.replace('versionName = "1.0.4-auth-fallback"', 'versionName = "1.0.6-email-primary"', 1)
           gpath.write_text(g)
           PY
-          grep -q 'versionCode = 15' gawone-mitra-stage4j/app/build.gradle.kts
-          grep -q 'versionName = "1.0.5-partner-bootstrap"' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'throw ApiException("AUTH_REQUIRED")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'MitraLoginActivity::class.java' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'versionCode = 16' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'versionName = "1.0.6-email-primary"' gawone-mitra-stage4j/app/build.gradle.kts
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -84,7 +137,7 @@ jobs:
       - name: Release lint
         run: gradle -p gawone-mitra-stage4j --no-daemon :app:lintRelease
 
-      - name: Build installable partner bootstrap test APK
+      - name: Build installable email-primary test APK
         run: gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:assembleDebug
 
       - name: Validate APK metadata
@@ -95,8 +148,8 @@ jobs:
           AAPT="$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt"
           "$AAPT" dump badging "$APK" | tee apk-badging.txt
           grep "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
-          grep "versionCode='15'" apk-badging.txt
-          grep "versionName='1.0.5-partner-bootstrap-test'" apk-badging.txt
+          grep "versionCode='16'" apk-badging.txt
+          grep "versionName='1.0.6-email-primary-test'" apk-badging.txt
           unzip -t "$APK" >/dev/null
           sha256sum "$APK" | tee apk-sha256.txt
 
@@ -104,14 +157,22 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifact-stage4j
-          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.5-Partner-Bootstrap-test.apk
+          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.6-Email-Primary-test.apk
           cp apk-sha256.txt artifact-stage4j/SHA256.txt
           cp apk-badging.txt artifact-stage4j/APK_BADGING.txt
+          cat > artifact-stage4j/README.txt <<'EOF'
+          GAWONE Mitra v1.0.6 Email Primary test APK
+          Primary auth: Email + Password.
+          Phone OTP remains legacy/optional in source but is unreachable from the normal navigation flow.
+          Empty/invalid session and logout route to MitraLoginActivity, never PhoneScreen.
+          Partner bootstrap uses register_as_partner before dashboard/KYC.
+          Full Stage 4J modules retained.
+          EOF
 
-      - name: Upload Stage 4J Partner Bootstrap APK
+      - name: Upload Stage 4J Email Primary APK
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Mitra-v1.0.5-Partner-Bootstrap-test-APK
+          name: GAWONE-Mitra-v1.0.6-Email-Primary-test-APK
           path: artifact-stage4j/
           if-no-files-found: error
           retention-days: 14
