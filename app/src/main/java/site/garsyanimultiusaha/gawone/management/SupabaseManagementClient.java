@@ -16,7 +16,7 @@ import java.util.UUID;
 
 final class SupabaseManagementClient {
     static final String CONTRACT = "M2.22";
-    private static final int VERSION_CODE = 1;
+    private static final int VERSION_CODE = BuildConfig.VERSION_CODE;
     private final String base = BuildConfig.SUPABASE_URL;
     private final String key = BuildConfig.SUPABASE_PUBLISHABLE_KEY;
     private String accessToken;
