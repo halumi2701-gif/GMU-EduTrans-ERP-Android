@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v9.9-role-privacy-sync';
-  const FULL_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur']);
+  const VERSION = 'v9.9-role-privacy-sync-id';
+  const STRATEGIC_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur']);
+  const OPERATIONAL_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur', 'Manager', 'Manager EduTrans', 'Finance', 'Keuangan']);
   const MANAGER_ROLES = new Set(['Manager', 'Manager EduTrans']);
   const q = (sel, root = document) => root.querySelector(sel);
   const qa = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -11,8 +12,17 @@
     try { return String(profile?.role || ''); } catch (_) { return ''; }
   }
 
+  function canSeeStrategicFinance() {
+    return STRATEGIC_FINANCE_ROLES.has(currentRole());
+  }
+
+  function canSeeOperationalFinance() {
+    return OPERATIONAL_FINANCE_ROLES.has(currentRole());
+  }
+
+  // Backward-compatible name used by other web modules.
   function canSeeFullFinance() {
-    return FULL_FINANCE_ROLES.has(currentRole());
+    return canSeeStrategicFinance();
   }
 
   function isManagerEduTrans() {
@@ -32,15 +42,15 @@
     let alerts = 0;
     try { alerts = typeof workflowAlerts === 'function' ? workflowAlerts().length : 0; } catch (_) {}
     return [
-      ['Booking', bs.length, 'pipeline'],
-      ['Pax', pax, 'peserta'],
-      ['Trip Mendatang', upcoming, 'jadwal aktif'],
-      ['Workflow Alert', alerts, 'perlu perhatian'],
+      ['Pemesanan', bs.length, 'tahapan aktif'],
+      ['Peserta', pax, 'peserta'],
+      ['Kegiatan Mendatang', upcoming, 'jadwal aktif'],
+      ['Peringatan Proses', alerts, 'perlu perhatian'],
     ];
   }
 
   function sanitizeDashboard() {
-    if (canSeeFullFinance()) return;
+    if (canSeeOperationalFinance()) return;
     const metrics = q('#metrics');
     if (!metrics) return;
     metrics.innerHTML = operationalMetrics().map((x, i) =>
@@ -50,12 +60,15 @@
 
   function sanitizeFinanceUi() {
     const financeButton = q('#nav [data-page="finance"]');
-    if (financeButton) financeButton.classList.toggle('hidden', !canSeeFullFinance());
-    qa('.financial-only').forEach(el => el.classList.toggle('hidden', !canSeeFullFinance()));
-    if (!canSeeFullFinance()) {
+    if (financeButton) financeButton.classList.toggle('hidden', !canSeeOperationalFinance());
+
+    qa('.financial-only').forEach(el => el.classList.toggle('hidden', !canSeeOperationalFinance()));
+    qa('.strategic-financial-only').forEach(el => el.classList.toggle('hidden', !canSeeStrategicFinance()));
+
+    if (!canSeeOperationalFinance()) {
       const financePage = q('#finance');
       if (financePage) financePage.classList.remove('active');
-      if (q('#title')?.textContent?.toLowerCase().includes('finance')) {
+      if (q('#title')?.textContent?.toLowerCase().includes('finance') || q('#title')?.textContent?.toLowerCase().includes('keuangan')) {
         try { if (typeof navTo === 'function') navTo('dashboard'); } catch (_) {}
       }
     }
@@ -78,7 +91,7 @@
     if (typeof navTo !== 'function' || navTo.__gmuPrivacyPatched) return;
     const original = navTo;
     const patched = function (page, ...rest) {
-      if (page === 'finance' && !canSeeFullFinance()) page = 'dashboard';
+      if (page === 'finance' && !canSeeOperationalFinance()) page = 'dashboard';
       return original.call(this, page, ...rest);
     };
     patched.__gmuPrivacyPatched = true;
@@ -105,9 +118,9 @@
         const original = tripFolderState;
         const wrapped = function (...args) {
           const result = original.apply(this, args);
-          if (!canSeeFullFinance() && Array.isArray(result?.docs)) {
-            result.docs = result.docs.map(doc => doc?.key === 'invoice'
-              ? { ...doc, ok: false, locked: true, meta: 'Terkunci Owner/Director' }
+          if (!canSeeOperationalFinance() && Array.isArray(result?.docs)) {
+            result.docs = result.docs.map(doc => ['invoice', 'vendor-invoice'].includes(String(doc?.key || ''))
+              ? { ...doc, ok: false, locked: true, meta: 'Terkunci sesuai hak akses' }
               : doc
             );
             const countable = result.docs.filter(x => !x.locked);
@@ -127,7 +140,7 @@
         const original = visibleTripDocCategories;
         const wrapped = function (...args) {
           const list = original.apply(this, args) || [];
-          if (canSeeFullFinance()) return list;
+          if (canSeeOperationalFinance()) return list;
           return list.filter(item => !item?.finance && !['invoice', 'vendor-invoice'].includes(String(item?.key || '')));
         };
         wrapped.__gmuPrivacyPatched = true;
@@ -174,8 +187,11 @@
     window.GmuErpRolePrivacy = Object.freeze({
       version: VERSION,
       canSeeFullFinance,
+      canSeeStrategicFinance,
+      canSeeOperationalFinance,
       isManagerEduTrans,
-      fullFinanceRoles: [...FULL_FINANCE_ROLES],
+      strategicFinanceRoles: [...STRATEGIC_FINANCE_ROLES],
+      operationalFinanceRoles: [...OPERATIONAL_FINANCE_ROLES],
     });
   }
 
