@@ -26,6 +26,11 @@ final class SupabaseManagementClient {
     String accessToken() { return accessToken; }
     String refreshToken() { return refreshToken; }
 
+    JSONObject signUp(String email, String password) throws Exception {
+        JSONObject body = new JSONObject().put("email", email).put("password", password);
+        return request("POST", "/auth/v1/signup", body, false);
+    }
+
     JSONObject signIn(String email, String password) throws Exception {
         JSONObject body = new JSONObject().put("email", email).put("password", password);
         JSONObject out = request("POST", "/auth/v1/token?grant_type=password", body, false);
