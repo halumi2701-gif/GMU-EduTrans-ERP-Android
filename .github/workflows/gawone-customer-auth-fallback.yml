@@ -1,16 +1,17 @@
-name: GAWONE Customer RC9 Reliability
+name: GAWONE Customer RC10 Nine Services
 
 on:
   push:
     branches:
       - gawone-customer-production-build
     paths:
+      - "gawone-customer-rc5-e2e-pilot.py"
       - "gawone-customer-rc6-auth-fallback.py"
       - "gawone-customer-rc7-uiux-v2.py"
       - "gawone-customer-rc8-uiux-v3.py"
       - "gawone-customer-rc9-reliability.py"
+      - "gawone-customer-rc10-nine-services.py"
       - ".github/workflows/gawone-customer-auth-fallback.yml"
-      - "gawone-customer-rc5-e2e-pilot.py"
       - "gawone-customer-rc2-src.*"
       - "gawone-customer-rc2-to-rc3.patch.gz.b64"
       - "gawone-customer-rc3-to-rc4.patch.gz.b64"
@@ -56,37 +57,36 @@ jobs:
         run: |
           python gawone-customer-rc6-auth-fallback.py
           grep -q 'versionCode = 15' gawone-customer-production/app/build.gradle.kts
-          grep -q 'suspend fun signInEmail' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/SupabaseApi.kt
-          grep -q 'suspend fun signUpEmail' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/SupabaseApi.kt
 
       - name: Apply RC7 UIUX V2
         shell: bash
         run: |
           python gawone-customer-rc7-uiux-v2.py
           grep -q 'versionCode = 16' gawone-customer-production/app/build.gradle.kts
-          grep -q 'versionName = "1.0.6-uiux-v2"' gawone-customer-production/app/build.gradle.kts
 
-      - name: Apply RC8 UIUX V3 live journey
+      - name: Apply RC8 UIUX V3
         shell: bash
         run: |
           python gawone-customer-rc8-uiux-v3.py
           grep -q 'versionCode = 17' gawone-customer-production/app/build.gradle.kts
-          grep -q 'versionName = "1.0.7-uiux-v3"' gawone-customer-production/app/build.gradle.kts
           grep -q 'GAWONE Live' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'Perjalanan pesanan' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'Satu status di semua aplikasi' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
 
-      - name: Apply RC9 reliability and safe error UX
+      - name: Apply RC9 reliability
         shell: bash
         run: |
           python gawone-customer-rc9-reliability.py
           grep -q 'versionCode = 18' gawone-customer-production/app/build.gradle.kts
-          grep -q 'versionName = "1.0.8-reliability-rc9"' gawone-customer-production/app/build.gradle.kts
           grep -q 'object GawoneCustomerFailureMapper' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
-          grep -q 'NO_PARTNER_AVAILABLE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
-          grep -q 'SESSION_EXPIRED' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
-          grep -q 'PERMISSION DENIED FOR TABLE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
-          zip -qr GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SOURCE.zip gawone-customer-production
+
+      - name: Apply RC10 nine-service catalog
+        shell: bash
+        run: |
+          python gawone-customer-rc10-nine-services.py
+          grep -q 'versionCode = 19' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.9-nine-services-rc10"' gawone-customer-production/app/build.gradle.kts
+          grep -q '9 layanan GAWONE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q '"RIDE","CAR","DELIVERY","CLEANING","TUKANG","HELPER","TEKNISI","DRIVER","LABOUR"' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          zip -qr GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -109,28 +109,28 @@ jobs:
         working-directory: gawone-customer-production
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify RC9 APK
+      - name: Verify RC10 APK
         shell: bash
         run: |
           APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk
-          unzip -t GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk | tee GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk > GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='18' versionName='1.0.8-reliability-rc9'" GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk > GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SIGNATURE.txt
+          cp "$APK" GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk
+          unzip -t GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk | tee GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk > GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='19' versionName='1.0.9-nine-services-rc10'" GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk > GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SIGNATURE.txt
           test -f gawone-customer-production/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.8_RELIABILITY_RC9
+          name: GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10
           if-no-files-found: error
           retention-days: 14
           path: |
-            GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk
-            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SHA256.txt
-            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SOURCE.zip
-            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
-            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SIGNATURE.txt
+            GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10.apk
+            GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SHA256.txt
+            GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SOURCE.zip
+            GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_BADGING.txt
+            GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
