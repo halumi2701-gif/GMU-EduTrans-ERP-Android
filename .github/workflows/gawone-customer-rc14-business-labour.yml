@@ -65,18 +65,20 @@ jobs:
           grep -q 'get_my_businesses' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
           zip -qr GAWONE_Customer_v1.0.13_BUSINESS_LABOUR_RC14_SOURCE.zip gawone-customer-production
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
+      - name: Install Android SDK packages from runner
         shell: bash
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          command -v sdkmanager
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aapt"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/apksigner"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
