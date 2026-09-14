@@ -6,6 +6,7 @@ const files = {
   packages: 'erp-web/package-master-v97.js',
   media: 'erp-web/media-master-v96.js',
   agent: 'erp-web/manager-ops-agent-v98.js',
+  company: 'erp-web/company-operating-system-v100.js',
   loader: 'erp-web/unified-v10-loader.js',
 };
 
@@ -22,11 +23,17 @@ function mustNot(key, text, label) {
   if (src[key].includes(text)) throw new Error(`Forbidden ERP v10 content [${key}]: ${label}`);
 }
 
-// Role/privacy: full-company finance is Owner/Director only.
-must('privacy', "const FULL_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur'])", 'Owner/Director-only full finance');
-must('privacy', "page === 'finance' && !canSeeFullFinance()", 'finance navigation guard');
-must('privacy', 'Terkunci Owner/Director', 'Trip Folder finance lock');
-mustNot('privacy', "FULL_FINANCE_ROLES = new Set(['Owner', 'Manager'", 'legacy Manager finance access');
+// Role/privacy contract:
+// - Owner/Director keep strategic/full-company finance.
+// - Manager EduTrans and Finance may see operational unit finance.
+must('privacy', "const STRATEGIC_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur'])", 'strategic finance restricted to Owner/Director');
+must('privacy', "'Manager EduTrans'", 'Manager EduTrans role support');
+must('privacy', 'const OPERATIONAL_FINANCE_ROLES', 'operational finance role set');
+must('privacy', 'canSeeOperationalFinance', 'operational finance guard');
+must('privacy', 'canSeeStrategicFinance', 'strategic finance guard');
+must('privacy', "page === 'finance' && !canSeeOperationalFinance()", 'finance navigation guard');
+must('privacy', 'Terkunci sesuai hak akses', 'Trip Folder finance lock');
+mustNot('privacy', "const FULL_FINANCE_ROLES = new Set(['Owner', 'Manager'", 'legacy Manager full-company finance access');
 
 // Package Master: selling catalog only, with station contract reference.
 must('packages', "sb.from('program_packages')", 'program_packages source');
@@ -67,21 +74,32 @@ must('media', 'const MAX_BYTES = 8 * 1024 * 1024', '8 MiB media limit');
 must('media', 'const MAX_GALLERY = 5', 'gallery max 5');
 must('media', "const INTERNAL_FN = 'internal-media-master'", 'internal media API');
 
-// Ops Agent mirrors Android policy and actions.
+// Existing Ops Agent actions remain available.
 for (const action of ['Siapkan Trip','Buat Rundown','Cek Kesiapan','Susun Crew','Cek Vendor','Analisis RAB','Buat Operation Sheet','Buat Laporan']) {
   must('agent', `'${action}'`, `Ops Agent action ${action}`);
 }
-must('agent', 'const DIRECTOR_APPROVAL_LIMIT = 2_000_000', 'Rp2m Manager approval limit');
 must('agent', "'DIRECTOR_APPROVAL'", 'Director approval authority');
 must('agent', "'MANAGER_CONFIRMATION'", 'Manager confirmation authority');
 must('agent', "queryOptional('trip_costs'", 'operational RAB read');
 
-// Unified loader is additive and fail-safe: v9.5 remains when a module fails.
-for (const moduleFile of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js']) {
+// Final Company Operating System policy supersedes the legacy generic Ops-Agent limit.
+must('company', 'targetNetProfitMonthly: 15_000_000', 'Rp15m monthly net-profit target');
+must('company', 'healthyMarginPct: 25', '25 percent healthy margin');
+must('company', 'criticalMarginPct: 20', '20 percent critical margin');
+must('company', 'managerPlannedRabLimit: 1_000_000', 'Rp1m planned RAB Manager limit');
+must('company', 'managerUnplannedLimit: 250_000', 'Rp250k unplanned Manager limit');
+must('company', 'managerEmergencyLimit: 500_000', 'Rp500k emergency Manager limit');
+must('company', 'managerMaxDiscountPct: 5', '5 percent Manager discount limit');
+must('company', "priorityRegions: ['Cianjur', 'Sukabumi']", 'Cianjur and Sukabumi priority regions');
+must('company', "'AI & Otomatisasi'", 'AI operating-cost category');
+must('company', "event.stopImmediatePropagation()", 'legacy Ops-Agent authority interception');
+
+// Unified loader is additive and fail-safe: baseline remains when a module fails.
+for (const moduleFile of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js']) {
   must('loader', `'${moduleFile}'`, `loader module ${moduleFile}`);
 }
-must('loader', 'ERP v9.5 tetap aktif', 'safe fallback to baseline');
-must('loader', 'v10-unified-operations-media', 'v10 version marker');
+must('loader', 'ERP utama tetap aktif', 'safe fallback to baseline');
+must('loader', 'v10.1-company-operating-system', 'current version marker');
 
-console.log('GMU ERP Web v10 contract passed.');
-console.log('Additive loader | Package Master | Media Master | Ops Agent | Owner/Director finance privacy');
+console.log('GMU ERP Web v10.1 contract passed.');
+console.log('Additive loader | Package Master | Media Master | Ops Agent | Company Operating System | strategic finance privacy');
