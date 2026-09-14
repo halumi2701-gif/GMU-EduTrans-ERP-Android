@@ -85,7 +85,7 @@ jobs:
           grep -q 'versionCode = 19' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.9-nine-services-rc10"' gawone-customer-production/app/build.gradle.kts
           grep -q '9 layanan GAWONE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q '"RIDE","CAR","DELIVERY","CLEANING","TUKANG","HELPER","TEKNISI","DRIVER","LABOUR"' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q '"RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE"' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           zip -qr GAWONE_Customer_v1.0.9_NINE_SERVICES_RC10_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
