@@ -1,4 +1,4 @@
-name: GAWONE Customer RC11 Five Service Canary
+name: GAWONE Customer RC12 Mobility Foundation
 
 on:
   push:
@@ -12,6 +12,7 @@ on:
       - "gawone-customer-rc9-reliability.py"
       - "gawone-customer-rc10-nine-services.py"
       - "gawone-customer-rc11-five-service-canary.py"
+      - "gawone-customer-rc12-mobility-foundation.py"
       - ".github/workflows/gawone-customer-auth-fallback.yml"
       - "gawone-customer-rc2-src.*"
       - "gawone-customer-rc2-to-rc3.patch.gz.b64"
@@ -79,7 +80,6 @@ jobs:
         run: |
           python gawone-customer-rc10-nine-services.py
           grep -q 'versionCode = 19' gawone-customer-production/app/build.gradle.kts
-          grep -q 'versionName = "1.0.9-nine-services-rc10"' gawone-customer-production/app/build.gradle.kts
           grep -q '9 layanan GAWONE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
 
       - name: Apply RC11 five-service canary
@@ -89,9 +89,18 @@ jobs:
           grep -q 'versionCode = 20' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.10-five-service-canary-rc11"' gawone-customer-production/app/build.gradle.kts
           grep -q 'controlledPilotCodes=setOf("CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'val bookingReady=featureEnabled(runtime,"BOOKING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'val matchingReady=featureEnabled(runtime,"MATCHING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          zip -qr GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SOURCE.zip gawone-customer-production
+
+      - name: Apply RC12 mobility trust foundation
+        shell: bash
+        run: |
+          python gawone-customer-rc12-mobility-foundation.py
+          grep -q 'versionCode = 21' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.11-mobility-foundation-rc12"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'featureEnabled(runtime,"MOBILITY")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'get_my_order_route_metric' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
+          grep -q 'MOBILITY_ENDPOINTS_REQUIRED' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerRepository.kt
+          grep -q 'TRUSTED_ROUTE_PENDING' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
+          zip -qr GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -114,28 +123,28 @@ jobs:
         working-directory: gawone-customer-production
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify RC11 APK
+      - name: Verify RC12 APK
         shell: bash
         run: |
           APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk
-          unzip -t GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk | tee GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk > GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='20' versionName='1.0.10-five-service-canary-rc11'" GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk > GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SIGNATURE.txt
+          cp "$APK" GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk
+          unzip -t GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk | tee GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk > GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='21' versionName='1.0.11-mobility-foundation-rc12'" GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk > GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SIGNATURE.txt
           test -f gawone-customer-production/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11
+          name: GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12
           if-no-files-found: error
           retention-days: 14
           path: |
-            GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11.apk
-            GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SHA256.txt
-            GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SOURCE.zip
-            GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_BADGING.txt
-            GAWONE_Customer_v1.0.10_FIVE_SERVICE_CANARY_RC11_SIGNATURE.txt
+            GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk
+            GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SHA256.txt
+            GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SOURCE.zip
+            GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_BADGING.txt
+            GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
