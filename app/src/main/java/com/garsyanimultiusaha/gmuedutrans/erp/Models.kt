@@ -9,8 +9,6 @@ data class StaffProfile(
 ) {
     init {
         // Compatibility bridge while older Android screens are migrated away from literal "Manager".
-        // A backend profile may already use canonical "Manager EduTrans"; keeping the access-role
-        // legacy-compatible avoids sudden module loss without widening financial visibility.
         role = ErpRoles.compatibilityAccessRole(role)
     }
 
@@ -129,36 +127,63 @@ object ErpRoles {
     fun isManagerEduTrans(role: String): Boolean = role == MANAGER_EDUTRANS || role == LEGACY_MANAGER
 
     fun canonical(role: String): String = when {
-        isDirector(role) -> DIRECTOR
+        isDirector(role) -> DIRECTOR_ID
         isManagerEduTrans(role) -> MANAGER_EDUTRANS
         else -> role
     }
 
-    /**
-     * Temporary Android compatibility representation for the Manager EduTrans role.
-     * Full-company finance remains controlled separately by FinancialAccess.
-     */
     fun compatibilityAccessRole(role: String): String = when (role) {
         MANAGER_EDUTRANS -> LEGACY_MANAGER
         else -> role
     }
 
-    fun displayName(role: String): String = canonical(role)
+    fun displayName(role: String): String = when (canonical(role)) {
+        DIRECTOR_ID -> "Direktur"
+        MANAGER_EDUTRANS -> "Manager EduTrans"
+        "Operation" -> "Operasional"
+        "Finance" -> "Keuangan"
+        "Admin" -> "Admin / Operasional"
+        "Sales" -> "Sales / Pengembangan Bisnis"
+        "TL" -> "Tour Leader"
+        else -> canonical(role)
+    }
 }
 
 object FinancialAccess {
-    /** Full-company financial visibility is restricted to Owner and Director. */
-    fun canView(role: String): Boolean = role == ErpRoles.OWNER || ErpRoles.isDirector(role)
+    /**
+     * Keuangan operasional unit dapat dilihat Owner/Direktur, Manager EduTrans, dan Finance.
+     * Data strategis PT, kredensial bank, dan kontrol lintas-unit tetap untuk Owner/Direktur.
+     */
+    fun canView(role: String): Boolean =
+        role == ErpRoles.OWNER ||
+            ErpRoles.isDirector(role) ||
+            ErpRoles.isManagerEduTrans(role) ||
+            role == "Finance"
+
+    fun canViewStrategic(role: String): Boolean =
+        role == ErpRoles.OWNER || ErpRoles.isDirector(role)
 }
 
 object ManagerEduTransPolicy {
-    const val approvalLimitIdr: Long = 2_000_000L
+    const val plannedRabLimitIdr: Long = 1_000_000L
+    const val unplannedLimitIdr: Long = 250_000L
+    const val emergencyTripLimitIdr: Long = 500_000L
+    const val maxDiscountPct: Double = 5.0
+    const val healthyMarginPct: Double = 25.0
+    const val criticalMarginPct: Double = 20.0
+
+    // Compatibility alias: approval generik dianggap biaya yang sudah berada dalam RAB.
+    const val approvalLimitIdr: Long = plannedRabLimitIdr
 
     val operationalPages: Set<AppPage> = setOf(
         AppPage.DASHBOARD,
         AppPage.BOOKINGS,
+        AppPage.BOOKING_REQUESTS,
+        AppPage.QUOTATIONS,
         AppPage.PACKAGE_MASTER,
         AppPage.CUSTOMERS,
+        AppPage.FINANCE,
+        AppPage.PLANNING,
         AppPage.OPERATIONS,
         AppPage.VENDORS,
         AppPage.TRIP_FOLDER,
@@ -171,7 +196,19 @@ object ManagerEduTransPolicy {
         AppPage.PROFILE
     )
 
-    fun requiresDirectorApproval(amountIdr: Long): Boolean = amountIdr > approvalLimitIdr
+    fun requiresDirectorApproval(amountIdr: Long): Boolean = amountIdr > plannedRabLimitIdr
+
+    fun requiresDirectorForUnplanned(amountIdr: Long): Boolean = amountIdr > unplannedLimitIdr
+
+    fun requiresDirectorForEmergency(amountIdr: Long): Boolean = amountIdr > emergencyTripLimitIdr
+
+    fun requiresDirectorForDiscount(discountPct: Double): Boolean = discountPct > maxDiscountPct
+
+    fun marginAuthority(marginPct: Double): String = when {
+        marginPct < criticalMarginPct -> "DIREKTUR"
+        marginPct < healthyMarginPct -> "MANAGER"
+        else -> "NORMAL"
+    }
 }
 
 object RoleAccess {
@@ -189,7 +226,8 @@ object RoleAccess {
             AppPage.CUSTOMERS, AppPage.PROFILE
         )
         role == "Finance" -> setOf(
-            AppPage.DASHBOARD, AppPage.PROFILE
+            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.FINANCE, AppPage.PLANNING,
+            AppPage.WORKFLOW, AppPage.REPORTS, AppPage.CLOSING, AppPage.AUDIT, AppPage.PROFILE
         )
         role == "Operation" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.OPERATIONS,
