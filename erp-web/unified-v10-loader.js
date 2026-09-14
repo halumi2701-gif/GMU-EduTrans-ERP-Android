@@ -1,12 +1,13 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v10-unified-operations-media';
+  const VERSION = 'v10.1-company-operating-system';
   const MODULES = [
     'role-privacy-v99.js',
     'package-master-v97.js',
     'media-master-v96.js',
     'manager-ops-agent-v98.js',
+    'company-operating-system-v100.js',
   ];
 
   function scriptBase() {
@@ -73,11 +74,11 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v10 • Package Master, Media Master, Ops Agent dan Role/Privacy Sync aktif.');
+      notice('ERP Web v10.1 • Kendali perusahaan, hak akses, Master Paket, Master Media, dan Asisten Operasional aktif.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU ERP Web v10 loader', error);
-      notice(`ERP v9.5 tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
+      console.error('GMU ERP Web v10.1 loader', error);
+      notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
 
