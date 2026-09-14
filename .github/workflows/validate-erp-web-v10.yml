@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: gmu-erp-web-v10-${{ github.ref }}
@@ -51,8 +51,10 @@ jobs:
           test -f erp-web/package-master-v97.js
           test -f erp-web/media-master-v96.js
           test -f erp-web/manager-ops-agent-v98.js
+          test -f erp-web/company-operating-system-v100.js
+          test -f erp-web/market-intelligence-v101.js
           test -f erp-web/unified-v10-loader.js
-          echo "ERP Web v10 additive source bundle: PASS"
+          echo "ERP Web v10.2 additive source bundle: PASS"
 
       - name: Build from live v9.5 production baseline
         env:
@@ -73,7 +75,8 @@ jobs:
           grep -Fq 'id="tripArchiveBanner"' dist/erp-web-v10/index.html
           grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
           grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
-          echo "Live v9.5 + additive v10 injection: PASS"
+          grep -Fq 'v10.2-company-operating-system-market-intelligence' dist/erp-web-v10/unified-v10-loader.js
+          echo "Live v9.5 + additive v10.2 injection: PASS"
 
       - name: Upload ERP Web v10 release candidate
         uses: actions/upload-artifact@v4
@@ -83,10 +86,29 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish verified release snapshot branch
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          snapshot="$(mktemp -d)"
+          cp -a dist/erp-web-v10/. "$snapshot/"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan erp-web-v10-release
+          git rm -rf . >/dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$snapshot"/. .
+          git add -A
+          git commit -m "release: ERP Web v10.2 from ${GITHUB_SHA}"
+          git push --force origin HEAD:erp-web-v10-release
+
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans ERP Web v10 release candidate validated."
+          echo "GMU EduTrans ERP Web v10.2 release candidate validated."
           echo "Baseline: live ERP v9.5 preserved"
-          echo "Additive: Package Master + Media Master + Ops Agent + Role/Privacy Sync"
-          echo "Finance privacy: Owner/Director only"
+          echo "Additive: Role/Privacy + Package Master + Media Master + Ops Agent + Company OS + Market Intelligence"
+          echo "Release branch: erp-web-v10-release"
+          echo "Strategic finance: Owner/Director; operational finance: role-governed"
