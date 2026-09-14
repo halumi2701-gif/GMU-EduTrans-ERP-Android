@@ -126,8 +126,9 @@ object ErpRoles {
     fun isDirector(role: String): Boolean = role == DIRECTOR || role == DIRECTOR_ID
     fun isManagerEduTrans(role: String): Boolean = role == MANAGER_EDUTRANS || role == LEGACY_MANAGER
 
+    // Keep canonical identifiers backward-compatible with existing workflow checks.
     fun canonical(role: String): String = when {
-        isDirector(role) -> DIRECTOR_ID
+        isDirector(role) -> DIRECTOR
         isManagerEduTrans(role) -> MANAGER_EDUTRANS
         else -> role
     }
@@ -137,8 +138,9 @@ object ErpRoles {
         else -> role
     }
 
+    // Visible labels use Indonesian without changing internal identifiers.
     fun displayName(role: String): String = when (canonical(role)) {
-        DIRECTOR_ID -> "Direktur"
+        DIRECTOR -> "Direktur"
         MANAGER_EDUTRANS -> "Manager EduTrans"
         "Operation" -> "Operasional"
         "Finance" -> "Keuangan"
