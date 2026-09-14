@@ -8,6 +8,7 @@ on:
       - "gawone-management-uiux-v3.py"
       - "gawone-management-reliability-v4.py"
       - "gawone-management-m223-business-labour.py"
+      - "gawone-management-m223-business-labour-v2.py"
       - "app/**"
       - ".github/workflows/gawone-management-build.yml"
   workflow_dispatch:
@@ -59,7 +60,7 @@ jobs:
       - name: Apply M2.23 Business and Labour
         shell: bash
         run: |
-          python3 gawone-management-m223-business-labour.py
+          python3 gawone-management-m223-business-labour-v2.py
           grep -q 'versionCode = 8' app/build.gradle.kts
           grep -q 'versionName = "1.0.6-business-labour-m2.23"' app/build.gradle.kts
           grep -q 'get_management_business_queue' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
