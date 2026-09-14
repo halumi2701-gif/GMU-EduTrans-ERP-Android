@@ -40,15 +40,20 @@ internal fun Stage4JHomeShell(
     Scaffold(
         containerColor = GawoneMitraTokens.Canvas,
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 8.dp
-            ) {
-                MitraNavItem(tab == Stage4JTab.HOME, { tab = Stage4JTab.HOME }, Icons.Outlined.Home, "Beranda")
-                MitraNavItem(tab == Stage4JTab.ORDER, { tab = Stage4JTab.ORDER }, Icons.Outlined.WorkOutline, "Order")
-                MitraNavItem(tab == Stage4JTab.SCHEDULE, { tab = Stage4JTab.SCHEDULE }, Icons.Outlined.CalendarMonth, "Jadwal")
-                MitraNavItem(tab == Stage4JTab.EARNINGS, { tab = Stage4JTab.EARNINGS }, Icons.Outlined.Payments, "Pendapatan")
-                MitraNavItem(tab == Stage4JTab.ACCOUNT, { tab = Stage4JTab.ACCOUNT }, Icons.Outlined.AccountCircle, "Akun")
+            Surface(color = Color.White, tonalElevation = 8.dp) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MitraNavItem(tab == Stage4JTab.HOME, { tab = Stage4JTab.HOME }, Icons.Outlined.Home, "Beranda")
+                    MitraNavItem(tab == Stage4JTab.ORDER, { tab = Stage4JTab.ORDER }, Icons.Outlined.WorkOutline, "Order")
+                    MitraNavItem(tab == Stage4JTab.SCHEDULE, { tab = Stage4JTab.SCHEDULE }, Icons.Outlined.CalendarMonth, "Jadwal")
+                    MitraNavItem(tab == Stage4JTab.EARNINGS, { tab = Stage4JTab.EARNINGS }, Icons.Outlined.Payments, "Pendapatan")
+                    MitraNavItem(tab == Stage4JTab.ACCOUNT, { tab = Stage4JTab.ACCOUNT }, Icons.Outlined.AccountCircle, "Akun")
+                }
             }
         }
     ) { pad ->
@@ -140,25 +145,37 @@ internal fun Stage4JHomeShell(
 }
 
 @Composable
-private fun MitraNavItem(
+private fun RowScope.MitraNavItem(
     selected: Boolean,
     onClick: () -> Unit,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String
 ) {
-    NavigationBarItem(
-        selected = selected,
+    TextButton(
         onClick = onClick,
-        icon = { Icon(icon, contentDescription = label) },
-        label = { Text(label) },
-        colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = GawoneMitraTokens.PrimaryStrong,
-            selectedTextColor = GawoneMitraTokens.PrimaryStrong,
-            indicatorColor = GawoneMitraTokens.PrimarySoft,
-            unselectedIconColor = GawoneMitraTokens.Muted,
-            unselectedTextColor = GawoneMitraTokens.Muted
-        )
-    )
+        modifier = Modifier.weight(1f),
+        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Surface(
+                color = if (selected) GawoneMitraTokens.PrimarySoft else Color.Transparent,
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = label,
+                    tint = if (selected) GawoneMitraTokens.PrimaryStrong else GawoneMitraTokens.Muted,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).size(20.dp)
+                )
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) GawoneMitraTokens.PrimaryStrong else GawoneMitraTokens.Muted,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+    }
 }
 
 @Composable
