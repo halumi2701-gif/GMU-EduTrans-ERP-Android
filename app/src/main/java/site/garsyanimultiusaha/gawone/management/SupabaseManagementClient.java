@@ -31,6 +31,11 @@ final class SupabaseManagementClient {
         return request("POST", "/auth/v1/signup", body, false);
     }
 
+    JSONObject resendSignupConfirmation(String email) throws Exception {
+        JSONObject body = new JSONObject().put("type", "signup").put("email", email);
+        return request("POST", "/auth/v1/resend", body, false);
+    }
+
     JSONObject signIn(String email, String password) throws Exception {
         JSONObject body = new JSONObject().put("email", email).put("password", password);
         JSONObject out = request("POST", "/auth/v1/token?grant_type=password", body, false);
