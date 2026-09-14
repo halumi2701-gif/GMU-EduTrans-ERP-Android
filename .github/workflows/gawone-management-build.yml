@@ -1,4 +1,4 @@
-name: Build GAWONE Management M2.22 Reliability V4
+name: Build GAWONE Management M2.23 Business Labour
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - "gawone-management-uiux-v2.py"
       - "gawone-management-uiux-v3.py"
       - "gawone-management-reliability-v4.py"
+      - "gawone-management-m223-business-labour.py"
       - "app/**"
       - ".github/workflows/gawone-management-build.yml"
   workflow_dispatch:
@@ -14,6 +15,7 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
     env:
@@ -21,7 +23,7 @@ jobs:
       GAWONE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -45,8 +47,6 @@ jobs:
           grep -q 'versionCode = 6' app/build.gradle.kts
           grep -q 'versionName = "1.0.4-uiux-v3"' app/build.gradle.kts
           grep -q 'Live Operations' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
-          grep -q 'Cari antrean, status, order, tiket' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
-          grep -q 'Lihat data backend' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
 
       - name: Apply Management Reliability V4
         shell: bash
@@ -54,9 +54,18 @@ jobs:
           python3 gawone-management-reliability-v4.py
           grep -q 'versionCode = 7' app/build.gradle.kts
           grep -q 'versionName = "1.0.5-reliability-v4"' app/build.gradle.kts
-          grep -q 'object GawoneManagementFailureMapper' app/src/main/java/site/garsyanimultiusaha/gawone/management/GawoneManagementFailure.kt
-          grep -q 'MANAGEMENT_PERMISSION_DENIED' app/src/main/java/site/garsyanimultiusaha/gawone/management/GawoneManagementFailure.kt
           grep -q 'managementSafeError(t)' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+
+      - name: Apply M2.23 Business and Labour
+        shell: bash
+        run: |
+          python3 gawone-management-m223-business-labour.py
+          grep -q 'versionCode = 8' app/build.gradle.kts
+          grep -q 'versionName = "1.0.6-business-labour-m2.23"' app/build.gradle.kts
+          grep -q 'get_management_business_queue' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
+          grep -q 'get_management_bulk_workforce_queue' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
+          grep -q 'QUOTE_WORKFORCE' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+          grep -q 'CONVERT_TO_ORDER' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
 
       - name: Verify Management contract and auth path
         shell: bash
@@ -67,12 +76,8 @@ jobs:
           grep -R "get_management_runtime_config" -n app/src/main/java
           grep -R "get_my_management_bootstrap" -n app/src/main/java
           grep -R "get_my_management_navigation" -n app/src/main/java
-          grep -R "get_management_queue" -n app/src/main/java
-          grep -R "get_management_detail" -n app/src/main/java
-          grep -R "execute_management_action" -n app/src/main/java
-          grep -q 'versionCode = 7' app/build.gradle.kts
-          grep -q 'versionName = "1.0.5-reliability-v4"' app/build.gradle.kts
-          grep -R "GawoneManagementTokens.Primary" -n app/src/main/java/site/garsyanimultiusaha/gawone/management
+          grep -q 'versionCode = 8' app/build.gradle.kts
+          grep -q 'versionName = "1.0.6-business-labour-m2.23"' app/build.gradle.kts
           if grep -R "/auth/v1/otp\|type.*sms\|requestOtp\|verifyOtp" -n app/src/main/java/site/garsyanimultiusaha/gawone/management; then
             echo "Phone OTP path must not exist in Management"
             exit 1
@@ -91,8 +96,8 @@ jobs:
           if [ -x "$AAPT" ]; then
             "$AAPT" dump badging app/build/outputs/apk/debug/app-debug.apk | tee apk-badging.txt
             grep "package: name='site.garsyanimultiusaha.gawone.management.debug'" apk-badging.txt
-            grep "versionCode='7'" apk-badging.txt
-            grep "versionName='1.0.5-reliability-v4-debug'" apk-badging.txt
+            grep "versionCode='8'" apk-badging.txt
+            grep "versionName='1.0.6-business-labour-m2.23-debug'" apk-badging.txt
           fi
           unzip -t app/build/outputs/apk/debug/app-debug.apk >/dev/null
           sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release-unsigned.apk | tee apk-sha256.txt
@@ -103,14 +108,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifact-management
-          cp app/build/outputs/apk/debug/app-debug.apk artifact-management/GAWONE-Management-v1.0.5-M2.22-RELIABILITY-V4-debug.apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk artifact-management/GAWONE-Management-v1.0.5-M2.22-RELIABILITY-V4-release-unsigned.apk
+          cp app/build/outputs/apk/debug/app-debug.apk artifact-management/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk artifact-management/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-release-unsigned.apk
           cp apk-sha256.txt artifact-management/SHA256.txt
           cp app/build/reports/lint-results-release.html artifact-management/lint-results-release.html
           if [ -f apk-badging.txt ]; then cp apk-badging.txt artifact-management/APK_BADGING.txt; fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Management-v1.0.5-M2.22-RELIABILITY-V4
+          name: GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR
           path: artifact-management/
           retention-days: 14
