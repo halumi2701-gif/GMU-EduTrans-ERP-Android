@@ -152,7 +152,7 @@ jobs:
   emulator_smoke:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -167,6 +167,13 @@ jobs:
           sed -e 's/GAWONE_Customer_v1.0.3_RC4.apk/GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk/g' -e 's/RC4 emulator production-prep gate/RC12 mobility emulator gate/g' gawone-customer-emulator-smoke.sh > /tmp/gawone-customer-rc12-smoke.sh
           chmod +x /tmp/gawone-customer-rc12-smoke.sh
 
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: RC12 Android emulator gate
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -175,7 +182,6 @@ jobs:
           target: google_apis
           profile: pixel_4
           disable-animations: true
-          disable-linux-hw-accel: true
           emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
           script: bash /tmp/gawone-customer-rc12-smoke.sh
 
