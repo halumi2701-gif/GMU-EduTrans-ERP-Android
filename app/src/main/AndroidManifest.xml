@@ -7,7 +7,7 @@
         android:label="GAWONE Management"
         android:theme="@style/Theme.GAWONEManagement">
         <activity
-            android:name=".ManagementLoginActivity"
+            android:name=".ManagementGateActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
