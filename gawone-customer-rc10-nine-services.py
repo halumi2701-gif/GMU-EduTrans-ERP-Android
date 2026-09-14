@@ -1,4 +1,6 @@
 from pathlib import Path
+import base64
+import gzip
 
 root = Path('gawone-customer-production')
 main = root / 'app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt'
@@ -148,4 +150,37 @@ for token in [
     if token not in result:
         raise SystemExit('RC10 verification failed: ' + token)
 
-print('GAWONE Customer RC10 nine services applied')
+# Apply the RC11 scheduled-service source delta while keeping RC10 version metadata
+patch_text=gzip.decompress(base64.b64decode(Path('gawone-customer-rc11-code.patch.gz.b64').read_text().strip())).decode()
+
+def apply_unified(text):
+    lines=text.splitlines(True);i=0
+    while i<len(lines):
+        if not lines[i].startswith('--- '): i+=1;continue
+        old_path=lines[i].split('\t',1)[0][4:];i+=1
+        new_path=lines[i].split('\t',1)[0][4:];i+=1
+        target=Path('/'.join(new_path.split('/')[1:]))
+        src=target.read_text().splitlines(True);out=[];cursor=0
+        while i<len(lines) and not lines[i].startswith('--- '):
+            if not lines[i].startswith('@@ '): i+=1;continue
+            header=lines[i];i+=1
+            old_start=int(header.split(' -',1)[1].split(',',1)[0].split(' ',1)[0])
+            out.extend(src[cursor:old_start-1]);cursor=old_start-1
+            while i<len(lines) and not lines[i].startswith('@@ ') and not lines[i].startswith('--- '):
+                line=lines[i]
+                if line.startswith(' '):
+                    expected=line[1:]
+                    if cursor>=len(src) or src[cursor]!=expected: raise SystemExit('RC11 patch context mismatch: '+str(target))
+                    out.append(src[cursor]);cursor+=1
+                elif line.startswith('-'):
+                    expected=line[1:]
+                    if cursor>=len(src) or src[cursor]!=expected: raise SystemExit('RC11 patch delete mismatch: '+str(target))
+                    cursor+=1
+                elif line.startswith('+'): out.append(line[1:])
+                elif line.startswith('\\'): pass
+                i+=1
+        out.extend(src[cursor:]);target.write_text(''.join(out))
+
+apply_unified(patch_text)
+if 'scheduledStart:String=""' not in main.read_text(): raise SystemExit('scheduled-service source missing')
+print('GAWONE Customer RC10 + scheduled-service foundation applied')
