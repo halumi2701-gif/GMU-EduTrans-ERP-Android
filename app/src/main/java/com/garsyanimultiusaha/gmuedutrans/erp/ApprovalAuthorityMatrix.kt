@@ -16,18 +16,34 @@ object ApprovalAuthorityMatrix {
     private val managerOperationalTypes = setOf(
         "Operation Sheet",
         "PO Vendor",
-        "Invoice"
+        "Invoice",
+        "Planned Expense",
+        "Unplanned Expense",
+        "Emergency Expense",
+        "Discount",
+        "Margin Review"
     )
 
     private val strategicKeywords = listOf(
         "director escalation",
         "trip closing",
         "refund",
+        "cancellation",
+        "pembatalan",
         "journal",
-        "pricing",
+        "pricing master",
+        "master price",
+        "ubah harga",
         "rekening",
-        "bank",
-        "finance"
+        "bank credential",
+        "reserve",
+        "cadangan kas",
+        "capex",
+        "investasi",
+        "hiring permanent",
+        "pegawai tetap",
+        "legal",
+        "fraud"
     )
 
     fun canRequest(role: String): Boolean =
@@ -35,43 +51,104 @@ object ApprovalAuthorityMatrix {
             ErpRoles.isDirector(role) ||
             ErpRoles.isManagerEduTrans(role) ||
             role == "Operation" ||
-            role == "Admin"
+            role == "Admin" ||
+            role == "Finance" ||
+            role == "Sales"
 
     fun amountIdr(row: ErpRow): Long? {
         val keys = listOf("amount", "amount_idr", "requested_amount", "rab_amount")
-        return keys.asSequence()
+        val structured = keys.asSequence()
             .mapNotNull { key -> row.data[key]?.toDoubleOrNull()?.toLong() }
             .firstOrNull { it > 0L }
+        if (structured != null) return structured
+
+        val notes = row.text("notes")
+        val match = Regex("(?i)(?:nilai|amount|rp)\\s*[:=]?\\s*(?:rp\\s*)?([0-9][0-9.,]*)").find(notes)
+            ?: Regex("(?i)rp\\s*([0-9][0-9.,]*)").find(notes)
+        return match?.groupValues?.getOrNull(1)
+            ?.replace(".", "")
+            ?.replace(",", "")
+            ?.toLongOrNull()
+            ?.takeIf { it > 0L }
+    }
+
+    private fun percentFrom(row: ErpRow, labels: List<String>): Double? {
+        val text = (row.text("approval_type") + " " + row.text("notes")).lowercase()
+        for (label in labels) {
+            val regex = Regex("(?i)$label\\s*[:=]?\\s*([0-9]+(?:[.,][0-9]+)?)\\s*%?")
+            val value = regex.find(text)?.groupValues?.getOrNull(1)?.replace(',', '.')?.toDoubleOrNull()
+            if (value != null) return value
+        }
+        return null
+    }
+
+    private fun isUnplanned(row: ErpRow): Boolean {
+        val text = (row.text("approval_type") + " " + row.text("notes")).lowercase()
+        return listOf("unplanned", "di luar rab", "luar rab", "tidak ada di rab").any(text::contains)
+    }
+
+    private fun isEmergency(row: ErpRow): Boolean {
+        val text = (row.text("approval_type") + " " + row.text("notes")).lowercase()
+        return listOf("emergency", "darurat").any(text::contains)
     }
 
     fun requiresDirector(row: ErpRow): Boolean {
-        val type = row.text("approval_type").lowercase()
-        val amount = amountIdr(row)
-        return strategicKeywords.any(type::contains) ||
-            (amount != null && ManagerEduTransPolicy.requiresDirectorApproval(amount))
+        val text = (row.text("approval_type") + " " + row.text("notes")).lowercase()
+        if (strategicKeywords.any(text::contains)) return true
+
+        val margin = percentFrom(row, listOf("margin"))
+        if (margin != null && margin < ManagerEduTransPolicy.criticalMarginPct) return true
+
+        val discount = percentFrom(row, listOf("discount", "diskon"))
+        if (discount != null && ManagerEduTransPolicy.requiresDirectorForDiscount(discount)) return true
+
+        val amount = amountIdr(row) ?: return false
+        return when {
+            isEmergency(row) -> ManagerEduTransPolicy.requiresDirectorForEmergency(amount)
+            isUnplanned(row) -> ManagerEduTransPolicy.requiresDirectorForUnplanned(amount)
+            else -> ManagerEduTransPolicy.requiresDirectorApproval(amount)
+        }
     }
 
     fun canApprove(role: String, row: ErpRow): Boolean {
         if (role == ErpRoles.OWNER || ErpRoles.isDirector(role)) return true
-        if (!ErpRoles.isManagerEduTrans(role)) return false
-        if (requiresDirector(row)) return false
+        if (!ErpRoles.isManagerEduTrans(role) || requiresDirector(row)) return false
         return row.text("approval_type") in managerOperationalTypes
     }
 
-    fun canReturn(role: String): Boolean =
-        role == ErpRoles.OWNER || ErpRoles.isDirector(role)
+    fun canReturn(role: String, row: ErpRow): Boolean = when {
+        role == ErpRoles.OWNER || ErpRoles.isDirector(role) -> true
+        ErpRoles.isManagerEduTrans(role) -> !requiresDirector(row)
+        else -> false
+    }
 
     fun canResubmit(role: String, row: ErpRow, userId: String): Boolean =
         row.text("requested_by") == userId ||
             role == ErpRoles.OWNER ||
-            ErpRoles.isDirector(role)
+            ErpRoles.isDirector(role) ||
+            ErpRoles.isManagerEduTrans(role)
 
     fun authorityLabel(role: String): String = when {
-        role == ErpRoles.OWNER -> "Full approval authority"
-        ErpRoles.isDirector(role) -> "Strategic + operational approval authority"
-        ErpRoles.isManagerEduTrans(role) -> "Operational authority up to Rp2.000.000"
-        role == "Operation" || role == "Admin" -> "Request authority only"
-        else -> "Read-only workflow access"
+        role == ErpRoles.OWNER -> "Kewenangan penuh Owner"
+        ErpRoles.isDirector(role) -> "Persetujuan strategis dan operasional"
+        ErpRoles.isManagerEduTrans(role) -> "RAB ≤ Rp1 jt • luar RAB ≤ Rp250 rb • darurat ≤ Rp500 rb • diskon ≤5%"
+        role in setOf("Operation", "Admin", "Finance", "Sales") -> "Dapat mengajukan persetujuan sesuai tugas"
+        else -> "Akses baca alur persetujuan"
+    }
+
+    fun authorityReason(row: ErpRow): String {
+        if (!requiresDirector(row)) return "Masuk kewenangan operasional Manager"
+        val text = (row.text("approval_type") + " " + row.text("notes")).lowercase()
+        val margin = percentFrom(row, listOf("margin"))
+        if (margin != null && margin < ManagerEduTransPolicy.criticalMarginPct) return "Margin di bawah 20%"
+        val discount = percentFrom(row, listOf("discount", "diskon"))
+        if (discount != null && discount > ManagerEduTransPolicy.maxDiscountPct) return "Diskon di atas 5%"
+        val amount = amountIdr(row)
+        if (amount != null && isEmergency(row) && amount > ManagerEduTransPolicy.emergencyTripLimitIdr) return "Biaya darurat di atas Rp500.000"
+        if (amount != null && isUnplanned(row) && amount > ManagerEduTransPolicy.unplannedLimitIdr) return "Biaya di luar RAB di atas Rp250.000"
+        if (amount != null && amount > ManagerEduTransPolicy.plannedRabLimitIdr) return "Biaya dalam RAB di atas Rp1.000.000"
+        if (strategicKeywords.any(text::contains)) return "Keputusan strategis / sensitif"
+        return "Memerlukan kewenangan Direktur"
     }
 }
 
@@ -100,29 +177,22 @@ private fun ApprovalWorkflowV2(vm: MainViewModel, session: SessionState) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(12.dp))
-        Card(
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(Modifier.weight(1f)) {
-                        Text("Workflow & Approval v2", fontWeight = FontWeight.Black, fontSize = 19.sp, color = GmuDark)
-                        Text(
-                            ApprovalAuthorityMatrix.authorityLabel(session.profile.role),
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
+                        Text("Pusat Persetujuan", fontWeight = FontWeight.Black, fontSize = 19.sp, color = GmuDark)
+                        Text(ApprovalAuthorityMatrix.authorityLabel(session.profile.role), fontSize = 11.sp, color = Color.Gray)
                     }
                     if (ApprovalAuthorityMatrix.canRequest(session.profile.role)) {
                         Button(onClick = { showRequest = true }, shape = RoundedCornerShape(14.dp)) {
-                            Text("+ Request")
+                            Text("+ Ajukan")
                         }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Owner/Direktur dapat memutuskan seluruh approval. Manager EduTrans hanya approval operasional dalam kewenangan; keputusan strategis atau di atas Rp2 juta diarahkan ke Direktur.",
+                    "Manager: biaya dalam RAB sampai Rp1 juta, di luar RAB sampai Rp250 ribu, darurat trip sampai Rp500 ribu, dan diskon sampai 5%. Margin di bawah 20% serta keputusan strategis wajib Direktur.",
                     fontSize = 11.sp,
                     color = Color.Gray
                 )
@@ -142,7 +212,7 @@ private fun ApprovalWorkflowV2(vm: MainViewModel, session: SessionState) {
                 FilterChip(
                     selected = filter == value,
                     onClick = { filter = value },
-                    label = { Text(value, fontSize = 10.sp) }
+                    label = { Text(approvalStatusLabel(value), fontSize = 10.sp) }
                 )
             }
         }
@@ -157,7 +227,7 @@ private fun ApprovalWorkflowV2(vm: MainViewModel, session: SessionState) {
                 item {
                     Card(shape = RoundedCornerShape(18.dp)) {
                         Text(
-                            "Tidak ada approval ${filter.lowercase()}.",
+                            "Tidak ada persetujuan dengan status ${approvalStatusLabel(filter).lowercase()}.",
                             Modifier.fillMaxWidth().padding(18.dp),
                             color = Color.Gray,
                             fontSize = 12.sp
@@ -167,12 +237,7 @@ private fun ApprovalWorkflowV2(vm: MainViewModel, session: SessionState) {
             }
 
             items(rows, key = { it.id }) { row ->
-                ApprovalAuthorityCard(
-                    vm = vm,
-                    session = session,
-                    row = row,
-                    onNotice = { notice = it }
-                )
+                ApprovalAuthorityCard(vm, session, row) { notice = it }
             }
         }
     }
@@ -193,7 +258,7 @@ private fun ApprovalWorkflowV2(vm: MainViewModel, session: SessionState) {
                         "notes" to notes.ifBlank { null },
                         "sla_status" to "Pending"
                     ),
-                    "Approval request berhasil dibuat."
+                    "Pengajuan persetujuan berhasil dibuat."
                 ) { ok, msg ->
                     notice = msg
                     if (ok) showRequest = false
@@ -215,14 +280,14 @@ private fun ApprovalAuthorityCard(
     val amount = ApprovalAuthorityMatrix.amountIdr(row)
     val needsDirector = ApprovalAuthorityMatrix.requiresDirector(row)
     val canApprove = status == "Pending" && ApprovalAuthorityMatrix.canApprove(session.profile.role, row)
-    val canReturn = status == "Pending" && ApprovalAuthorityMatrix.canReturn(session.profile.role)
+    val canReturn = status == "Pending" && ApprovalAuthorityMatrix.canReturn(session.profile.role, row)
     val canResubmit = status == "Returned" && ApprovalAuthorityMatrix.canResubmit(session.profile.role, row, session.userId)
 
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(Modifier.fillMaxWidth().padding(15.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
-                    Text(type.ifBlank { "Approval" }, fontWeight = FontWeight.Black, color = GmuDark)
+                    Text(approvalTypeLabel(type), fontWeight = FontWeight.Black, color = GmuDark)
                     Text(approvalBookingLabel(vm, row.text("booking_id")), fontSize = 11.sp, color = Color.Gray)
                 }
                 ApprovalStatusPill(status)
@@ -236,11 +301,15 @@ private fun ApprovalAuthorityCard(
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (needsDirector) {
-                    AuthorityPill("Director authority", Color(0xFFFFF2D9), GmuWarn)
-                } else if (ErpRoles.isManagerEduTrans(session.profile.role) && type in setOf("Operation Sheet", "PO Vendor", "Invoice")) {
-                    AuthorityPill("Manager scope", Color(0xFFEAF7EF), GmuGreen)
+                    AuthorityPill("Persetujuan Direktur", Color(0xFFFFF2D9), GmuWarn)
+                } else if (ErpRoles.isManagerEduTrans(session.profile.role)) {
+                    AuthorityPill("Kewenangan Manager", Color(0xFFEAF7EF), GmuGreen)
                 }
                 amount?.let { AuthorityPill(formatApprovalIdr(it), Color(0xFFF1F3F5), GmuDark) }
+            }
+            if (needsDirector) {
+                Spacer(Modifier.height(5.dp))
+                Text(ApprovalAuthorityMatrix.authorityReason(row), fontSize = 10.sp, color = GmuWarn, fontWeight = FontWeight.SemiBold)
             }
 
             if (canApprove || canReturn) {
@@ -251,7 +320,7 @@ private fun ApprovalAuthorityCard(
                             val appended = buildString {
                                 append(row.text("notes"))
                                 if (isNotEmpty()) append("\n\n")
-                                append("RETURN AUTHORITY MATRIX: Mohon revisi / lengkapi sebelum diputuskan.")
+                                append("DIKEMBALIKAN: Mohon revisi / lengkapi sebelum diputuskan.")
                             }
                             vm.update(
                                 "approvals",
@@ -262,17 +331,17 @@ private fun ApprovalAuthorityCard(
                                     "notes" to appended,
                                     "sla_status" to "Returned"
                                 ),
-                                "Approval dikembalikan untuk revisi."
+                                "Pengajuan dikembalikan untuk revisi."
                             ) { _, msg -> onNotice(msg) }
-                        }) { Text("Return", color = GmuWarn) }
+                        }) { Text("Kembalikan", color = GmuWarn) }
                     }
                     if (canApprove) {
                         TextButton(onClick = {
-                            vm.approve(row.id, false, "Rejected via Authority Matrix v2") { _, msg -> onNotice(msg) }
-                        }) { Text("Reject", color = GmuDanger) }
+                            vm.approve(row.id, false, "Ditolak melalui Matriks Kewenangan") { _, msg -> onNotice(msg) }
+                        }) { Text("Tolak", color = GmuDanger) }
                         Button(onClick = {
-                            vm.approve(row.id, true, "Approved via Authority Matrix v2") { _, msg -> onNotice(msg) }
-                        }) { Text("Approve") }
+                            vm.approve(row.id, true, "Disetujui melalui Matriks Kewenangan") { _, msg -> onNotice(msg) }
+                        }) { Text("Setujui") }
                     }
                 }
             } else if (canResubmit) {
@@ -282,7 +351,7 @@ private fun ApprovalAuthorityCard(
                         val appended = buildString {
                             append(row.text("notes"))
                             if (isNotEmpty()) append("\n\n")
-                            append("RESUBMIT: Revisi telah dilengkapi dan dikirim ulang.")
+                            append("KIRIM ULANG: Revisi telah dilengkapi.")
                         }
                         vm.update(
                             "approvals",
@@ -295,15 +364,15 @@ private fun ApprovalAuthorityCard(
                                 "sla_status" to "Pending",
                                 "sla_resolved_at" to null
                             ),
-                            "Approval berhasil dikirim ulang."
+                            "Pengajuan berhasil dikirim ulang."
                         ) { _, msg -> onNotice(msg) }
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Revisi Selesai · Resubmit") }
+                ) { Text("Revisi Selesai · Kirim Ulang") }
             } else if (status == "Pending") {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (needsDirector) "Menunggu keputusan Direktur/Owner." else "Menunggu approver yang berwenang.",
+                    if (needsDirector) "Menunggu keputusan Direktur/Owner." else "Menunggu pihak yang berwenang.",
                     fontSize = 11.sp,
                     color = Color.Gray
                 )
@@ -323,17 +392,28 @@ private fun ApprovalAuthorityRequestDialog(
     var bookingMenu by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("Operation Sheet") }
     var typeMenu by remember { mutableStateOf(false) }
+    var amount by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    val types = listOf("Operation Sheet", "PO Vendor", "Invoice", "Trip Closing")
+    val types = listOf(
+        "Operation Sheet" to "Lembar Operasional",
+        "PO Vendor" to "Pesanan Vendor",
+        "Invoice" to "Tagihan",
+        "Planned Expense" to "Biaya dalam RAB",
+        "Unplanned Expense" to "Biaya di luar RAB",
+        "Emergency Expense" to "Biaya Darurat Trip",
+        "Discount" to "Diskon",
+        "Margin Review" to "Tinjauan Margin",
+        "Trip Closing" to "Penutupan Kegiatan"
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Request Approval") },
+        title = { Text("Ajukan Persetujuan") },
         text = {
             Column {
                 Box {
                     OutlinedButton(onClick = { bookingMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(booking?.let { it.bookingNo + " · " + it.programName } ?: "Pilih Booking")
+                        Text(booking?.let { it.bookingNo + " · " + it.programName } ?: "Pilih Pemesanan")
                     }
                     DropdownMenu(expanded = bookingMenu, onDismissRequest = { bookingMenu = false }) {
                         bookings.forEach { item ->
@@ -346,18 +426,26 @@ private fun ApprovalAuthorityRequestDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Box {
-                    OutlinedButton(onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(type) }
+                    OutlinedButton(onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth()) { Text(approvalTypeLabel(type)) }
                     DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
                         types.forEach { item ->
-                            DropdownMenuItem(text = { Text(item) }, onClick = { type = item; typeMenu = false })
+                            DropdownMenuItem(text = { Text(item.second) }, onClick = { type = item.first; typeMenu = false })
                         }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it.filter(Char::isDigit) },
+                    label = { Text("Nilai rupiah (jika ada)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Catatan / nilai keputusan") },
+                    label = { Text("Alasan / catatan / diskon% / margin%") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -366,8 +454,17 @@ private fun ApprovalAuthorityRequestDialog(
         confirmButton = {
             Button(
                 enabled = !busy && booking != null,
-                onClick = { booking?.let { onSubmit(it.id, type, notes) } }
-            ) { Text("Submit") }
+                onClick = {
+                    booking?.let {
+                        val normalized = buildString {
+                            if (amount.isNotBlank()) append("NILAI: Rp$amount")
+                            if (amount.isNotBlank() && notes.isNotBlank()) append("\n")
+                            append(notes.trim())
+                        }
+                        onSubmit(it.id, type, normalized)
+                    }
+                }
+            ) { Text("Ajukan") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } }
     )
@@ -388,7 +485,7 @@ private fun ApprovalStatusPill(status: String) {
         else -> GmuDark
     }
     Surface(color = bg, shape = RoundedCornerShape(50)) {
-        Text(status.ifBlank { "Pending" }, Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = fg)
+        Text(approvalStatusLabel(status), Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = fg)
     }
 }
 
@@ -399,9 +496,31 @@ private fun AuthorityPill(label: String, background: Color, foreground: Color) {
     }
 }
 
+private fun approvalStatusLabel(status: String): String = when (status) {
+    "Pending" -> "Menunggu"
+    "Returned" -> "Dikembalikan"
+    "Approved" -> "Disetujui"
+    "Rejected" -> "Ditolak"
+    "All" -> "Semua"
+    else -> status.ifBlank { "Menunggu" }
+}
+
+private fun approvalTypeLabel(type: String): String = when (type) {
+    "Operation Sheet" -> "Lembar Operasional"
+    "PO Vendor" -> "Pesanan Vendor"
+    "Invoice" -> "Tagihan"
+    "Planned Expense" -> "Biaya dalam RAB"
+    "Unplanned Expense" -> "Biaya di luar RAB"
+    "Emergency Expense" -> "Biaya Darurat Trip"
+    "Discount" -> "Diskon"
+    "Margin Review" -> "Tinjauan Margin"
+    "Trip Closing" -> "Penutupan Kegiatan"
+    else -> type.ifBlank { "Persetujuan" }
+}
+
 private fun approvalBookingLabel(vm: MainViewModel, bookingId: String): String {
     val booking = vm.bookings.firstOrNull { it.id == bookingId }
-    return booking?.let { it.bookingNo + " · " + it.customerName } ?: bookingId.ifBlank { "Tanpa booking" }
+    return booking?.let { it.bookingNo + " · " + it.customerName } ?: bookingId.ifBlank { "Tanpa pemesanan" }
 }
 
 private fun formatApprovalIdr(value: Long): String =
