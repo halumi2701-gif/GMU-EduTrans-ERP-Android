@@ -7,6 +7,7 @@ on:
       - "erp-web/**"
       - "scripts/verify-erp-web-media.js"
       - "scripts/verify-erp-web-v10.js"
+      - "scripts/build-erp-web-v10-release.js"
       - ".github/workflows/validate-erp-web-v10.yml"
   workflow_dispatch:
 
@@ -34,6 +35,7 @@ jobs:
           done < <(find erp-web -type f -name '*.js' -print0)
           node --check scripts/verify-erp-web-media.js
           node --check scripts/verify-erp-web-v10.js
+          node --check scripts/build-erp-web-v10-release.js
 
       - name: Verify Media Master contract
         run: node scripts/verify-erp-web-media.js
@@ -41,7 +43,7 @@ jobs:
       - name: Verify ERP Web v10 contract
         run: node scripts/verify-erp-web-v10.js
 
-      - name: Verify additive release bundle
+      - name: Verify additive release bundle source
         shell: bash
         run: |
           set -euo pipefail
@@ -50,4 +52,41 @@ jobs:
           test -f erp-web/media-master-v96.js
           test -f erp-web/manager-ops-agent-v98.js
           test -f erp-web/unified-v10-loader.js
-          echo "ERP Web v10 additive bundle: PASS"
+          echo "ERP Web v10 additive source bundle: PASS"
+
+      - name: Build from live v9.5 production baseline
+        env:
+          ERP_LIVE_URL: https://erp.edutrans.garsyanimultiusaha.site/
+        run: node scripts/build-erp-web-v10-release.js
+
+      - name: Verify preserved baseline and v10 injection
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/erp-web-v10/index.html
+          test -f dist/erp-web-v10/baseline-v95.html
+          test -f dist/erp-web-v10/release-manifest.json
+          grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/index.html
+          grep -Fq 'id="loginScreen"' dist/erp-web-v10/index.html
+          grep -Fq 'data-page="tripfolder"' dist/erp-web-v10/index.html
+          grep -Fq 'id="folderDocumentCenter"' dist/erp-web-v10/index.html
+          grep -Fq 'id="tripArchiveBanner"' dist/erp-web-v10/index.html
+          grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
+          grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
+          echo "Live v9.5 + additive v10 injection: PASS"
+
+      - name: Upload ERP Web v10 release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmu-edutrans-erp-web-v10-release-candidate
+          path: dist/erp-web-v10/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Release summary
+        shell: bash
+        run: |
+          echo "GMU EduTrans ERP Web v10 release candidate validated."
+          echo "Baseline: live ERP v9.5 preserved"
+          echo "Additive: Package Master + Media Master + Ops Agent + Role/Privacy Sync"
+          echo "Finance privacy: Owner/Director only"
