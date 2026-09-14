@@ -148,3 +148,42 @@ jobs:
             GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_BADGING.txt
             GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12
+
+      - name: Prepare RC12 smoke script
+        shell: bash
+        run: |
+          mkdir -p emulator-reports
+          sed -e 's/GAWONE_Customer_v1.0.3_RC4.apk/GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12.apk/g' -e 's/RC4 emulator production-prep gate/RC12 mobility emulator gate/g' gawone-customer-emulator-smoke.sh > /tmp/gawone-customer-rc12-smoke.sh
+          chmod +x /tmp/gawone-customer-rc12-smoke.sh
+
+      - name: RC12 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          disable-linux-hw-accel: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash /tmp/gawone-customer-rc12-smoke.sh
+
+      - name: Upload RC12 emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.11_MOBILITY_FOUNDATION_RC12_EMULATOR_GATE
+          if-no-files-found: warn
+          retention-days: 90
+          path: emulator-reports
