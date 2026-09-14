@@ -1,4 +1,4 @@
-name: GAWONE Mitra Stage 4J Email Primary Pilot
+name: GAWONE Mitra Stage 4J UIUX V2 Pilot
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - gawone-mitra-apk-build
     paths:
       - "gawone-mitra-stage4j/**"
+      - "gawone-mitra-uiux-v2.py"
       - ".github/workflows/gawone-mitra-stage4j-rc.yml"
   workflow_dispatch:
 
@@ -33,6 +34,7 @@ jobs:
           grep -q 'class MitraLoginActivity' "$ROOT/MitraLoginActivity.kt"
           grep -q 'grant_type=password' "$ROOT/MitraLoginActivity.kt"
           grep -q 'register_as_partner' "$ROOT/MitraLoginActivity.kt"
+          grep -q 'GawoneMitraTheme' "$ROOT/GawoneMitraDesign.kt"
           grep -q 'android:name=".MitraLoginActivity"' gawone-mitra-stage4j/app/src/main/AndroidManifest.xml
 
       - name: Apply email-primary navigation and partner bootstrap fixes
@@ -71,7 +73,14 @@ jobs:
           grep -q 'throw ApiException("AUTH_REQUIRED")' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
           grep -q 'MitraLoginActivity::class.java' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
           grep -q 'versionCode = 16' gawone-mitra-stage4j/app/build.gradle.kts
-          grep -q 'versionName = "1.0.6-email-primary"' gawone-mitra-stage4j/app/build.gradle.kts
+
+      - name: Apply UIUX V2 architecture
+        shell: bash
+        run: |
+          python3 gawone-mitra-uiux-v2.py
+          grep -q 'GawoneMitraTheme {' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'versionCode = 17' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'versionName = "1.0.7-uiux-v2"' gawone-mitra-stage4j/app/build.gradle.kts
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -102,7 +111,7 @@ jobs:
       - name: Release lint
         run: gradle -p gawone-mitra-stage4j --no-daemon :app:lintRelease
 
-      - name: Build installable email-primary test APK
+      - name: Build installable UIUX V2 test APK
         run: gradle -p gawone-mitra-stage4j --no-daemon --stacktrace :app:assembleDebug
 
       - name: Validate APK metadata
@@ -113,8 +122,8 @@ jobs:
           AAPT="$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt"
           "$AAPT" dump badging "$APK" | tee apk-badging.txt
           grep "package: name='site.garsyanimultiusaha.gawone.mitra.debug'" apk-badging.txt
-          grep "versionCode='16'" apk-badging.txt
-          grep "versionName='1.0.6-email-primary-test'" apk-badging.txt
+          grep "versionCode='17'" apk-badging.txt
+          grep "versionName='1.0.7-uiux-v2-test'" apk-badging.txt
           unzip -t "$APK" >/dev/null
           sha256sum "$APK" | tee apk-sha256.txt
 
@@ -122,14 +131,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifact-stage4j
-          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.6-Email-Primary-test.apk
+          cp gawone-mitra-stage4j/app/build/outputs/apk/debug/app-debug.apk artifact-stage4j/GAWONE-Mitra-v1.0.7-UIUX-V2-test.apk
           cp apk-sha256.txt artifact-stage4j/SHA256.txt
           cp apk-badging.txt artifact-stage4j/APK_BADGING.txt
 
-      - name: Upload Stage 4J Email Primary APK
+      - name: Upload Stage 4J UIUX V2 APK
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Mitra-v1.0.6-Email-Primary-test-APK
+          name: GAWONE-Mitra-v1.0.7-UIUX-V2-test-APK
           path: artifact-stage4j/
           if-no-files-found: error
           retention-days: 14
