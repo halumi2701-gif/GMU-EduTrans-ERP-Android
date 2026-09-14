@@ -7,6 +7,7 @@ const files = {
   media: 'erp-web/media-master-v96.js',
   agent: 'erp-web/manager-ops-agent-v98.js',
   company: 'erp-web/company-operating-system-v100.js',
+  market: 'erp-web/market-intelligence-v101.js',
   loader: 'erp-web/unified-v10-loader.js',
 };
 
@@ -94,12 +95,18 @@ must('company', "priorityRegions: ['Cianjur', 'Sukabumi']", 'Cianjur and Sukabum
 must('company', "'AI & Otomatisasi'", 'AI operating-cost category');
 must('company', "event.stopImmediatePropagation()", 'legacy Ops-Agent authority interception');
 
+// Market Intelligence v10.2 contract.
+must('market', "const VERSION = 'v10.1-market-intelligence'", 'market intelligence module version');
+must('market', "const REGIONS = ['Cianjur','Sukabumi']", 'Cianjur and Sukabumi market regions');
+must('market', "sb.from('market_targets')", 'market_targets source');
+must('market', 'Intelijen Pasar', 'market intelligence UI');
+
 // Unified loader is additive and fail-safe: baseline remains when a module fails.
-for (const moduleFile of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js']) {
+for (const moduleFile of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js']) {
   must('loader', `'${moduleFile}'`, `loader module ${moduleFile}`);
 }
 must('loader', 'ERP utama tetap aktif', 'safe fallback to baseline');
-must('loader', 'v10.1-company-operating-system', 'current version marker');
+must('loader', 'v10.2-company-operating-system-market-intelligence', 'current version marker');
 
-console.log('GMU ERP Web v10.1 contract passed.');
-console.log('Additive loader | Package Master | Media Master | Ops Agent | Company Operating System | strategic finance privacy');
+console.log('GMU ERP Web v10.2 contract passed.');
+console.log('Additive loader | Package Master | Media Master | Ops Agent | Company Operating System | Market Intelligence | strategic finance privacy');
