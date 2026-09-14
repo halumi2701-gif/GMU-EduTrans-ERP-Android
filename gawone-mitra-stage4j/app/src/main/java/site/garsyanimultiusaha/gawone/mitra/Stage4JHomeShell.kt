@@ -1,5 +1,6 @@
 package site.garsyanimultiusaha.gawone.mitra
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,39 +38,17 @@ internal fun Stage4JHomeShell(
     val runtime = LocalStage4IRuntime.current
 
     Scaffold(
-        containerColor = Color(0xFFF7FAF8),
+        containerColor = GawoneMitraTokens.Canvas,
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tab == Stage4JTab.HOME,
-                    onClick = { tab = Stage4JTab.HOME },
-                    icon = { Icon(Icons.Outlined.Home, null) },
-                    label = { Text("Beranda") }
-                )
-                NavigationBarItem(
-                    selected = tab == Stage4JTab.ORDER,
-                    onClick = { tab = Stage4JTab.ORDER },
-                    icon = { Icon(Icons.Outlined.WorkOutline, null) },
-                    label = { Text("Order") }
-                )
-                NavigationBarItem(
-                    selected = tab == Stage4JTab.SCHEDULE,
-                    onClick = { tab = Stage4JTab.SCHEDULE },
-                    icon = { Icon(Icons.Outlined.CalendarMonth, null) },
-                    label = { Text("Jadwal") }
-                )
-                NavigationBarItem(
-                    selected = tab == Stage4JTab.EARNINGS,
-                    onClick = { tab = Stage4JTab.EARNINGS },
-                    icon = { Icon(Icons.Outlined.Payments, null) },
-                    label = { Text("Pendapatan") }
-                )
-                NavigationBarItem(
-                    selected = tab == Stage4JTab.ACCOUNT,
-                    onClick = { tab = Stage4JTab.ACCOUNT },
-                    icon = { Icon(Icons.Outlined.AccountCircle, null) },
-                    label = { Text("Akun") }
-                )
+            NavigationBar(
+                containerColor = Color.White,
+                tonalElevation = 8.dp
+            ) {
+                MitraNavItem(tab == Stage4JTab.HOME, { tab = Stage4JTab.HOME }, Icons.Outlined.Home, "Beranda")
+                MitraNavItem(tab == Stage4JTab.ORDER, { tab = Stage4JTab.ORDER }, Icons.Outlined.WorkOutline, "Order")
+                MitraNavItem(tab == Stage4JTab.SCHEDULE, { tab = Stage4JTab.SCHEDULE }, Icons.Outlined.CalendarMonth, "Jadwal")
+                MitraNavItem(tab == Stage4JTab.EARNINGS, { tab = Stage4JTab.EARNINGS }, Icons.Outlined.Payments, "Pendapatan")
+                MitraNavItem(tab == Stage4JTab.ACCOUNT, { tab = Stage4JTab.ACCOUNT }, Icons.Outlined.AccountCircle, "Akun")
             }
         }
     ) { pad ->
@@ -78,33 +57,19 @@ internal fun Stage4JHomeShell(
                 .fillMaxSize()
                 .padding(pad)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Stage4JTopBrand()
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(it, Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
-                }
-            }
-            message?.let {
-                Surface(
-                    color = Color(0xFFE8F4EE),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(it, Modifier.padding(12.dp))
-                }
-            }
+            GawoneMitraBrandHeader("WORKS FOR A BETTER YOU")
+
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = GawoneMitraTokens.Primary)
+            error?.let { MitraMessageCard(it, error = true) }
+            message?.let { MitraMessageCard(it, error = false) }
 
             when (tab) {
                 Stage4JTab.HOME -> {
-                    Text("Beranda Mitra", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    GawoneMitraSectionTitle("Beranda Mitra", "Status kerja, peluang order, dan kesiapan akun Anda")
+                    Stage4JHero(dashboard, plan)
                     Stage4JStatusSummary(dashboard, plan)
                     if (runtime?.enabled("PRESENCE") != false) {
                         Stage4CPresencePanel(plan?.serviceCode)
@@ -114,12 +79,13 @@ internal fun Stage4JHomeShell(
                     OutlinedButton(
                         onClick = onRefresh,
                         enabled = !loading,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Refresh Status") }
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) { Text("Refresh Status", fontWeight = FontWeight.Bold) }
                 }
 
                 Stage4JTab.ORDER -> {
-                    Text("Order", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    GawoneMitraSectionTitle("Order", "Terima pekerjaan, jalankan lifecycle, dan komunikasi dengan Customer")
                     if (runtime?.enabled("OFFER") == true && runtime.gates.matchingEnabled) {
                         Stage4DOfferPanel(plan?.serviceCode)
                     } else {
@@ -136,12 +102,12 @@ internal fun Stage4JHomeShell(
                 }
 
                 Stage4JTab.SCHEDULE -> {
-                    Text("Jadwal", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    GawoneMitraSectionTitle("Jadwal", "Pekerjaan aktif dan waktu layanan yang perlu Anda siapkan")
                     Stage4JSchedulePanel()
                 }
 
                 Stage4JTab.EARNINGS -> {
-                    Text("Pendapatan", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    GawoneMitraSectionTitle("Pendapatan", "Ringkasan penghasilan, wallet, settlement, dan payout")
                     if (runtime?.enabled("WALLET_READ") != false) {
                         Stage4FWalletPanel()
                     } else {
@@ -150,18 +116,22 @@ internal fun Stage4JHomeShell(
                 }
 
                 Stage4JTab.ACCOUNT -> {
-                    Text("Akun", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    GawoneMitraSectionTitle("Akun", "Profil, KYC, keamanan akun, dan preferensi Mitra")
                     if (runtime?.enabled("ACCOUNT_CENTER") != false) {
                         Stage4HAccountPanel()
                     }
-                    OutlinedButton(onClick = onDocuments, modifier = Modifier.fillMaxWidth()) {
-                        Text("Kelola Dokumen KYC")
+                    OutlinedButton(
+                        onClick = onDocuments,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("Kelola Dokumen KYC", fontWeight = FontWeight.Bold)
                     }
                     TextButton(
                         onClick = onLogout,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("Keluar")
+                        Text("Keluar", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -170,46 +140,95 @@ internal fun Stage4JHomeShell(
 }
 
 @Composable
-private fun Stage4JTopBrand() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Surface(
-            color = Color(0xFF0A6B47),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.size(42.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("G", color = Color.White, fontWeight = FontWeight.Black)
+private fun MitraNavItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(icon, contentDescription = label) },
+        label = { Text(label) },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = GawoneMitraTokens.PrimaryStrong,
+            selectedTextColor = GawoneMitraTokens.PrimaryStrong,
+            indicatorColor = GawoneMitraTokens.PrimarySoft,
+            unselectedIconColor = GawoneMitraTokens.Muted,
+            unselectedTextColor = GawoneMitraTokens.Muted
+        )
+    )
+}
+
+@Composable
+private fun Stage4JHero(dashboard: Dashboard?, plan: KycPlan?) {
+    Surface(
+        color = GawoneMitraTokens.PrimarySoft,
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Siap menerima peluang?", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        plan?.serviceName ?: plan?.serviceCode ?: "Lengkapi layanan Anda",
+                        color = GawoneMitraTokens.Muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                GawoneMitraStatusPill(
+                    dashboard?.availabilityStatus ?: "OFFLINE",
+                    positive = dashboard?.availabilityStatus.equals("ONLINE", true)
+                )
             }
-        }
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text("GAWONE", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-            Text("Mitra • v1.0 RC1", color = Color(0xFF0A6B47), fontWeight = FontWeight.Bold)
+            HorizontalDivider(color = Color(0xFFDBEAFE))
+            Text(
+                "Order Customer, status pekerjaan, chat, pendapatan, dan payout memakai backend GAWONE yang sama dengan Management.",
+                style = MaterialTheme.typography.bodySmall,
+                color = GawoneMitraTokens.Ink
+            )
         }
     }
 }
 
 @Composable
 private fun Stage4JStatusSummary(dashboard: Dashboard?, plan: KycPlan?) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(18.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Stage4JLine("Akun", dashboard?.accountStatus ?: "-")
-            Stage4JLine("Onboarding", dashboard?.onboardingStatus ?: "-")
-            Stage4JLine("Layanan", plan?.serviceName ?: plan?.serviceCode ?: "-")
-            Stage4JLine("Ketersediaan", dashboard?.availabilityStatus ?: "-")
+    GawoneMitraCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Status akun", fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            GawoneMitraStatusPill(dashboard?.accountStatus ?: "-")
         }
+        HorizontalDivider(color = GawoneMitraTokens.Border)
+        Stage4JLine("Onboarding", dashboard?.onboardingStatus ?: "-")
+        Stage4JLine("Layanan", plan?.serviceName ?: plan?.serviceCode ?: "-")
+        Stage4JLine("Ketersediaan", dashboard?.availabilityStatus ?: "-")
     }
 }
 
 @Composable
 private fun Stage4JLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.Bold)
+        Text(label, color = GawoneMitraTokens.Muted)
+        Text(value, fontWeight = FontWeight.Bold, color = GawoneMitraTokens.Ink)
+    }
+}
+
+@Composable
+private fun MitraMessageCard(text: String, error: Boolean) {
+    Surface(
+        color = if (error) MaterialTheme.colorScheme.errorContainer else GawoneMitraTokens.PrimarySoft,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(14.dp),
+            color = if (error) MaterialTheme.colorScheme.onErrorContainer else GawoneMitraTokens.Ink,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -232,30 +251,32 @@ private fun Stage4JSchedulePanel() {
         loading = false
     }
 
-    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = GawoneMitraTokens.Primary)
+    error?.let { MitraMessageCard(it, error = true) }
 
     val schedule = center?.schedule.orEmpty()
     if (!loading && schedule.isEmpty()) {
-        Surface(
-            color = Color.White,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Belum ada jadwal aktif.", Modifier.padding(16.dp))
+        GawoneMitraCard {
+            Text("Belum ada jadwal aktif.", fontWeight = FontWeight.Bold)
+            Text("Order yang sudah terjadwal akan muncul di sini.", color = GawoneMitraTokens.Muted, style = MaterialTheme.typography.bodySmall)
         }
     }
 
     schedule.forEach { s ->
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(s.serviceName, fontWeight = FontWeight.Bold)
-                    Text(s.status, color = Color(0xFF0A6B47), fontWeight = FontWeight.Bold)
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, GawoneMitraTokens.Border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(s.serviceName, fontWeight = FontWeight.ExtraBold)
+                    GawoneMitraStatusPill(s.status)
                 }
-                Text(s.orderNo, style = MaterialTheme.typography.bodySmall)
-                s.scheduledStart?.let { Text("Mulai: " + it, style = MaterialTheme.typography.bodySmall) }
-                s.scheduledEnd?.let { Text("Selesai: " + it, style = MaterialTheme.typography.bodySmall) }
+                Text(s.orderNo, style = MaterialTheme.typography.bodySmall, color = GawoneMitraTokens.Muted)
+                s.scheduledStart?.let { Text("Mulai: $it", style = MaterialTheme.typography.bodySmall) }
+                s.scheduledEnd?.let { Text("Selesai: $it", style = MaterialTheme.typography.bodySmall) }
             }
         }
     }
@@ -270,8 +291,9 @@ private fun Stage4JSchedulePanel() {
             }
         },
         enabled = !loading,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Text("Refresh Jadwal")
+        Text("Refresh Jadwal", fontWeight = FontWeight.Bold)
     }
 }
