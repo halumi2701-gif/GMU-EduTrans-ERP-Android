@@ -13,10 +13,27 @@ replacements = {
 for old, new in replacements.items():
     if old in m:
         m = m.replace(old, new)
+
+old_root = '''        setContent {
+            Stage4IRoot {
+                GawoneMitraStage4B()
+            }
+        }'''
+new_root = '''        setContent {
+            GawoneMitraTheme {
+                Stage4IRoot {
+                    GawoneMitraStage4B()
+                }
+            }
+        }'''
+if old_root in m:
+    m = m.replace(old_root, new_root, 1)
+elif 'GawoneMitraTheme {' not in m:
+    raise SystemExit('Mitra root theme anchor missing')
 main.write_text(m)
 
 r = root_ui.read_text()
 r = r.replace('color = Color(0xFFE8F4EE)', 'color = Color(0xFFEFF6FF)')
 root_ui.write_text(r)
 
-print('GAWONE Mitra UIUX V2 color architecture applied')
+print('GAWONE Mitra UIUX V2 architecture applied')
