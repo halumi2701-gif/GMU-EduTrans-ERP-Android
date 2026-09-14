@@ -8,6 +8,8 @@ const MODULES = [
   'package-master-v97.js',
   'media-master-v96.js',
   'manager-ops-agent-v98.js',
+  'company-operating-system-v100.js',
+  'market-intelligence-v101.js',
   'unified-v10-loader.js',
 ];
 
@@ -55,11 +57,11 @@ async function main() {
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
     trailingSlash: false,
-    headers: [{ source: '/(.*)', headers: [{ key: 'X-GMU-ERP-Release', value: 'v10-additive' }] }],
+    headers: [{ source: '/(.*)', headers: [{ key: 'X-GMU-ERP-Release', value: 'v10.2-additive' }] }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans ERP Web v10 — Unified Operations & Media',
+    release: 'GMU EduTrans ERP Web v10.2 — Company Operating System & Market Intelligence',
     strategy: 'additive-on-live-v9.5',
     baselineUrl: LIVE_URL,
     baselineBytes: Buffer.byteLength(baseline),
@@ -76,7 +78,7 @@ async function main() {
   };
   fs.writeFileSync(path.join(OUT_DIR, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-  console.log(`ERP Web v10 release bundle built: ${OUT_DIR}`);
+  console.log(`ERP Web v10.2 release bundle built: ${OUT_DIR}`);
   console.log(`Live v9.5 baseline preserved: ${manifest.baselineBytes} bytes`);
   console.log(`Additive modules: ${MODULES.join(', ')}`);
 }
