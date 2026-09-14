@@ -1,4 +1,4 @@
-name: GAWONE Customer RC7 UIUX V2
+name: GAWONE Customer RC8 UIUX V3
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     paths:
       - "gawone-customer-rc6-auth-fallback.py"
       - "gawone-customer-rc7-uiux-v2.py"
+      - "gawone-customer-rc8-uiux-v3.py"
       - ".github/workflows/gawone-customer-auth-fallback.yml"
       - "gawone-customer-rc5-e2e-pilot.py"
       - "gawone-customer-rc2-src.*"
@@ -63,9 +64,17 @@ jobs:
           python gawone-customer-rc7-uiux-v2.py
           grep -q 'versionCode = 16' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.6-uiux-v2"' gawone-customer-production/app/build.gradle.kts
-          grep -q 'Opsi lain: masuk dengan nomor HP' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'WORKS FOR A BETTER YOU' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          zip -qr GAWONE_Customer_v1.0.6_UIUX_V2_SOURCE.zip gawone-customer-production
+
+      - name: Apply RC8 UIUX V3 live journey
+        shell: bash
+        run: |
+          python gawone-customer-rc8-uiux-v3.py
+          grep -q 'versionCode = 17' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.7-uiux-v3"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'GAWONE Live' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'Perjalanan pesanan' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'Satu status di semua aplikasi' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          zip -qr GAWONE_Customer_v1.0.7_UIUX_V3_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -88,28 +97,28 @@ jobs:
         working-directory: gawone-customer-production
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify RC7 APK
+      - name: Verify RC8 APK
         shell: bash
         run: |
           APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Customer_v1.0.6_UIUX_V2.apk
-          unzip -t GAWONE_Customer_v1.0.6_UIUX_V2.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.6_UIUX_V2.apk | tee GAWONE_Customer_v1.0.6_UIUX_V2_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.6_UIUX_V2.apk > GAWONE_Customer_v1.0.6_UIUX_V2_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='16' versionName='1.0.6-uiux-v2'" GAWONE_Customer_v1.0.6_UIUX_V2_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.6_UIUX_V2.apk > GAWONE_Customer_v1.0.6_UIUX_V2_SIGNATURE.txt
+          cp "$APK" GAWONE_Customer_v1.0.7_UIUX_V3.apk
+          unzip -t GAWONE_Customer_v1.0.7_UIUX_V3.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.7_UIUX_V3.apk | tee GAWONE_Customer_v1.0.7_UIUX_V3_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.7_UIUX_V3.apk > GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='17' versionName='1.0.7-uiux-v3'" GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.7_UIUX_V3.apk > GAWONE_Customer_v1.0.7_UIUX_V3_SIGNATURE.txt
           test -f gawone-customer-production/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.6_UIUX_V2
+          name: GAWONE_Customer_v1.0.7_UIUX_V3
           if-no-files-found: error
           retention-days: 14
           path: |
-            GAWONE_Customer_v1.0.6_UIUX_V2.apk
-            GAWONE_Customer_v1.0.6_UIUX_V2_SHA256.txt
-            GAWONE_Customer_v1.0.6_UIUX_V2_SOURCE.zip
-            GAWONE_Customer_v1.0.6_UIUX_V2_BADGING.txt
-            GAWONE_Customer_v1.0.6_UIUX_V2_SIGNATURE.txt
+            GAWONE_Customer_v1.0.7_UIUX_V3.apk
+            GAWONE_Customer_v1.0.7_UIUX_V3_SHA256.txt
+            GAWONE_Customer_v1.0.7_UIUX_V3_SOURCE.zip
+            GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
+            GAWONE_Customer_v1.0.7_UIUX_V3_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
