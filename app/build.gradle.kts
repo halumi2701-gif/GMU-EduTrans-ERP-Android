@@ -18,8 +18,8 @@ android {
         applicationId = "site.garsyanimultiusaha.gawone.management"
         minSdk = 23
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.1-m2.22-full-rc2"
+        versionCode = 4
+        versionName = "1.0.2-m2.22-email-primary"
         buildConfigField("String", "SUPABASE_URL", quoted(supabaseUrl))
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", quoted(publishableKey))
         buildConfigField("String", "BACKEND_CONTRACT", quoted("M2.22"))
