@@ -25,7 +25,7 @@ function mustNot(key, text, label) {
 // Role/privacy: full-company finance is Owner/Director only.
 must('privacy', "const FULL_FINANCE_ROLES = new Set(['Owner', 'Director', 'Direktur'])", 'Owner/Director-only full finance');
 must('privacy', "page === 'finance' && !canSeeFullFinance()", 'finance navigation guard');
-must('privacy', "Terkunci Owner/Director", 'Trip Folder finance lock');
+must('privacy', 'Terkunci Owner/Director', 'Trip Folder finance lock');
 mustNot('privacy', "FULL_FINANCE_ROLES = new Set(['Owner', 'Manager'", 'legacy Manager finance access');
 
 // Package Master: selling catalog only, with station contract reference.
@@ -33,14 +33,37 @@ must('packages', "sb.from('program_packages')", 'program_packages source');
 must('packages', 'price_per_pax', 'selling price');
 must('packages', 'min_pax', 'minimum pax');
 must('packages', 'facilities', 'public facilities');
-must('packages', "PKG-GMU-00008", 'official station package');
+must('packages', 'PKG-GMU-00008', 'official station package');
 must('packages', 'Pilih dari Master Paket', 'booking package selector');
-for (const forbidden of ['base_cost', 'manager_fee', 'sales_fee', 'mitra_fee', 'partner_fee', 'profit', 'margin_pct']) {
-  mustNot('packages', forbidden, forbidden);
+
+// Internal finance terms may appear in explanatory copy, but must never be queried
+// from Supabase or written as payload keys by Package Master.
+const forbiddenFinanceFields = [
+  'hpp',
+  'base_cost',
+  'manager_fee',
+  'sales_fee',
+  'mitra_fee',
+  'partner_fee',
+  'profit',
+  'margin',
+  'margin_pct',
+  'pricing_policy',
+];
+const packageSelects = [...src.packages.matchAll(/\.select\(\s*(['"`])([\s\S]*?)\1\s*\)/g)]
+  .map(match => match[2].toLowerCase().split(',').map(x => x.trim()).filter(Boolean));
+for (const field of forbiddenFinanceFields) {
+  if (packageSelects.some(fields => fields.includes(field))) {
+    throw new Error(`Forbidden Package Master database projection: ${field}`);
+  }
+  const payloadKey = new RegExp(`(^|[,{\\n\\r])\\s*${field}\\s*:`, 'i');
+  if (payloadKey.test(src.packages)) {
+    throw new Error(`Forbidden Package Master write payload field: ${field}`);
+  }
 }
 
 // Media contract remains exact.
-must('media', "const MAX_BYTES = 8 * 1024 * 1024", '8 MiB media limit');
+must('media', 'const MAX_BYTES = 8 * 1024 * 1024', '8 MiB media limit');
 must('media', 'const MAX_GALLERY = 5', 'gallery max 5');
 must('media', "const INTERNAL_FN = 'internal-media-master'", 'internal media API');
 
