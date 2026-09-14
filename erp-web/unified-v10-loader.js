@@ -1,13 +1,14 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v10.1-company-operating-system';
+  const VERSION = 'v10.2-company-operating-system-market-intelligence';
   const MODULES = [
     'role-privacy-v99.js',
     'package-master-v97.js',
     'media-master-v96.js',
     'manager-ops-agent-v98.js',
     'company-operating-system-v100.js',
+    'market-intelligence-v101.js',
   ];
 
   function scriptBase() {
@@ -74,10 +75,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v10.1 • Kendali perusahaan, hak akses, Master Paket, Master Media, dan Asisten Operasional aktif.');
+      notice('ERP Web v10.2 • Kendali perusahaan, hak akses, Master Paket, Master Media, Asisten Operasional, dan Intelijen Pasar Cianjur–Sukabumi aktif.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU ERP Web v10.1 loader', error);
+      console.error('GMU ERP Web v10.2 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
