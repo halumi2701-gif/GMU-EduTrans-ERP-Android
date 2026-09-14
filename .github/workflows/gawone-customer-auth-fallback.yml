@@ -1,4 +1,4 @@
-name: GAWONE Customer RC8 UIUX V3
+name: GAWONE Customer RC9 Reliability
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - "gawone-customer-rc6-auth-fallback.py"
       - "gawone-customer-rc7-uiux-v2.py"
       - "gawone-customer-rc8-uiux-v3.py"
+      - "gawone-customer-rc9-reliability.py"
       - ".github/workflows/gawone-customer-auth-fallback.yml"
       - "gawone-customer-rc5-e2e-pilot.py"
       - "gawone-customer-rc2-src.*"
@@ -18,7 +19,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -74,7 +75,18 @@ jobs:
           grep -q 'GAWONE Live' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'Perjalanan pesanan' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'Satu status di semua aplikasi' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          zip -qr GAWONE_Customer_v1.0.7_UIUX_V3_SOURCE.zip gawone-customer-production
+
+      - name: Apply RC9 reliability and safe error UX
+        shell: bash
+        run: |
+          python gawone-customer-rc9-reliability.py
+          grep -q 'versionCode = 18' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.8-reliability-rc9"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'object GawoneCustomerFailureMapper' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
+          grep -q 'NO_PARTNER_AVAILABLE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
+          grep -q 'SESSION_EXPIRED' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
+          grep -q 'PERMISSION DENIED FOR TABLE' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/GawoneCustomerFailure.kt
+          zip -qr GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v4
         with:
@@ -93,32 +105,32 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Lint and build release test APK
+      - name: Lint and build release APK
         working-directory: gawone-customer-production
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
 
-      - name: Verify RC8 APK
+      - name: Verify RC9 APK
         shell: bash
         run: |
           APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Customer_v1.0.7_UIUX_V3.apk
-          unzip -t GAWONE_Customer_v1.0.7_UIUX_V3.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.7_UIUX_V3.apk | tee GAWONE_Customer_v1.0.7_UIUX_V3_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.7_UIUX_V3.apk > GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='17' versionName='1.0.7-uiux-v3'" GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.7_UIUX_V3.apk > GAWONE_Customer_v1.0.7_UIUX_V3_SIGNATURE.txt
+          cp "$APK" GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk
+          unzip -t GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk | tee GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk > GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='18' versionName='1.0.8-reliability-rc9'" GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk > GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SIGNATURE.txt
           test -f gawone-customer-production/app/build/reports/lint-results-release.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE_Customer_v1.0.7_UIUX_V3
+          name: GAWONE_Customer_v1.0.8_RELIABILITY_RC9
           if-no-files-found: error
           retention-days: 14
           path: |
-            GAWONE_Customer_v1.0.7_UIUX_V3.apk
-            GAWONE_Customer_v1.0.7_UIUX_V3_SHA256.txt
-            GAWONE_Customer_v1.0.7_UIUX_V3_SOURCE.zip
-            GAWONE_Customer_v1.0.7_UIUX_V3_BADGING.txt
-            GAWONE_Customer_v1.0.7_UIUX_V3_SIGNATURE.txt
+            GAWONE_Customer_v1.0.8_RELIABILITY_RC9.apk
+            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SHA256.txt
+            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SOURCE.zip
+            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_BADGING.txt
+            GAWONE_Customer_v1.0.8_RELIABILITY_RC9_SIGNATURE.txt
             gawone-customer-production/app/build/reports/lint-results-release.html
