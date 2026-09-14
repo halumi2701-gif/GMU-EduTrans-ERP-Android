@@ -2,14 +2,19 @@ package site.garsyanimultiusaha.gawone.mitra
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.InputType
-import android.view.Gravity
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,12 +25,8 @@ import java.net.URL
 
 class MitraLoginActivity : ComponentActivity() {
     private lateinit var store: SecureSessionStore
-    private lateinit var email: EditText
-    private lateinit var password: EditText
-    private lateinit var message: TextView
-    private lateinit var progress: ProgressBar
-    private lateinit var signIn: Button
-    private lateinit var signUp: Button
+    private var busy by mutableStateOf(false)
+    private var message by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,63 +36,35 @@ class MitraLoginActivity : ComponentActivity() {
             return
         }
 
-        email = EditText(this).apply {
-            hint = "Email"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        setContent {
+            GawoneMitraTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = GawoneMitraTokens.Canvas) {
+                    MitraLoginScreen(
+                        busy = busy,
+                        message = message,
+                        onSubmit = ::authenticate
+                    )
+                }
+            }
         }
-        password = EditText(this).apply {
-            hint = "Password (min. 6 karakter)"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        message = TextView(this)
-        progress = ProgressBar(this).apply { visibility = ProgressBar.GONE }
-        signIn = Button(this).apply { text = "Masuk" }
-        signUp = Button(this).apply { text = "Daftar Mitra" }
-
-        val title = TextView(this).apply {
-            text = "GAWONE\nMitra"
-            textSize = 30f
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-        val note = TextView(this).apply {
-            text = "Gunakan Email + Password. Setelah berhasil, akun langsung disiapkan sebagai Mitra dan masuk onboarding."
-        }
-
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(48, 48, 48, 48)
-            addView(title)
-            addView(note)
-            addView(email)
-            addView(password)
-            addView(message)
-            addView(progress)
-            addView(signIn)
-            addView(signUp)
-        }
-        setContentView(root)
-
-        signIn.setOnClickListener { authenticate(signUp = false) }
-        signUp.setOnClickListener { authenticate(signUp = true) }
     }
 
-    private fun authenticate(signUp: Boolean) {
-        val e = email.text.toString().trim()
-        val p = password.text.toString()
-        if (!e.contains("@") || p.length < 6) {
-            message.text = "Email atau password belum valid."
+    private fun authenticate(email: String, password: String, signUp: Boolean) {
+        val e = email.trim()
+        if (!e.contains("@") || password.length < 6) {
+            message = "Email atau password belum valid."
             return
         }
 
-        setBusy(true)
+        busy = true
+        message = ""
         lifecycleScope.launch {
             try {
-                val auth = authRequest(e, p, signUp)
+                val auth = authRequest(e, password, signUp)
                 val access = auth.optString("access_token")
                 val refresh = auth.optString("refresh_token")
                 if (access.isBlank() || refresh.isBlank()) {
-                    message.text = "Pendaftaran berhasil. Konfirmasi email bila diminta, lalu tekan Masuk."
+                    message = "Pendaftaran berhasil. Konfirmasi email bila diminta, lalu tekan Masuk."
                     return@launch
                 }
 
@@ -114,9 +87,9 @@ class MitraLoginActivity : ComponentActivity() {
                 )
                 openMain()
             } catch (t: Throwable) {
-                message.text = t.message ?: "Login gagal."
+                message = friendly(t.message.orEmpty())
             } finally {
-                setBusy(false)
+                busy = false
             }
         }
     }
@@ -169,14 +142,115 @@ class MitraLoginActivity : ComponentActivity() {
             }
         }
 
-    private fun setBusy(busy: Boolean) {
-        progress.visibility = if (busy) ProgressBar.VISIBLE else ProgressBar.GONE
-        signIn.isEnabled = !busy
-        signUp.isEnabled = !busy
+    private fun friendly(raw: String): String = when {
+        raw.contains("email_not_confirmed", true) || raw.contains("email not confirmed", true) ->
+            "Email belum dikonfirmasi. Buka email verifikasi lalu masuk kembali."
+        raw.contains("invalid login credentials", true) -> "Email atau password salah."
+        raw.contains("unsupported phone provider", true) -> "Phone OTP belum aktif. Gunakan Email + Password."
+        raw.isBlank() -> "Login Mitra gagal."
+        else -> raw.take(420)
     }
 
     private fun openMain() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()
+    }
+}
+
+@Composable
+private fun MitraLoginScreen(
+    busy: Boolean,
+    message: String,
+    onSubmit: (String, String, Boolean) -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 28.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        GawoneMitraBrandHeader("UNTUK PELUANG KERJA & PENGHASILAN")
+        Spacer(Modifier.height(34.dp))
+
+        Text(
+            "Masuk sebagai Mitra",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Kelola order, jadwal, pekerjaan, pendapatan, dan akun dalam satu aplikasi.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = GawoneMitraTokens.Muted
+        )
+        Spacer(Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (message.isNotBlank()) {
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                color = GawoneMitraTokens.PrimarySoft,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    message,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = GawoneMitraTokens.Ink
+                )
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = { onSubmit(email, password, false) },
+            enabled = !busy && email.contains("@") && password.length >= 6,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            if (busy) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+            } else {
+                Text("Masuk", fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(
+            onClick = { onSubmit(email, password, true) },
+            enabled = !busy && email.contains("@") && password.length >= 6,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("Daftar Mitra", fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            GawoneMitraStatusPill("Email + Password • Phone OTP opsional nanti")
+        }
     }
 }
