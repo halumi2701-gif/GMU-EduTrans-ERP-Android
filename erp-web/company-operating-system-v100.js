@@ -144,10 +144,10 @@
   function correctOpsPolicyText() {
     const page = q('#opsAgent');
     if (!page) return;
-    const policyText = [...page.querySelectorAll('.gmu-ops-policy')].find(el => /Transaksi di atas|approval Direktur/i.test(el.textContent || ''));
-    if (policyText) {
-      policyText.textContent = 'Batas Manager: dalam RAB ≤ Rp1.000.000; di luar RAB ≤ Rp250.000; darurat trip ≤ Rp500.000; diskon ≤5%. Margin <20%, refund, perubahan harga strategis, rekening, jurnal dan keputusan sensitif wajib persetujuan Direktur.';
-    }
+    const policyText = [...page.querySelectorAll('.gmu-ops-policy')].find(el => /Transaksi di atas|approval Direktur|Batas Manager/i.test(el.textContent || ''));
+    if (!policyText) return;
+    const desired = 'Batas Manager: dalam RAB ≤ Rp1.000.000; di luar RAB ≤ Rp250.000; darurat trip ≤ Rp500.000; diskon ≤5%. Margin <20%, refund, perubahan harga strategis, rekening, jurnal dan keputusan sensitif wajib persetujuan Direktur.';
+    if (policyText.textContent !== desired) policyText.textContent = desired;
   }
 
   function blockOutOfAuthorityOpsCommand(event) {
@@ -194,9 +194,10 @@
     Object.entries(labels).forEach(([page, label]) => {
       const btn = q(`#nav [data-page="${page}"]`);
       if (!btn) return;
-      const raw = btn.textContent || '';
-      const icon = raw.trim().split(/\s+/)[0];
-      btn.textContent = `${icon}  ${label}`;
+      const raw = (btn.textContent || '').trim();
+      const icon = raw.split(/\s+/)[0] || '';
+      const desired = `${icon}  ${label}`.trim();
+      if (raw !== desired) btn.textContent = desired;
     });
   }
 
@@ -214,9 +215,15 @@
     document.addEventListener('click', blockOutOfAuthorityOpsCommand, true);
     document.addEventListener('keydown', blockOutOfAuthorityEnter, true);
 
+    let queued = false;
     const observer = new MutationObserver(() => {
-      correctOpsPolicyText();
-      relabelCommonNavigation();
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        correctOpsPolicyText();
+        relabelCommonNavigation();
+      });
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
