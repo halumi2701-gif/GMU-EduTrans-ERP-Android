@@ -29,6 +29,15 @@ fun GmuNativeAppWithRecipientPolicyGate(vm: MainViewModel = viewModel()) {
     Box(Modifier.fillMaxSize()) {
         GmuNativeAppWithNotificationRulesPreferences(vm)
 
+        // Company Operating System v1 is intentionally independent from the
+        // recipient-policy backend probe. It is the role-based management layer
+        // for Director, Manager, Sales, Finance, Ops and TL.
+        if (vm.state is AppState.LoggedIn) {
+            Box(Modifier.align(Alignment.BottomEnd)) {
+                GmuCompanyOperatingSystemOverlay(vm)
+            }
+        }
+
         val session = (vm.state as? AppState.LoggedIn)?.session
         var backendReady by remember(session?.userId) { mutableStateOf(false) }
 
