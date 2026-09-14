@@ -1,0 +1,119 @@
+name: Deploy ERP Web v10
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "Ketik DEPLOY untuk menerapkan ERP Web v10 ke production"
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "DEPLOY"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmu-edutrans-erp-web-production
+  cancel-in-progress: false
+
+env:
+  ERP_LIVE_URL: https://erp.edutrans.garsyanimultiusaha.site/
+  VERCEL_ORG_ID: team_eb0gRoeVYnxOU49hZdWSUqYF
+  VERCEL_PROJECT_ID: prj_3enHdsSqMjcLHQCcXPLyZI8UXS9Q
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm_production == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate ERP Web v10 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-erp-web-media.js
+          node scripts/verify-erp-web-v10.js
+          node --check scripts/build-erp-web-v10-release.js
+
+      - name: Build release from current live v9.5 baseline
+        run: node scripts/build-erp-web-v10-release.js
+
+      - name: Validate release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/index.html
+          grep -Fq 'id="loginScreen"' dist/erp-web-v10/index.html
+          grep -Fq 'data-page="tripfolder"' dist/erp-web-v10/index.html
+          grep -Fq 'id="folderDocumentCenter"' dist/erp-web-v10/index.html
+          grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
+          test -f dist/erp-web-v10/release-manifest.json
+
+      - name: Validate Vercel credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN belum tersedia di GitHub Environment production."; exit 1; }
+
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@59.16.0
+
+      - name: Link exact ERP Vercel project
+        working-directory: dist/erp-web-v10
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Deploy ERP Web v10 production
+        id: deploy
+        working-directory: dist/erp-web-v10
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(vercel deploy --yes --prod --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployment: $url"
+
+      - name: Verify deployment URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$DEPLOYMENT_URL" -o /tmp/erp-v10.html
+          grep -Fq 'GMU EduTrans ERP v9.5' /tmp/erp-v10.html
+          grep -Fq 'gmu-erp-v10-additive' /tmp/erp-v10.html
+          grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-v10.html
+
+      - name: Verify production custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$ERP_LIVE_URL" -o /tmp/erp-prod.html
+          grep -Fq 'GMU EduTrans ERP v9.5' /tmp/erp-prod.html
+          grep -Fq 'gmu-erp-v10-additive' /tmp/erp-prod.html
+          grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-prod.html
+          echo "ERP Web v10 production marker: PASS"
+
+      - name: Deployment summary
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "GMU EduTrans ERP Web v10 deployed and verified."
+          echo "Project: gmu-edutrans-erp"
+          echo "Production: https://erp.edutrans.garsyanimultiusaha.site/"
+          echo "Deployment: $DEPLOYMENT_URL"
+          echo "Baseline v9.5 preserved + additive v10 modules"
