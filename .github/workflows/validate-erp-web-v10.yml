@@ -1,0 +1,53 @@
+name: Validate ERP Web v10
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "erp-web/**"
+      - "scripts/verify-erp-web-media.js"
+      - "scripts/verify-erp-web-v10.js"
+      - ".github/workflows/validate-erp-web-v10.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmu-erp-web-v10-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate additive ERP web modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find erp-web -type f -name '*.js' -print0)
+          node --check scripts/verify-erp-web-media.js
+          node --check scripts/verify-erp-web-v10.js
+
+      - name: Verify Media Master contract
+        run: node scripts/verify-erp-web-media.js
+
+      - name: Verify ERP Web v10 contract
+        run: node scripts/verify-erp-web-v10.js
+
+      - name: Verify additive release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f erp-web/role-privacy-v99.js
+          test -f erp-web/package-master-v97.js
+          test -f erp-web/media-master-v96.js
+          test -f erp-web/manager-ops-agent-v98.js
+          test -f erp-web/unified-v10-loader.js
+          echo "ERP Web v10 additive bundle: PASS"
