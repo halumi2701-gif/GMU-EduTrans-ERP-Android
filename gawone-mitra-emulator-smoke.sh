@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PKG="site.garsyanimultiusaha.gawone.mitra"
-APK="GAWONE_Mitra_v1.0.2_STAGE4J_PILOT_RC3.apk"
+APK="${GAWONE_MITRA_APK:-GAWONE_Mitra_v1.0.3_STAGE4J_RELIABILITY_RC4.apk}"
 REPORT_DIR="emulator-reports"
 mkdir -p "$REPORT_DIR"
 
@@ -57,6 +57,7 @@ check_no_crash() {
 }
 
 echo "=== INSTALL ==="
+echo "APK=$APK"
 test -f "$APK"
 wait_adb
 adb install -r "$APK" | tee "$REPORT_DIR/01-install.txt"
@@ -104,4 +105,4 @@ wait_adb
 adb shell dumpsys package "$PKG" > "$REPORT_DIR/16-package-dumpsys.txt" || true
 adb shell getprop ro.build.version.release > "$REPORT_DIR/17-android-version.txt" || true
 adb shell getprop ro.build.version.sdk > "$REPORT_DIR/18-api-level.txt" || true
-echo "GAWONE Mitra Pilot RC3 emulator smoke gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
+echo "GAWONE Mitra Reliability RC4 emulator smoke gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
