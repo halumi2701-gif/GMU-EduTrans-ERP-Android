@@ -7,12 +7,15 @@
         android:label="GAWONE Management"
         android:theme="@style/Theme.GAWONEManagement">
         <activity
-            android:name=".FullMainActivity"
+            android:name=".ManagementLoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".FullMainActivity"
+            android:exported="false" />
     </application>
 </manifest>
