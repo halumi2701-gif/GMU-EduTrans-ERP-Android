@@ -222,4 +222,8 @@ if 'versionCode = 18' not in build.read_text():
 if 'GawoneCustomerFailureMapper' not in mapper.read_text():
     raise SystemExit('failure mapper missing')
 
+candidate = Path('gawone-customer-rc12-recovery-candidate.py')
+if candidate.exists():
+    exec(compile(candidate.read_text(), str(candidate), 'exec'), {'__name__':'__main__'})
+
 print('GAWONE Customer RC9 reliability hardening applied')
