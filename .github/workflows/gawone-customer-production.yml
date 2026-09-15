@@ -1,10 +1,12 @@
-name: GAWONE Customer Production RC4
+name: GAWONE Customer Legacy RC4 Compile
 
 on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
+# This workflow preserves the historical RC4 reconstruction/compile gate only.
+# Current Android emulator coverage is owned by the cumulative RC17 P2 workflow.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,34 +35,22 @@ jobs:
           python gawone-customer-rc3-compile-fix.py
           python gawone-customer-rc3-static-hardening.py
           grep -q 'versionCode = 12' gawone-customer-production/app/build.gradle.kts
-          grep -q 'versionName = "1.0.2-customer-rc3"' gawone-customer-production/app/build.gradle.kts
 
       - name: Apply RC4 production runtime gates
         shell: bash
         run: |
           base64 -d gawone-customer-rc3-to-rc4.patch.gz.b64 | gunzip > /tmp/rc4.patch
-          test -s /tmp/rc4.patch
           patch --dry-run -p1 < /tmp/rc4.patch >/dev/null
           patch -p1 < /tmp/rc4.patch
           grep -q 'versionCode = 13' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.3-customer-rc4"' gawone-customer-production/app/build.gradle.kts
           grep -q 'class RuntimeConfigStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/RuntimeConfigStore.kt
-          grep -q 'offlineDegradedModeEnabled' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'upgradeRequired' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'maintenanceMode' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'featureEnabled(runtime,"BOOKING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
           grep -q 'featureEnabled(runtime,"MATCHING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'featureEnabled(runtime,"REALTIME")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt || grep -q 'optBoolean("REALTIME",false)' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
-          grep -q 'AndroidKeyStore' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/CustomerOfflineQueue.kt
-          grep -q 'android:icon="@mipmap/ic_launcher"' gawone-customer-production/app/src/main/AndroidManifest.xml
-          grep -q 'android:dataExtractionRules="@xml/data_extraction_rules"' gawone-customer-production/app/src/main/AndroidManifest.xml
           rm -f GAWONE_Customer_v1.0.1_RC2_SOURCE.zip
-          zip -qr GAWONE_Customer_v1.0.3_RC4_SOURCE.zip gawone-customer-production
 
       - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
+        with: {distribution: temurin, java-version: '17'}
 
       - name: Install Android SDK
         shell: bash
@@ -70,8 +60,7 @@ jobs:
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
+        with: {gradle-version: '8.10.2'}
 
       - name: Static QA and compile
         working-directory: gawone-customer-production
@@ -84,64 +73,6 @@ jobs:
           test -f "$APK"
           cp "$APK" GAWONE_Customer_v1.0.3_RC4.apk
           unzip -t GAWONE_Customer_v1.0.3_RC4.apk >/dev/null
-          sha256sum GAWONE_Customer_v1.0.3_RC4.apk | tee GAWONE_Customer_v1.0.3_RC4_SHA256.txt
-          grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
-          grep -R "Jl. Suroso" gawone-customer-production/app/src/main/java && exit 1 || true
-          REPORT=gawone-customer-production/app/build/reports/lint-results-release.html
-          test -f "$REPORT"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.3_RC4.apk > GAWONE_Customer_v1.0.3_RC4_BADGING.txt
           grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='13' versionName='1.0.3-customer-rc4'" GAWONE_Customer_v1.0.3_RC4_BADGING.txt
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.3_RC4.apk > GAWONE_Customer_v1.0.3_RC4_SIGNATURE.txt
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: GAWONE_Customer_v1.0.3_RC4
-          if-no-files-found: error
-          path: |
-            GAWONE_Customer_v1.0.3_RC4.apk
-            GAWONE_Customer_v1.0.3_RC4_SHA256.txt
-            GAWONE_Customer_v1.0.3_RC4_SOURCE.zip
-            GAWONE_Customer_v1.0.3_RC4_BADGING.txt
-            GAWONE_Customer_v1.0.3_RC4_SIGNATURE.txt
-            gawone-customer-production/app/build/reports/lint-results-release.html
-
-  emulator_smoke:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: GAWONE_Customer_v1.0.3_RC4
-
-      - name: Prepare emulator reports
-        shell: bash
-        run: mkdir -p emulator-reports
-
-      - name: Enable KVM permissions
-        shell: bash
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: RC4 Android emulator production-prep gate
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          target: google_apis
-          profile: pixel_4
-          disable-animations: true
-          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
-          script: bash gawone-customer-emulator-smoke.sh
-
-      - name: Upload emulator evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: GAWONE_Customer_v1.0.3_RC4_EMULATOR_GATE
-          if-no-files-found: warn
-          path: emulator-reports
