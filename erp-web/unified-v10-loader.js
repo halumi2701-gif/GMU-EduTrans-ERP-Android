@@ -9,6 +9,7 @@
   const TARGET_CASCADE_VERSION = 'v21.2-target-cascade-workforce-autopilot-layer';
   const COMPENSATION_VERSION = 'v21.3-compensation-capacity-autopilot-layer';
   const COMPANY_CONTROL_VERSION = 'v21.4-company-control-center-layer';
+  const PORTFOLIO_TARGET_VERSION = 'v22.1-sales-portfolio-target-automatic';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
@@ -25,6 +26,7 @@
     'station-target-v216.js',
     'sales-target-v217.js',
     'station-operating-policy-v218.js',
+    'train-package-policy-v221.js',
     'company-system-center-v104.js',
     'management-domains-v105.js',
     'role-navigation-v106.js',
@@ -101,6 +103,7 @@
       targetCascadeVersion: TARGET_CASCADE_VERSION,
       compensationVersion: COMPENSATION_VERSION,
       companyControlVersion: COMPANY_CONTROL_VERSION,
+      portfolioTargetVersion: PORTFOLIO_TARGET_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       v21CompatibilityMarker: V21_COMPATIBILITY_MARKER,
       v212CompatibilityMarker: V212_COMPATIBILITY_MARKER,
@@ -118,7 +121,7 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans v21.4 aktif. Seluruh fitur lama, Company Autopilot v21, Target Cascade v21.2 dan Compensation Autopilot v21.3 tetap aktif. Target program 200 pax, dua tier harga, Sales KPI, policy margin 35% dan Customer Account CRM aktif sebagai modul tambahan. Aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans ERP aktif. Target Sales 200 paid pax lintas seluruh program dihitung otomatis dari booking berbayar, pricing Stasiun tetap terpisah, skema final Paket Kereta + tiket tambahan, dan Customer Account CRM aktif. Aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
       console.error('GMU EduTrans v21.4 loader', error);
