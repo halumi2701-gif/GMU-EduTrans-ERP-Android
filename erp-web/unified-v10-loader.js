@@ -2,6 +2,7 @@
   'use strict';
 
   const VERSION = 'v11.0-automation-focus-ui';
+  const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
     'package-master-v97.js',
@@ -71,6 +72,7 @@
     if (window.__GMU_ERP_WEB_V10__?.booted) return;
     const state = window.__GMU_ERP_WEB_V10__ = {
       version: VERSION,
+      releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
       failedModule: null,
