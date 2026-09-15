@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v11.2-crm-finance-notification-activation';
+  const VERSION = 'v20-enterprise-operating-system';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -21,6 +21,7 @@
     'automation-orchestrator-v111.js',
     'automation-orchestrator-fix-v111.js',
     'crm-finance-notification-v112.js',
+    'enterprise-os-v200.js',
   ];
 
   function scriptBase() {
@@ -88,10 +89,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v11.2 • CRM, Accounting & Notification Activation aktif: lead memiliki stage, PIC, follow-up, lost reason, conversion dan recovery; laporan AR/AP, Trial Balance, Laba Rugi, Neraca dan Arus Kas membaca accounting production; Delivery Center menampilkan email/WhatsApp/internal delivery, retry, error dan delivery log notifikasi sesuai hak akses.');
+      notice('GMU EduTrans Enterprise OS v20 aktif: Sales, CRM, Booking, Operasional, Finance, Accounting, SDM/HRIS, Payroll, Vendor, Customer Quality, Risk, Governance, Notification, AI dan Automation kini disatukan melalui Enterprise Control Tower, Exception Center, People OS dan policy lintas divisi. UI tetap role-first dan ringkas; keputusan sensitif tetap membutuhkan approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU ERP Web v11.2 loader', error);
+      console.error('GMU EduTrans Enterprise OS v20 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
