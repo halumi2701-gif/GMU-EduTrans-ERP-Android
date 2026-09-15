@@ -37,8 +37,10 @@ mustContain('erp-web/company-control-v214.js', 'recruitment_cases');
 
 const baseMigration = 'supabase/migrations/20260915070000_gmu_v214_company_control_finance_hr.sql';
 const engineMigration = 'supabase/migrations/20260915071000_gmu_v214_performance_payroll_workforce_capacity.sql';
-mustExist(baseMigration);
-mustExist(engineMigration);
+const financeMigration = 'supabase/migrations/20260915071500_gmu_v214_real_finance_command_center.sql';
+const guardMigration = 'supabase/migrations/20260915072000_gmu_v214_payroll_guardrail_hardening.sql';
+[baseMigration,engineMigration,financeMigration,guardMigration].forEach(mustExist);
+
 mustContain(baseMigration, "('MONTHLY_REVENUE_TARGET',50000000");
 mustContain(baseMigration, "('HEALTHY_MARGIN_FLOOR_PCT',25");
 mustContain(baseMigration, 'create table if not exists public.payment_requests');
@@ -62,6 +64,17 @@ mustContain(engineMigration, 'internal_performance_payroll_v214_status');
 mustContain(engineMigration, "'whatsapp_automation',false");
 mustContain(engineMigration, 'gmu_v214_performance_payroll_workforce');
 
+mustContain(financeMigration, 'sum(tc.contract_revenue)');
+mustContain(financeMigration, 'sum(p.amount)');
+mustContain(financeMigration, 'p.verified_at is not null');
+mustContain(financeMigration, 'estimated_value*c.probability_pct/100');
+
+mustContain(guardMigration, 'VARIABLE_INCENTIVE_CAP_PCT');
+mustContain(guardMigration, '6.25');
+mustContain(guardMigration, "state='ON_HOLD'");
+mustContain(guardMigration, "return case when tg_op='INSERT' then null else old end");
+mustContain(guardMigration, 'return null;');
+
 // Previous releases remain explicitly protected.
 mustContain('erp-web/compensation-autopilot-v213.js', 'v21.3-compensation-capacity-autopilot');
 mustContain('erp-web/target-cascade-v212.js', 'v21.2-target-cascade-workforce-autopilot');
@@ -78,4 +91,5 @@ if (fail.length) {
 
 console.log('GMU EduTrans v21.4 verification PASS');
 console.log('Chain: Director target -> profit target -> revenue need -> SDM targets/tasks -> execution -> closing -> actual profit -> recovery gap -> target recalc -> payroll/workforce capacity recalc.');
+console.log('Finance source: Trip Closing + verified payments + CRM. Variable pay cap: cash-based 6.25%.');
 console.log('No-regression: all prior ERP modules remain mandatory. WhatsApp automation remains deferred.');
