@@ -1,9 +1,10 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v20-enterprise-operating-system';
+  const VERSION = 'v21-company-autopilot';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
+  const AUTOPILOT_VERSION = 'v21-company-autopilot-layer';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -26,6 +27,7 @@
     'enterprise-os-v200.js',
     'business-priority-v201.js',
     'recovery-command-v202.js',
+    'company-autopilot-v210.js',
   ];
 
   function scriptBase() {
@@ -67,10 +69,7 @@
       script.src = src;
       script.defer = true;
       script.dataset.gmuV10Module = 'true';
-      script.addEventListener('load', () => {
-        script.dataset.gmuLoaded = 'true';
-        resolve();
-      }, { once: true });
+      script.addEventListener('load', () => { script.dataset.gmuLoaded = 'true'; resolve(); }, { once: true });
       script.addEventListener('error', () => reject(new Error(`Gagal memuat ${src}`)), { once: true });
       document.head.appendChild(script);
     });
@@ -82,6 +81,7 @@
       version: VERSION,
       priorityVersion: PRIORITY_VERSION,
       recoveryVersion: RECOVERY_VERSION,
+      autopilotVersion: AUTOPILOT_VERSION,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
@@ -95,10 +95,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans Enterprise OS v20 aktif dengan Priority Command v20.1 dan Recovery & Accountability v20.2. Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower tetap menjadi urutan prioritas. Setiap exception HIGH/CRITICAL kini diterjemahkan menjadi tugas recovery dengan PIC, deadline, target hasil dan bukti; task selesai tidak boleh menutup exception sebelum data sumber benar-benar pulih.');
+      notice('GMU EduTrans Company Autopilot v21 aktif. Lead → Follow-up → Quotation → Payment → Booking → Operasional → Crew/Vendor → Trip → Finance → Payroll → Feedback → Repeat Order terhubung dalam automation-first operating system. Recovery v20.2 tetap aktif dan exception hanya ditutup setelah data sumber kembali sehat. Aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans Enterprise OS v20/v20.2 loader', error);
+      console.error('GMU EduTrans Company Autopilot v21 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
