@@ -1,4 +1,4 @@
-name: Validate ERP Web v10
+name: Validate ERP Web v20
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gmu-erp-web-v10-${{ github.ref }}
+  group: gmu-enterprise-os-v20-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
       - name: Verify Media Master contract
         run: node scripts/verify-erp-web-media.js
 
-      - name: Verify ERP v11.2 contracts
+      - name: Verify Enterprise OS v20 contract
         run: node scripts/verify-erp-web-v10.js
 
       - name: Verify release bundle source
@@ -66,15 +66,16 @@ jobs:
             automation-orchestrator-v111.js \
             automation-orchestrator-fix-v111.js \
             crm-finance-notification-v112.js \
+            enterprise-os-v200.js \
             unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
-          echo "ERP Web v11.2 CRM, Accounting & Notification source bundle: PASS"
+          echo "GMU EduTrans Enterprise OS v20 source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
 
-      - name: Verify preserved baseline and v11.2 output
+      - name: Verify preserved baseline and v20 output
         shell: bash
         run: |
           set -euo pipefail
@@ -82,8 +83,8 @@ jobs:
           test -f dist/erp-web-v10/baseline-v95.html
           test -f dist/erp-web-v10/release-manifest.json
           grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
-          grep -Fq 'GMU EduTrans ERP v11.2' dist/erp-web-v10/index.html
-          grep -Fq 'ERP v11.2 — CRM, Accounting & Notification' dist/erp-web-v10/index.html
+          grep -Fq 'GMU EduTrans ERP v20' dist/erp-web-v10/index.html
+          grep -Fq 'Enterprise OS v20 — Company Operating System' dist/erp-web-v10/index.html
           if grep -Fq 'ERP v9.5' dist/erp-web-v10/index.html; then
             echo 'Legacy ERP v9.5 branding leaked into production output' >&2
             exit 1
@@ -91,31 +92,31 @@ jobs:
           grep -Fq 'id="loginScreen"' dist/erp-web-v10/index.html
           grep -Fq 'data-page="tripfolder"' dist/erp-web-v10/index.html
           grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
-          grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
-          grep -Fq 'v11.2-crm-finance-notification-activation' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'crm-finance-notification-v112.js' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'v11.2-crm-finance-notification-activation' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'crm_lead_controls' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'internal_crm_sales_scorecard' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'internal_management_ar_aging' dist/erp-web-v10/crm-finance-notification-v112.js
+          grep -Fq 'gmu-enterprise-os-v20-additive' dist/erp-web-v10/index.html
+          grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'enterprise-os-v200.js' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'Enterprise Control Tower' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'People OS' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'Exception Center' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'Automation Map' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'internal_enterprise_control_tower' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'enterprise_exception_queue' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'staff_probation_checkpoints' dist/erp-web-v10/enterprise-os-v200.js
+          grep -Fq 'staff_compensation_profiles' dist/erp-web-v10/enterprise-os-v200.js
           grep -Fq 'internal_gl_profit_loss' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'internal_gl_balance_sheet' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'internal_gl_cash_flow' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'customer_notification_deliveries' dist/erp-web-v10/crm-finance-notification-v112.js
-          grep -Fq 'internal_notification_deliveries' dist/erp-web-v10/crm-finance-notification-v112.js
           grep -Fq 'v11.1-transactional-automation-orchestrator' dist/erp-web-v10/automation-orchestrator-v111.js
-          grep -Fq 'v11.1-automation-runtime-stabilizer' dist/erp-web-v10/automation-orchestrator-fix-v111.js
           grep -Fq 'v11.0-focused-ui-shell' dist/erp-web-v10/ui-focus-shell-v110.js
-          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js crm-finance-notification-v112.js; do
+          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js crm-finance-notification-v112.js enterprise-os-v200.js; do
             test -f "dist/erp-web-v10/$module"
           done
-          grep -Fq 'v11.2-crm-finance-notification' dist/erp-web-v10/vercel.json
-          echo "Pinned rollback baseline + ERP v11.2 CRM, Accounting & Notification release: PASS"
+          grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/vercel.json
+          echo "Pinned rollback baseline + GMU EduTrans Enterprise OS v20 release: PASS"
 
-      - name: Upload ERP Web release candidate
+      - name: Upload Enterprise OS release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: gmu-edutrans-erp-web-v10-release-candidate
+          name: gmu-edutrans-enterprise-os-v20-release-candidate
           path: dist/erp-web-v10/
           if-no-files-found: error
           retention-days: 30
@@ -134,16 +135,16 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$snapshot"/. .
           git add -A
-          git commit -m "release: ERP Web v11.2 CRM Accounting Notification from ${GITHUB_SHA}"
+          git commit -m "release: GMU EduTrans Enterprise OS v20 from ${GITHUB_SHA}"
           git push --force origin HEAD:erp-web-v10-release
 
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans ERP v11.2 CRM, Accounting & Notification validated."
-          echo "CRM: assignment, stage, next follow-up, overdue, lost reason, recovery, scorecard and conversion."
-          echo "Finance: AR/AP Aging, Trial Balance, P&L, Balance Sheet, Cash Flow and Finance Period visibility."
-          echo "Notification: customer/internal delivery, attempts, retry/error visibility."
+          echo "GMU EduTrans Enterprise Operating System v20 validated."
+          echo "Control: Enterprise Control Tower, Exception Center and Automation Map."
+          echo "People: recruitment, contract, onboarding, probation 30/60/90, attendance, leave, KPI, review, payroll, training, warning, asset/access and offboarding."
+          echo "Business: CRM, booking, operations, finance/accounting, vendor, quality, risk, governance, notification and AI automation."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
-          echo "Visible UI branding: ERP v11.2"
+          echo "Visible UI branding: Enterprise OS v20"
           echo "Release branch: erp-web-v10-release"
