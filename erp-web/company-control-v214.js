@@ -1,15 +1,15 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v21.4-company-control-center';
+  const VERSION = 'v21.4-performance-payroll-workforce-capacity';
   const MANAGEMENT = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
   const FINANCE = new Set(['Finance']);
   const PAYMENT_CREATORS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Finance','Admin','Operation']);
   const q = (s,r=document) => r.querySelector(s);
-  const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'})[c]);
   const money = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v||0));
   const fmtDate = v => v ? new Date(v).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-  const state = { summary:null, payments:[], accruals:[], recruitments:[], loading:false, error:null };
+  const state = { summary:null, performance:null, payments:[], accruals:[], recruitments:[], loading:false, error:null };
 
   function role(){ try { return String(profile?.role || ''); } catch (_) { return ''; } }
   function db(){ try { return typeof sb !== 'undefined' && sb?.from ? sb : null; } catch (_) { return null; } }
@@ -20,7 +20,7 @@
   function ensureStyle(){
     if(q('#gmuV214Style')) return;
     const s=document.createElement('style'); s.id='gmuV214Style'; s.textContent=`
-      .v214-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v214-head h2{margin:0;color:var(--gd)}.v214-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:820px}.v214-actions{display:flex;gap:6px;flex-wrap:wrap}.v214-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.v214-btn.primary{background:var(--gd);color:#fff}.v214-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.v214-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px}.v214-card small{display:block;color:var(--muted);font-size:8px}.v214-card strong{display:block;color:var(--gd);font-size:16px;margin:4px 0}.v214-card p{font-size:8px;color:var(--muted);margin:0;line-height:1.45}.v214-section{margin-top:14px}.v214-section h4{margin:0 0 7px;color:var(--gd)}.v214-table{width:100%;border-collapse:collapse;font-size:8px}.v214-table th,.v214-table td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}.v214-table th{color:var(--muted);font-weight:600}.v214-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#f1f5f2;color:var(--gd);font-size:7px;font-weight:700}.v214-pill.bad{background:#fff0f0;color:#9c3434}.v214-pill.warn{background:#fff5e8;color:#945d12}.v214-note{padding:10px 12px;border-radius:12px;background:#f5f8f6;border:1px solid var(--line);font-size:8px;line-height:1.55;color:var(--gd)}.v214-error{padding:10px 12px;border-radius:12px;background:#fff4f4;border:1px solid #efc5c5;color:#963434;font-size:9px}.v214-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}@media(max-width:900px){.v214-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v214-grid{grid-template-columns:1fr}.v214-actions{width:100%}.v214-table{min-width:760px}}
+      .v214-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v214-head h2{margin:0;color:var(--gd)}.v214-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:850px}.v214-actions{display:flex;gap:6px;flex-wrap:wrap}.v214-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.v214-btn.primary{background:var(--gd);color:#fff}.v214-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:12px}.v214-flow div{border:1px solid var(--line);border-radius:11px;padding:8px;background:#f8faf8;font-size:8px;color:var(--gd);font-weight:700;text-align:center}.v214-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.v214-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px}.v214-card small{display:block;color:var(--muted);font-size:8px}.v214-card strong{display:block;color:var(--gd);font-size:16px;margin:4px 0}.v214-card p{font-size:8px;color:var(--muted);margin:0;line-height:1.45}.v214-section{margin-top:14px}.v214-section h4{margin:0 0 7px;color:var(--gd)}.v214-table{width:100%;border-collapse:collapse;font-size:8px}.v214-table th,.v214-table td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}.v214-table th{color:var(--muted);font-weight:600}.v214-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#f1f5f2;color:var(--gd);font-size:7px;font-weight:700}.v214-pill.bad{background:#fff0f0;color:#9c3434}.v214-pill.warn{background:#fff5e8;color:#945d12}.v214-note{padding:10px 12px;border-radius:12px;background:#f5f8f6;border:1px solid var(--line);font-size:8px;line-height:1.55;color:var(--gd)}.v214-error{padding:10px 12px;border-radius:12px;background:#fff4f4;border:1px solid #efc5c5;color:#963434;font-size:9px}.v214-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}@media(max-width:900px){.v214-grid{grid-template-columns:1fr 1fr}.v214-flow{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v214-grid,.v214-flow{grid-template-columns:1fr}.v214-actions{width:100%}.v214-table{min-width:760px}}
     `; document.head.appendChild(s);
   }
 
@@ -29,14 +29,14 @@
     let page=q('#companyControlV214');
     if(!page){
       page=document.createElement('section'); page.id='companyControlV214'; page.className='page';
-      page.innerHTML=`<div class="v214-head"><div><div style="font-size:8px;color:var(--muted)">GMU EduTrans • Integrated Company Control</div><h2>Company Control Center v21.4</h2><p>Lapisan integrasi tambahan di atas Compensation Autopilot v21.3. Seluruh fitur ERP sebelumnya tetap aktif.</p></div><div class="v214-actions">${canCreatePayment()?'<button type="button" class="v214-btn primary" data-v214-new-payment>+ Payment Request</button>':''}<button type="button" class="v214-btn" data-v214-refresh>Refresh</button></div></div><div data-v214-body></div>`;
+      page.innerHTML=`<div class="v214-head"><div><div style="font-size:8px;color:var(--muted)">GMU EduTrans • Performance-Based Payroll & Workforce Capacity</div><h2>Company Control v21.4</h2><p>Target Direktur mengalir sampai pekerjaan SDM, closing, laba aktual, recovery gap, fee earned, payroll approval, dan keputusan kapasitas rekrutmen. Ini lapisan tambahan; seluruh fitur ERP sebelumnya tetap aktif.</p></div><div class="v214-actions">${canCreatePayment()?'<button type="button" class="v214-btn primary" data-v214-new-payment>+ Payment Request</button>':''}<button type="button" class="v214-btn" data-v214-refresh>Refresh</button></div></div><div data-v214-body></div>`;
       (q('.content')||q('main')||document.body).appendChild(page);
       q('[data-v214-refresh]',page)?.addEventListener('click',load);
       q('[data-v214-new-payment]',page)?.addEventListener('click',newPaymentRequest);
     }
     const nav=q('#nav');
     if(nav&&!q('#nav [data-page="companyControlV214"]')){
-      const b=document.createElement('button'); b.type='button'; b.dataset.page='companyControlV214'; b.textContent='Company Control'; b.addEventListener('click',show); nav.appendChild(b);
+      const b=document.createElement('button'); b.type='button'; b.dataset.page='companyControlV214'; b.textContent='Payroll & Workforce'; b.addEventListener('click',show); nav.appendChild(b);
     }
     return page;
   }
@@ -45,35 +45,51 @@
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
     q('#companyControlV214')?.classList.add('active');
     document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='companyControlV214'));
-    if(q('#title')) q('#title').textContent='Company Control';
+    if(q('#title')) q('#title').textContent='Payroll & Workforce';
     load();
   }
 
   function card(label,value,desc){ return `<div class="v214-card"><small>${esc(label)}</small><strong>${esc(value)}</strong><p>${esc(desc)}</p></div>`; }
-  function pill(value){ const v=String(value||'—'); const bad=['OVERDUE','ON_HOLD','REJECTED','FAILED'].includes(v); const warn=['SUBMITTED','UNPAID','NEED_REVIEW','SOURCING','INTERVIEW','OFFER','ONBOARDING'].includes(v); return `<span class="v214-pill ${bad?'bad':warn?'warn':''}">${esc(v)}</span>`; }
+  function pill(value){ const v=String(value||'—'); const bad=['OVERDUE','ON_HOLD','REJECTED','FAILED','OPTIMIZE_EXISTING'].includes(v); const warn=['SUBMITTED','UNPAID','NEED_REVIEW','SOURCING','INTERVIEW','OFFER','ONBOARDING','FREELANCE_POOL','RECRUIT_REVIEW','HOLD'].includes(v); return `<span class="v214-pill ${bad?'bad':warn?'warn':''}">${esc(v)}</span>`; }
 
   function render(){
     const body=q('[data-v214-body]'); if(!body) return;
-    if(state.loading&&!state.summary){ body.innerHTML='<div class="v214-note">Membaca kendali perusahaan…</div>'; return; }
+    if(state.loading&&!state.summary){ body.innerHTML='<div class="v214-note">Menghitung target, KPI, fee, payroll dan kapasitas SDM…</div>'; return; }
     if(state.error){ body.innerHTML=`<div class="v214-error">${esc(state.error)}</div>`; return; }
     const s=state.summary||{};
-    const revenueTarget=Number(s.revenue_target||50000000), revenue=Number(s.revenue_realized||0), cash=Number(s.cash_collected||0), pipeline=Number(s.pipeline_value||0);
+    const perf=state.performance||{}, cascade=perf.cascade||{}, comp=perf.compensation||{};
+    const revenueTarget=Number(s.revenue_target||50000000), revenue=Number(s.revenue_realized||0), cash=Number(s.cash_collected||0), pipeline=Number(s.pipeline_value||cascade.weighted_pipeline||0);
     const progress=revenueTarget>0?Math.min(100,(revenue/revenueTarget)*100):0;
     body.innerHTML=`
+      <div class="v214-flow"><div>Target Direktur Rp50 jt</div><div>Target Laba Bulanan</div><div>Kebutuhan Omzet</div><div>Target SDM + Task Otomatis</div><div>Sales / Ops / Finance</div><div>Closing</div><div>Laba Aktual</div><div>Recovery Gap</div><div>Recalculate Target</div><div>Recalculate Gaji / Fee</div></div>
       <div class="v214-grid">
         ${card('Target Omzet',money(revenueTarget),`Realisasi ${progress.toFixed(1)}% bulan berjalan.`)}
-        ${card('Revenue Realized',money(revenue),'Omzet dan cash dipisahkan agar keputusan fee tidak salah.')}
-        ${card('Cash Collected',money(cash),'Dasar aman untuk pembayaran, komisi, dan bonus.')}
-        ${card('Pipeline',money(pipeline),`Target coverage ${Number(s.pipeline_coverage_target_x||3).toFixed(1)}× omzet.`)}
-        ${card('Payment Approval',String(s.payments_waiting_approval||0),'Permintaan pembayaran menunggu keputusan.')}
-        ${card('Overdue Payment',String(s.overdue_payments||0),'Pembayaran belum selesai melewati due date.')}
-        ${card('Recruitment Aktif',String(s.open_recruitments||0),'Kebutuhan SDM yang masih dalam pipeline.')}
-        ${card('Fee/Bonus Hold',String(s.compensation_on_hold||0),`Margin floor ${Number(s.healthy_margin_floor_pct||25).toFixed(0)}%.`)}
+        ${card('Target Laba Bulanan',money(cascade.target_profit_month),'Target laba yang dilindungi sebelum menambah biaya tetap.')}
+        ${card('Laba Aktual',money(cascade.actual_profit),'Berasal dari closing/GL, bukan task yang dicentang.')}
+        ${card('Recovery Gap',money(cascade.recovery_gap),'Sisa recovery yang otomatis memicu recalculation.')}
+        ${card('Kebutuhan Omzet Bulan Ini',money(cascade.required_revenue_month),'Dihitung ulang dari gap laba + payroll + overhead + margin.')}
+        ${card('Pipeline Tertimbang',money(pipeline),'Pipeline setelah probabilitas closing.')}
+        ${card('Fixed Payroll Headroom',money(comp.safe_additional_fixed_payroll_pool),'Kapasitas tambahan gaji tetap; bukan izin otomatis merekrut.')}
+        ${card('Payroll Menunggu Approval',String(perf.payroll_waiting_approval||0),'Fee/komisi sudah earned tetapi belum disetujui.')}
       </div>
+      <div class="v214-section"><h4>Performance-Based Payroll</h4>${renderPerformance()}</div>
+      <div class="v214-section"><h4>Workforce Capacity</h4>${renderWorkforce()}</div>
       <div class="v214-section"><h4>Payment Requests</h4>${renderPayments()}</div>
       <div class="v214-section"><h4>Compensation Accrual</h4>${renderAccruals()}</div>
-      <div class="v214-section"><h4>Recruitment & Workforce</h4>${renderRecruitments()}</div>
-      <div class="v214-section"><div class="v214-note"><b>Control rule:</b> Payment Request hanya membuat permintaan pembayaran, bukan memindahkan uang. Transfer, refund, payroll payment, compensation change, strategic pricing, hiring/firing permanen, legal dan safety-critical action tetap membutuhkan approval manusia.</div></div>`;
+      <div class="v214-section"><h4>Recruitment Pipeline</h4>${renderRecruitments()}</div>
+      <div class="v214-section"><div class="v214-note"><b>Aturan v21.4:</b> KPI tidak otomatis mengubah gaji pokok. Fee/komisi variabel hanya menjadi earned jika syarat KPI, cash collection dan margin lolos. Bonus perusahaan bisa ditahan bila recovery/laba belum sehat. Tambah SDM hanya direkomendasikan jika tim existing sudah berkinerja kuat tetapi kapasitas nyata kurang dan payroll headroom tersedia. WhatsApp automation tetap dilewati.</div></div>`;
+  }
+
+  function renderPerformance(){
+    const rows=Array.isArray(state.performance?.staff)?state.performance.staff:[];
+    if(!rows.length) return '<div class="v214-note">Belum ada snapshot KPI bulan berjalan.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Role</th><th>KPI</th><th>Task</th><th>Sales Won</th><th>Accrued</th><th>Payable</th><th>Hold</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.role_name)}</td><td>${Number(x.kpi_score||0).toFixed(1)}%</td><td>${Number(x.tasks_done||0)}/${Number(x.tasks_total||0)} • overdue ${Number(x.tasks_overdue||0)}</td><td>${money(x.sales_won_value)}</td><td>${money(x.accrued_variable_pay)}</td><td>${money(x.payable_variable_pay)}</td><td>${money(x.held_variable_pay)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderWorkforce(){
+    const rows=Array.isArray(state.performance?.workforce)?state.performance.workforce:[];
+    if(!rows.length) return '<div class="v214-note">Belum ada review kapasitas SDM.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Role</th><th>SDM Aktif</th><th>Completion</th><th>Overdue</th><th>Payroll Headroom</th><th>Keputusan</th><th>Alasan</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.role_name)}</td><td>${Number(x.active_staff||0)}</td><td>${Number(x.completion_pct||0).toFixed(1)}%</td><td>${Number(x.overdue_pct||0).toFixed(1)}%</td><td>${money(x.fixed_payroll_headroom)}</td><td>${pill(x.recommendation)}</td><td>${esc(x.rationale)}</td></tr>`).join('')}</tbody></table></div>`;
   }
 
   function renderPayments(){
@@ -99,6 +115,10 @@
     try{
       const summaryQ=await db().from('v_company_command_center').select('*').maybeSingle();
       if(summaryQ.error) throw summaryQ.error; state.summary=summaryQ.data||{};
+      if(canManage()){
+        const perfQ=await db().rpc('internal_performance_payroll_v214_status');
+        if(perfQ.error) throw perfQ.error; state.performance=perfQ.data||{};
+      }
       const p=await db().from('payment_requests').select('request_no,category,payee_name,purpose,amount,due_date,approval_state,payment_state,requested_at').order('requested_at',{ascending:false}).limit(12);
       if(p.error) throw p.error; state.payments=p.data||[];
       if(canManage()){
