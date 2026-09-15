@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/split-main-viewmodel-domains-once.yml'
+      - 'scripts/split-main-viewmodel-domains.py'
 
 permissions:
   contents: write
