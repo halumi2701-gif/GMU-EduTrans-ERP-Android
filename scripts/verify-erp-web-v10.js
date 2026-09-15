@@ -11,6 +11,7 @@ const files = {
   salesTarget: 'erp-web/sales-target-engine-v103.js',
   systemCenter: 'erp-web/company-system-center-v104.js',
   domains: 'erp-web/management-domains-v105.js',
+  navGuard: 'erp-web/role-navigation-v106.js',
   loader: 'erp-web/unified-v10-loader.js',
 };
 
@@ -97,14 +98,22 @@ must('domains', 'Cash waterfall', 'treasury waterfall');
 must('domains', 'Growth Readiness', 'growth readiness');
 must('domains', 'AI dilarang otomatis', 'AI guardrails');
 
+must('navGuard', "const VERSION = 'v10.6-role-navigation-guard'", 'role navigation guard version');
+must('navGuard', 'syncV10Navigation', 'navigation resync function');
+must('navGuard', 'window.applyRole', 'legacy applyRole wrapper');
+must('navGuard', "observer.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })", 'navigation mutation observer');
+for (const page of ['companyControl','marketIntelligence','salesTargetControl','companySystemCenter','roleWorkspace','myTasksHub','treasuryControl','peopleControl','qualityControl','growthControl','governanceControl','aiCenter']) {
+  must('navGuard', `'${page}'`, `v10 visible navigation page ${page}`);
+}
+
 for (const moduleFile of [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js'
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js'
 ]) must('loader', `'${moduleFile}'`, `loader module ${moduleFile}`);
 must('loader', 'ERP utama tetap aktif', 'safe fallback to baseline');
-must('loader', 'v10.5-full-company-operating-system', 'current full-system version marker');
+must('loader', 'v10.6-full-company-operating-system', 'current full-system version marker');
 must('loader', 'Sistem Perusahaan', 'visible company-system release notice');
 must('loader', 'Kas & Likuiditas', 'visible treasury release notice');
 must('loader', 'Pusat AI', 'visible AI center release notice');
 
-console.log('GMU ERP Web full Company Operating System contract passed.');
-console.log('Role workspaces | Sales Target | Market Intelligence | Treasury | People | Quality | Growth | Governance | AI | strategic finance privacy');
+console.log('GMU ERP Web full Company Operating System v10.6 contract passed.');
+console.log('Role navigation | Role workspaces | Sales Target | Market Intelligence | Treasury | People | Quality | Growth | Governance | AI | strategic finance privacy');
