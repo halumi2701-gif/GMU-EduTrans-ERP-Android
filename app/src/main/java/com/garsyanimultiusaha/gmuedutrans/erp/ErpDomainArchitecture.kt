@@ -1,0 +1,79 @@
+package com.garsyanimultiusaha.gmuedutrans.erp
+
+/**
+ * Business-domain boundaries for ERP v20.
+ *
+ * UI authorization remains enforced by [RoleAccess]. This layer owns reusable
+ * role policy and data-source ownership so ViewModels/screens do not repeat raw
+ * role strings and table lists throughout the codebase.
+ */
+object ErpRolePolicy {
+    private val bookingEditors = setOf("Owner", "Manager", "Admin", "Sales")
+    private val bookingIntake = setOf("Owner", "Manager", "Sales")
+    private val quotationDraftManagers = setOf("Owner", "Manager", "Admin")
+    private val commercialApprovers = setOf("Owner", "Manager")
+    private val operations = setOf("Owner", "Manager", "Admin", "Operation", "TL")
+    private val vendorManagers = setOf("Owner", "Manager", "Operation")
+    private val approvalReaders = setOf("Owner", "Manager", "Operation", "Admin")
+    private val auditReaders = setOf("Owner", "Manager", "Admin", "Finance", "Operation")
+    private val peopleManagers = setOf("Owner", "Manager", "Admin")
+
+    fun canEditBookings(role: String) = role in bookingEditors
+    fun canHandleBookingIntake(role: String) = role in bookingIntake
+    fun canManageQuotationDrafts(role: String) = role in quotationDraftManagers
+    fun canApproveCommercial(role: String) = role in commercialApprovers
+    fun canOperateTrips(role: String) = role in operations
+    fun canManageVendors(role: String) = role in vendorManagers
+    fun canReadApprovals(role: String) = role in approvalReaders
+    fun canReadAudit(role: String) = role in auditReaders
+    fun canManagePeople(role: String) = role in peopleManagers
+    fun isOwner(role: String) = role == "Owner"
+}
+
+data class ErpTableSource(
+    val table: String,
+    val order: String? = null,
+    val enabledFor: (String) -> Boolean
+)
+
+object ErpDataRegistry {
+    private val sources = listOf(
+        ErpTableSource("payments", "payment_date.desc") { FinancialAccess.canView(it) },
+        ErpTableSource("trip_costs", "created_at.desc") { FinancialAccess.canView(it) },
+
+        ErpTableSource("trips", "updated_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("operation_sheets", "updated_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("manifests", enabledFor = ErpRolePolicy::canOperateTrips),
+        ErpTableSource("attendance", enabledFor = ErpRolePolicy::canOperateTrips),
+        ErpTableSource("rundown_items", enabledFor = ErpRolePolicy::canOperateTrips),
+        ErpTableSource("documents", "generated_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("trip_reports", "created_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("evaluations", "created_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("sop_deadlines", enabledFor = ErpRolePolicy::canOperateTrips),
+
+        ErpTableSource("vendors", "created_at.desc", ErpRolePolicy::canManageVendors),
+        ErpTableSource("vendor_pos", "created_at.desc", ErpRolePolicy::canManageVendors),
+        ErpTableSource("approvals", "requested_at.desc", ErpRolePolicy::canReadApprovals),
+        ErpTableSource("trip_closings", "closed_at.desc") { FinancialAccess.canView(it) },
+        ErpTableSource("audit_logs", "created_at.desc", ErpRolePolicy::canReadAudit),
+        ErpTableSource("profiles", "created_at.desc", ErpRolePolicy::canManageVendors),
+
+        ErpTableSource("programs", "sort_order.asc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_attendance", "attendance_date.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_assignments", "created_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_kpis", "created_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_reviews", "reviewed_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_leave", "created_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_warnings", "created_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_training", "training_date.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_contracts", "created_at.desc", ErpRolePolicy::canManagePeople),
+        ErpTableSource("staff_offboarding", "created_at.desc", ErpRolePolicy::canManagePeople)
+    )
+
+    fun tablesForRole(role: String): List<Pair<String, String?>> =
+        sources.asSequence()
+            .filter { it.enabledFor(role) }
+            .map { it.table to it.order }
+            .distinctBy { it.first }
+            .toList()
+}
