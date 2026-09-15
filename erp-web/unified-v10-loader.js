@@ -8,6 +8,7 @@
   const AUTOPILOT_VERSION = 'v21-company-autopilot-layer';
   const TARGET_CASCADE_VERSION = 'v21.2-target-cascade-workforce-autopilot-layer';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
+  const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -89,6 +90,7 @@
       autopilotVersion: AUTOPILOT_VERSION,
       targetCascadeVersion: TARGET_CASCADE_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
+      v21CompatibilityMarker: V21_COMPATIBILITY_MARKER,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
