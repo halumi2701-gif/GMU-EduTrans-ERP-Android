@@ -7,6 +7,10 @@ package com.garsyanimultiusaha.gmuedutrans.erp
  * - DashboardCoreScreens.kt -> executive/operational snapshot
  * - SalesCoreScreens.kt -> booking + customer workflow
  * - FinanceCoreScreens.kt -> financial health + finance entry workflow
+ * - PackageMasterScreens.kt -> package catalog lifecycle
+ * - PricingMasterScreens.kt -> cost templates + pricing policy/readiness
+ * - PaymentGatewayScreens.kt -> payment channels + payment orders
+ * - CommerceSharedUi.kt -> commerce-only UI primitives
  * - SharedCoreUi.kt -> cross-domain primitives only
  * - ErpPageHost.kt -> page routing only, never business logic
  * - MainViewModel.kt -> session/action coordinator, never presentation analytics
@@ -26,6 +30,7 @@ object ErpRolePolicy {
     private val approvalReaders = setOf("Owner", "Manager", "Admin", "Finance", "Operation")
     private val auditReaders = setOf("Owner", "Manager", "Admin", "Finance", "Operation")
     private val peopleManagers = setOf("Owner", "Manager", "Admin")
+    private val packageManagers = setOf("Owner", "Manager", "Admin")
 
     private fun accessRole(role: String): String = when {
         role == ErpRoles.OWNER || ErpRoles.isDirector(role) -> "Owner"
@@ -42,6 +47,7 @@ object ErpRolePolicy {
     fun canReadApprovals(role: String) = accessRole(role) in approvalReaders
     fun canReadAudit(role: String) = accessRole(role) in auditReaders
     fun canManagePeople(role: String) = accessRole(role) in peopleManagers
+    fun canManagePackages(role: String) = accessRole(role) in packageManagers
     fun isOwner(role: String) = accessRole(role) == "Owner"
 }
 

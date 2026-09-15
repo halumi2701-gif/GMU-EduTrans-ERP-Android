@@ -205,7 +205,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     quotationError = null
                 }
 
-                if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
+                if (ErpRolePolicy.canManagePackages(session.profile.role)) {
                     try {
                         packageMaster = api.getPackageMaster(session.accessToken)
                         packageMasterError = null
@@ -651,7 +651,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
+        if (!ErpRolePolicy.canManagePackages(session.profile.role)) {
             done(false, "Tidak memiliki akses Master Paket.")
             return
         }
@@ -832,7 +832,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         actionBusy = true
         viewModelScope.launch {
             try {
-                if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
+                if (ErpRolePolicy.canManagePackages(session.profile.role)) {
                     packageMaster = api.getPackageMaster(session.accessToken)
                     packageMasterError = null
                 }
