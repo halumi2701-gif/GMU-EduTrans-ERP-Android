@@ -57,10 +57,11 @@ jobs:
             sales-target-engine-v103.js \
             company-system-center-v104.js \
             management-domains-v105.js \
+            role-navigation-v106.js \
             unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
-          echo "ERP Web full Company Operating System source bundle: PASS"
+          echo "ERP Web v10.6 full Company Operating System source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
@@ -95,11 +96,12 @@ jobs:
           grep -Fq 'id="tripArchiveBanner"' dist/erp-web-v10/index.html
           grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
           grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
-          grep -Fq 'v10.5-full-company-operating-system' dist/erp-web-v10/unified-v10-loader.js
-          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js; do
+          grep -Fq 'v10.6-full-company-operating-system' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v10.6-role-navigation-guard' dist/erp-web-v10/role-navigation-v106.js
+          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js; do
             test -f "dist/erp-web-v10/$module"
           done
-          echo "Pinned rollback baseline + visible full Company Operating System release: PASS"
+          echo "Pinned rollback baseline + visible full Company Operating System v10.6 release: PASS"
 
       - name: Upload ERP Web release candidate
         uses: actions/upload-artifact@v4
@@ -124,14 +126,15 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$snapshot"/. .
           git add -A
-          git commit -m "release: ERP Web full Company Operating System from ${GITHUB_SHA}"
+          git commit -m "release: ERP Web v10.6 full Company Operating System from ${GITHUB_SHA}"
           git push --force origin HEAD:erp-web-v10-release
 
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans ERP full Company Operating System release candidate validated."
+          echo "GMU EduTrans ERP v10.6 full Company Operating System release candidate validated."
           echo "Visible: Sistem Perusahaan + role workspaces + Tugas Saya + Target & Kinerja + Intelijen Pasar + Treasury + People + Quality + Growth + Governance + AI."
+          echo "Role navigation guard: keeps v10 menu visible after legacy role rendering."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
           echo "Visible UI branding: ERP v10.2"
           echo "Release branch: erp-web-v10-release"
