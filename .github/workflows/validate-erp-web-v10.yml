@@ -56,19 +56,26 @@ jobs:
           test -f erp-web/unified-v10-loader.js
           echo "ERP Web v10.2 additive source bundle: PASS"
 
-      - name: Build from live v9.5 production baseline
-        env:
-          ERP_LIVE_URL: https://erp.edutrans.garsyanimultiusaha.site/
+      - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
 
-      - name: Verify preserved baseline and v10 injection
+      - name: Verify preserved baseline and visible v10.2 output
         shell: bash
         run: |
           set -euo pipefail
           test -f dist/erp-web-v10/index.html
           test -f dist/erp-web-v10/baseline-v95.html
           test -f dist/erp-web-v10/release-manifest.json
-          grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/index.html
+          grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
+          grep -Fq 'GMU EduTrans ERP v10.2' dist/erp-web-v10/index.html
+          grep -Fq 'ERP v10.2 — Company Operating System' dist/erp-web-v10/index.html
+          grep -Fq 'ERP v10.2 Online' dist/erp-web-v10/index.html
+          grep -Fq 'Kendali Perusahaan' dist/erp-web-v10/index.html
+          grep -Fq 'Intelijen Pasar Cianjur–Sukabumi' dist/erp-web-v10/index.html
+          if grep -Fq 'ERP v9.5' dist/erp-web-v10/index.html; then
+            echo 'Legacy ERP v9.5 branding leaked into production output' >&2
+            exit 1
+          fi
           grep -Fq 'id="loginScreen"' dist/erp-web-v10/index.html
           grep -Fq 'data-page="tripfolder"' dist/erp-web-v10/index.html
           grep -Fq 'id="folderDocumentCenter"' dist/erp-web-v10/index.html
@@ -76,7 +83,7 @@ jobs:
           grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
           grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
           grep -Fq 'v10.2-company-operating-system-market-intelligence' dist/erp-web-v10/unified-v10-loader.js
-          echo "Live v9.5 + additive v10.2 injection: PASS"
+          echo "Pinned v9.5 rollback baseline + visible v10.2 release: PASS"
 
       - name: Upload ERP Web v10 release candidate
         uses: actions/upload-artifact@v4
@@ -108,7 +115,8 @@ jobs:
         shell: bash
         run: |
           echo "GMU EduTrans ERP Web v10.2 release candidate validated."
-          echo "Baseline: live ERP v9.5 preserved"
+          echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
+          echo "Visible UI branding: ERP v10.2"
           echo "Additive: Role/Privacy + Package Master + Media Master + Ops Agent + Company OS + Market Intelligence"
           echo "Release branch: erp-web-v10-release"
           echo "Strategic finance: Owner/Director; operational finance: role-governed"
