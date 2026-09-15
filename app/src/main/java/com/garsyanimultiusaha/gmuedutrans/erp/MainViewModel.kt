@@ -10,9 +10,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SupabaseApi()
@@ -163,7 +160,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 customers = cs
                 bookings = bs
 
-                val wanted = tablesForRole(session.profile.role)
+                val wanted = ErpDataRegistry.tablesForRole(session.profile.role)
                 val loaded = linkedMapOf<String, List<ErpRow>>()
                 var firstError: String? = null
                 for ((name, order) in wanted) {
@@ -275,63 +272,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             dataBusy = false
         }
-    }
-
-    private fun tablesForRole(role: String): List<Pair<String, String?>> {
-        val wanted = mutableListOf<Pair<String, String?>>()
-
-        if (FinancialAccess.canView(role)) {
-            wanted += "payments" to "payment_date.desc"
-            wanted += "trip_costs" to "created_at.desc"
-        }
-
-        if (role in listOf("Owner", "Manager", "Admin", "Operation", "TL")) {
-            wanted += "trips" to "updated_at.desc"
-            wanted += "operation_sheets" to "updated_at.desc"
-            wanted += "manifests" to null
-            wanted += "attendance" to null
-            wanted += "rundown_items" to null
-            wanted += "documents" to "generated_at.desc"
-            wanted += "trip_reports" to "created_at.desc"
-            wanted += "evaluations" to "created_at.desc"
-            wanted += "sop_deadlines" to null
-        }
-
-        if (role in listOf("Owner", "Manager", "Operation")) {
-            wanted += "vendors" to "created_at.desc"
-            wanted += "vendor_pos" to "created_at.desc"
-        }
-
-        if (role in listOf("Owner", "Manager", "Operation", "Admin")) {
-            wanted += "approvals" to "requested_at.desc"
-        }
-
-        if (FinancialAccess.canView(role)) {
-            wanted += "trip_closings" to "closed_at.desc"
-        }
-
-        if (role in listOf("Owner", "Manager", "Admin", "Finance", "Operation")) {
-            wanted += "audit_logs" to "created_at.desc"
-        }
-
-        if (role in listOf("Owner", "Manager", "Operation")) {
-            wanted += "profiles" to "created_at.desc"
-        }
-
-        if (role in listOf("Owner", "Manager", "Admin")) {
-            wanted += "programs" to "sort_order.asc"
-            wanted += "staff_attendance" to "attendance_date.desc"
-            wanted += "staff_assignments" to "created_at.desc"
-            wanted += "staff_kpis" to "created_at.desc"
-            wanted += "staff_reviews" to "reviewed_at.desc"
-            wanted += "staff_leave" to "created_at.desc"
-            wanted += "staff_warnings" to "created_at.desc"
-            wanted += "staff_training" to "training_date.desc"
-            wanted += "staff_contracts" to "created_at.desc"
-            wanted += "staff_offboarding" to "created_at.desc"
-        }
-
-        return wanted.distinctBy { it.first }
     }
 
     fun createCustomer(name: String, type: String, pic: String, wa: String, email: String, done: (Boolean, String) -> Unit) {
@@ -1248,98 +1188,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearPlanningScenario() {
         planningScenario = null
     }
-
-    fun dashboardStats(): DashboardStats {
-        val management = managementDashboard
-        if (management != null) {
-            val k = management.kpi
-            return DashboardStats(
-                bookingsMonth = k.bookingCount,
-                customers = customers.size,
-                pax = k.paxTotal,
-                omzet = k.revenue,
-                paid = k.cashCollected,
-                receivable = k.receivable,
-                actualCost = k.actualCost,
-                profit = k.grossProfit,
-                margin = k.marginPct,
-                upcoming = bookings.count {
-                    val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                    it.tripDate >= today && it.status !in listOf("Completed", "Closed")
-                },
-                topPrograms = management.topPrograms.take(3),
-                topCustomers = management.topCustomers.take(3),
-                topSales = management.topSales.take(3)
-            )
-        }
-
-        val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        val monthBookings = bookings.filter { it.tripDate.startsWith(month) }
-        val omzet = monthBookings.sumOf { it.omzet }
-        val pax = monthBookings.sumOf { it.pax }
-
-        val payments = table("payments")
-        val paidByBooking = payments.groupBy { it.text("booking_id") }.mapValues { (_, list) ->
-            list.sumOf { row ->
-                val amount = row.number("amount")
-                if (row.text("payment_type") == "Refund") -amount else amount
-            }
-        }
-        val paid = monthBookings.sumOf { paidByBooking[it.id] ?: 0.0 }
-        val receivable = (omzet - paid).coerceAtLeast(0.0)
-
-        val costs = table("trip_costs")
-        val actualByBooking = costs.groupBy { it.text("booking_id") }
-            .mapValues { (_, list) -> list.sumOf { it.number("actual_amount") } }
-        val actual = monthBookings.sumOf { actualByBooking[it.id] ?: 0.0 }
-        val profit = omzet - actual
-        val margin = if (omzet > 0) profit / omzet * 100.0 else 0.0
-        val upcoming = bookings.count { it.tripDate >= today && it.status !in listOf("Completed", "Closed") }
-
-        val topPrograms = monthBookings.groupBy { it.programName }
-            .mapValues { (_, list) -> list.sumOf { it.omzet } }
-            .entries.sortedByDescending { it.value }.take(3).map { it.key to it.value }
-
-        val topCustomers = monthBookings.groupBy { it.customerName }
-            .mapValues { (_, list) -> list.sumOf { it.omzet } }
-            .entries.sortedByDescending { it.value }.take(3).map { it.key to it.value }
-
-        val profiles = table("profiles").associate { it.id to it.text("full_name") }
-        val topSales = monthBookings.filter { it.salesId.isNotBlank() }
-            .groupBy { profiles[it.salesId] ?: "Sales" }
-            .mapValues { (_, list) -> list.sumOf { it.omzet } }
-            .entries.sortedByDescending { it.value }.take(3).map { it.key to it.value }
-
-        return DashboardStats(
-            bookingsMonth = monthBookings.size,
-            customers = customers.size,
-            pax = pax,
-            omzet = omzet,
-            paid = paid,
-            receivable = receivable,
-            actualCost = actual,
-            profit = profit,
-            margin = margin,
-            upcoming = upcoming,
-            topPrograms = topPrograms,
-            topCustomers = topCustomers,
-            topSales = topSales
-        )
-    }
-
-    fun paidForBooking(bookingId: String): Double =
-        table("payments").filter { it.text("booking_id") == bookingId }.sumOf {
-            if (it.text("payment_type") == "Refund") -it.number("amount") else it.number("amount")
-        }
-
-    fun actualCostForBooking(bookingId: String): Double =
-        table("trip_costs").filter { it.text("booking_id") == bookingId }.sumOf { it.number("actual_amount") }
-
-    fun rabForBooking(bookingId: String): Double =
-        table("trip_costs").filter { it.text("booking_id") == bookingId }.sumOf { it.number("rab_amount") }
-
-    fun bookingById(id: String): Booking? = bookings.firstOrNull { it.id == id }
 
     fun logout() {
         val session = activeSession()
