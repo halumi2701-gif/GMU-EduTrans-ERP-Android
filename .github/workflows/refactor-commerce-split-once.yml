@@ -1,0 +1,166 @@
+name: One-time Commerce Module Split
+
+on:
+  push:
+    paths:
+      - '.github/workflows/refactor-commerce-split-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  split-commerce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Split CommerceModules and tighten package policy
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp')
+          src_path = root / 'CommerceModules.kt'
+          vm_path = root / 'MainViewModel.kt'
+          arch_path = root / 'ErpDomainArchitecture.kt'
+
+          src = src_path.read_text()
+          vm = vm_path.read_text()
+          arch = arch_path.read_text()
+
+          package_marker = 'private val PACKAGE_FACILITIES = listOf('
+          pricing_marker = '@Composable\nfun PricingMasterScreen('
+          payment_marker = '@Composable\nfun PaymentGatewayScreen('
+          shared_marker = '@Composable\nprivate fun CommerceLine('
+
+          for marker in (package_marker, pricing_marker, payment_marker, shared_marker):
+              if src.count(marker) != 1:
+                  raise SystemExit(f'Guard failed: expected one marker {marker!r}, found {src.count(marker)}')
+
+          package_i = src.index(package_marker)
+          pricing_i = src.index(pricing_marker)
+          payment_i = src.index(payment_marker)
+          shared_i = src.index(shared_marker)
+          if not (package_i < pricing_i < payment_i < shared_i):
+              raise SystemExit('Guard failed: commerce section order changed')
+
+          header = src[:package_i]
+          package_body = src[package_i:pricing_i]
+          pricing_body = src[pricing_i:payment_i]
+          payment_body = src[payment_i:shared_i]
+          shared_body = src[shared_i:]
+
+          old_can_edit = 'val canEdit = session.profile.role in listOf("Owner", "Manager", "Admin")'
+          if package_body.count(old_can_edit) != 1:
+              raise SystemExit('Guard failed: Package Master role check changed')
+          package_body = package_body.replace(
+              old_can_edit,
+              'val canEdit = ErpRolePolicy.canManagePackages(session.profile.role)',
+              1,
+          )
+
+          shared_body = shared_body.replace(
+              '@Composable\nprivate fun CommerceLine(',
+              '@Composable\ninternal fun CommerceLine(',
+              1,
+          ).replace(
+              '@Composable\nprivate fun CommerceField(',
+              '@Composable\ninternal fun CommerceField(',
+              1,
+          ).replace(
+              'private fun commerceToday(): String =',
+              'internal fun commerceToday(): String =',
+              1,
+          )
+
+          outputs = {
+              'PackageMasterScreens.kt': header + package_body,
+              'PricingMasterScreens.kt': header + pricing_body,
+              'PaymentGatewayScreens.kt': header + payment_body,
+              'CommerceSharedUi.kt': header + shared_body,
+          }
+          for name, content in outputs.items():
+              (root / name).write_text(content)
+
+          # Dedicated package policy: unlike quotation draft policy, Sales must not manage package master.
+          people_line = '    private val peopleManagers = setOf("Owner", "Manager", "Admin")\n'
+          package_line = '    private val packageManagers = setOf("Owner", "Manager", "Admin")\n'
+          if package_line not in arch:
+              if arch.count(people_line) != 1:
+                  raise SystemExit('Guard failed: policy set insertion point changed')
+              arch = arch.replace(people_line, people_line + package_line, 1)
+
+          manage_people_line = '    fun canManagePeople(role: String) = accessRole(role) in peopleManagers\n'
+          manage_package_line = '    fun canManagePackages(role: String) = accessRole(role) in packageManagers\n'
+          if manage_package_line not in arch:
+              if arch.count(manage_people_line) != 1:
+                  raise SystemExit('Guard failed: policy function insertion point changed')
+              arch = arch.replace(manage_people_line, manage_people_line + manage_package_line, 1)
+
+          docs_anchor = ' * - FinanceCoreScreens.kt -> financial health + finance entry workflow\n'
+          docs_extra = (
+              ' * - PackageMasterScreens.kt -> package catalog lifecycle\n'
+              ' * - PricingMasterScreens.kt -> cost templates + pricing policy/readiness\n'
+              ' * - PaymentGatewayScreens.kt -> payment channels + payment orders\n'
+              ' * - CommerceSharedUi.kt -> commerce-only UI primitives\n'
+          )
+          if ' * - PackageMasterScreens.kt -> package catalog lifecycle\n' not in arch:
+              if arch.count(docs_anchor) != 1:
+                  raise SystemExit('Guard failed: architecture docs insertion point changed')
+              arch = arch.replace(docs_anchor, docs_anchor + docs_extra, 1)
+
+          # Fix package load/save/refresh checks without touching quotation workflow checks.
+          replacements = [
+              (
+                  'if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {\n                    try {\n                        packageMaster = api.getPackageMaster(session.accessToken)',
+                  'if (ErpRolePolicy.canManagePackages(session.profile.role)) {\n                    try {\n                        packageMaster = api.getPackageMaster(session.accessToken)',
+              ),
+              (
+                  'if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {\n            done(false, "Tidak memiliki akses Master Paket.")',
+                  'if (!ErpRolePolicy.canManagePackages(session.profile.role)) {\n            done(false, "Tidak memiliki akses Master Paket.")',
+              ),
+              (
+                  'if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {\n                    packageMaster = api.getPackageMaster(session.accessToken)',
+                  'if (ErpRolePolicy.canManagePackages(session.profile.role)) {\n                    packageMaster = api.getPackageMaster(session.accessToken)',
+              ),
+          ]
+          changed = 0
+          for old, new in replacements:
+              if old in vm:
+                  vm = vm.replace(old, new, 1)
+                  changed += 1
+          if changed < 2:
+              raise SystemExit(f'Guard failed: expected at least 2 package policy replacements, got {changed}')
+
+          arch_path.write_text(arch)
+          vm_path.write_text(vm)
+          src_path.unlink()
+          Path('.github/workflows/refactor-commerce-split-once.yml').unlink()
+          PY
+
+      - name: Verify split signatures
+        shell: bash
+        run: |
+          test ! -f app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/CommerceModules.kt
+          test -f app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PackageMasterScreens.kt
+          test -f app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PricingMasterScreens.kt
+          test -f app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PaymentGatewayScreens.kt
+          test -f app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/CommerceSharedUi.kt
+          grep -q 'fun PackageMasterScreen' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PackageMasterScreens.kt
+          grep -q 'fun PricingMasterScreen' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PricingMasterScreens.kt
+          grep -q 'fun PaymentGatewayScreen' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/PaymentGatewayScreens.kt
+          grep -q 'fun canManagePackages' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/ErpDomainArchitecture.kt
+          grep -q 'canManagePackages(session.profile.role)' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt
+
+      - name: Commit commerce domain split
+        shell: bash
+        run: |
+          git config user.name 'GMU EduTrans Refactor Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor(android): split commerce screens by domain and fix package policy'
+          git push origin HEAD:main
