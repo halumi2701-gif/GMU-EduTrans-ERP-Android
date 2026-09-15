@@ -259,29 +259,12 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when (vm.currentPage) {
-                AppPage.DASHBOARD -> DashboardScreen(vm, session)
-                AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice = { notice = it })
-                AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice = { notice = it })
-                AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice = { notice = it })
-                AppPage.PACKAGE_MASTER -> PackageMasterHubScreen(vm, session, onNotice = { notice = it })
-                AppPage.PRICING_MASTER -> PricingMasterScreen(vm, session, onNotice = { notice = it })
-                AppPage.PAYMENT_GATEWAY -> PaymentGatewayScreen(vm, session, onNotice = { notice = it })
-                AppPage.CUSTOMERS -> CustomerScreen(vm, session, onNotice = { notice = it })
-                AppPage.FINANCE -> FinanceScreen(vm, session, onNotice = { notice = it })
-                AppPage.PLANNING -> PlanningScreen(vm, session, onNotice = { notice = it })
-                AppPage.OPERATIONS -> OperationsScreen(vm, session, onNotice = { notice = it })
-                AppPage.VENDORS -> VendorsScreen(vm, session, onNotice = { notice = it })
-                AppPage.TRIP_FOLDER -> TripFolderScreen(vm, session, onNotice = { notice = it })
-                AppPage.WORKFLOW -> WorkflowScreen(vm, session, onNotice = { notice = it })
-                AppPage.SOP -> SopScreen(vm)
-                AppPage.REPORTS -> ReportsScreen(vm, session, onNotice = { notice = it })
-                AppPage.CLOSING -> ClosingScreen(vm, session, onNotice = { notice = it })
-                AppPage.TEAM_HR -> HrScreen(vm, session, onNotice = { notice = it })
-                AppPage.USERS -> UsersScreen(vm, session, onNotice = { notice = it })
-                AppPage.AUDIT -> AuditScreen(vm)
-                AppPage.PROFILE -> MoreProfileScreen(vm, session)
-            }
+            ErpPageHost(
+                page = vm.currentPage,
+                vm = vm,
+                session = session,
+                onNotice = { notice = it }
+            )
 
             notice?.let { msg ->
                 Surface(
