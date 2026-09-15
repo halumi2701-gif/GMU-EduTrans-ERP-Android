@@ -4,7 +4,7 @@ const path = require('path');
 const VERIFIED_BASELINE_URL = process.env.ERP_BASELINE_URL || 'https://raw.githubusercontent.com/halumi2701-gif/GMU-EduTrans-ERP-Android/f6a28c609b1d82e4afee2988a09876f03452b3a7/baseline-v95.html';
 const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const MODULES = [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','unified-v10-loader.js',
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','unified-v10-loader.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -16,14 +16,14 @@ function applyV21Branding(source) {
   output = output.replace('ERP v21 — Online Multi-User','Company Autopilot v21 — Enterprise Operating System');
   output = output.replace(
     'v21 memakai database online dengan Trip Folder, private document upload, approval, Trip Archive, Financial Privacy Guard, dan dukungan 3 bahasa. Perubahan antar user akan disinkronkan ulang melalui Supabase Realtime.',
-    'GMU EduTrans Company Autopilot v21.2 aktif • Target Direktur menggerakkan Lead, Sales, Quotation, Payment, Booking, Operasional, Finance, Payroll, Retention dan Workforce secara end-to-end dengan management by exception.'
+    'GMU EduTrans Company Autopilot v21 aktif • Target Cascade v21.2 dan Compensation Autopilot v21.3 menggerakkan target, pekerjaan, forecast, payroll guardrail dan recovery perusahaan end-to-end dengan management by exception.'
   );
   return output;
 }
 
 async function main() {
   const response = await fetch(VERIFIED_BASELINE_URL, {
-    headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'GMU-EduTrans-v21.2-release-builder/1.0' },
+    headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'GMU-EduTrans-v21.3-release-builder/1.0' },
     redirect: 'follow',
   });
   if (!response.ok) throw new Error(`Verified ERP baseline fetch failed: HTTP ${response.status}`);
@@ -74,10 +74,16 @@ async function main() {
   const recoverySource = fs.readFileSync(path.join('erp-web', 'recovery-command-v202.js'), 'utf8');
   const autopilotSource = fs.readFileSync(path.join('erp-web', 'company-autopilot-v210.js'), 'utf8');
   const targetCascadeSource = fs.readFileSync(path.join('erp-web', 'target-cascade-v212.js'), 'utf8');
+  const compensationSource = fs.readFileSync(path.join('erp-web', 'compensation-autopilot-v213.js'), 'utf8');
+
+  assertIncludes(loaderSource, 'GMU EduTrans Company Autopilot v21 aktif', 'v21 compatibility marker');
   assertIncludes(loaderSource, 'v21.2-target-cascade-workforce-autopilot', 'v21.2 loader marker');
+  assertIncludes(loaderSource, 'v21.2-target-cascade-workforce-autopilot-layer', 'v21.2 release layer');
+  assertIncludes(loaderSource, 'v21.3-compensation-capacity-autopilot', 'v21.3 loader marker');
   assertIncludes(loaderSource, 'company-autopilot-v210.js', 'v21 autopilot module');
   assertIncludes(loaderSource, 'target-cascade-v212.js', 'v21.2 target cascade module');
-  assertIncludes(loaderSource, 'v21.2-target-cascade-workforce-autopilot-layer', 'v21.2 release layer');
+  assertIncludes(loaderSource, 'compensation-autopilot-v213.js', 'v21.3 compensation module');
+  assertIncludes(loaderSource, 'v21.3-compensation-capacity-autopilot-layer', 'v21.3 compensation release layer');
   assertIncludes(enterpriseSource, 'Enterprise Control Tower', 'enterprise control tower');
   assertIncludes(activationSource, 'internal_gl_profit_loss', 'existing accounting activation preserved');
   assertIncludes(prioritySource, "const VERSION = 'v20.1-business-priority-command'", 'priority layer preserved');
@@ -88,37 +94,43 @@ async function main() {
   assertIncludes(targetCascadeSource, 'internal_target_cascade_status', 'target cascade status RPC');
   assertIncludes(targetCascadeSource, 'internal_set_executive_profit_target', 'director target command RPC');
   assertIncludes(targetCascadeSource, 'Workforce & Compensation Guardrail', 'workforce guardrail UI');
+  assertIncludes(compensationSource, "const VERSION='v21.3-compensation-capacity-autopilot'", 'compensation UI version');
+  assertIncludes(compensationSource, 'internal_compensation_autopilot_status', 'compensation backend RPC');
+  assertIncludes(compensationSource, 'Compensation Autopilot v21.3', 'compensation page');
+  assertIncludes(compensationSource, 'ERP tidak mengarang gaji atau fee', 'no fabricated compensation contract');
 
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
     trailingSlash: false,
     headers: [{ source: '/(.*)', headers: [
-      { key: 'X-GMU-ERP-Release', value: 'v21.2-target-cascade-workforce-autopilot' },
+      { key: 'X-GMU-ERP-Release', value: 'v21.3-compensation-capacity-autopilot' },
       { key: 'X-GMU-ERP-Priority-Layer', value: 'v20.1-priority-command-layer' },
       { key: 'X-GMU-ERP-Recovery-Layer', value: 'v20.2-recovery-accountability-layer' },
       { key: 'X-GMU-ERP-Autopilot-Layer', value: 'v21-company-autopilot-layer' },
       { key: 'X-GMU-ERP-Target-Cascade-Layer', value: 'v21.2-target-cascade-workforce-autopilot-layer' },
+      { key: 'X-GMU-ERP-Compensation-Layer', value: 'v21.3-compensation-capacity-autopilot-layer' },
       { key: 'Cache-Control', value: 'no-store, max-age=0' },
     ] }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans Target Cascade & Workforce Autopilot v21.2',
-    strategy: 'additive-target-cascade-on-company-autopilot-v21-and-verified-pinned-v9.5-baseline',
+    release: 'GMU EduTrans Compensation Capacity Autopilot v21.3',
+    strategy: 'additive-compensation-capacity-on-target-cascade-v21.2-company-autopilot-v21-and-verified-pinned-v9.5-baseline',
     baselineUrl: VERIFIED_BASELINE_URL,
     baselineBytes: Buffer.byteLength(baseline),
     generatedAt: new Date().toISOString(),
     modules: MODULES,
     visibleBranding: 'v21',
     backendProjectRef: 'gtgnwasijweewmaubvyg',
-    enterpriseFlow: ['Director Target','Profit/Recovery Gap','Revenue Requirement','Manager Recovery','Sales Target','Admin SLA','Operations Capacity','Finance Closing','TL Execution','Actual Profit','Reforecast'],
-    targetCascadeCapabilities: ['Rp50m cumulative recovery command','Rp15m monthly profit floor','25% healthy margin fallback','Fixed payroll + overhead guardrail','Sales target distribution','Role fallback to Manager','Forecast gap recovery tasks','Truthful booking estimate only with real closing history'],
-    approvalOnlyActions: ['Money transfer','Refund','Payroll payment','Strategic price change','Margin below 20%','Reserve use','Permanent hiring/firing','Legal','Safety-critical decisions'],
+    enterpriseFlow: ['Director Target','Profit/Recovery Gap','Revenue Requirement','Target Cascade','Compensation Capacity','Manager Recovery','Sales/Admin/Ops/Finance/TL Execution','Actual Profit','Reforecast'],
+    targetCascadeCapabilities: ['Rp50m cumulative recovery command','Rp15m monthly profit floor','25% healthy margin fallback','Sales target distribution','Role fallback to Manager','Forecast gap recovery tasks','Truthful booking estimate only with real closing history'],
+    compensationCapabilities: ['Fixed payroll capacity from target/pipeline','Variable people cost monitoring','Healthy-trip fee median after minimum samples','No fabricated salary/fee','Owner approval required for compensation changes','Bonus review only after recovery/profit conditions'],
+    approvalOnlyActions: ['Money transfer','Refund','Payroll payment','Compensation changes','Strategic price change','Margin below 20%','Reserve use','Permanent hiring/firing','Legal','Safety-critical decisions'],
     preservedMarkers: ['loginScreen','tripfolder','folderDocumentCenter','tripArchiveBanner','bookingForm','operationForm'],
   };
   fs.writeFileSync(path.join(OUT_DIR, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-  console.log(`GMU EduTrans v21.2 release built: ${OUT_DIR}`);
+  console.log(`GMU EduTrans v21.3 release built: ${OUT_DIR}`);
   console.log(`Verified v9.5 rollback baseline preserved: ${manifest.baselineBytes} bytes`);
   console.log('Visible production branding: v21');
   console.log(`Additive modules: ${MODULES.join(', ')}`);
