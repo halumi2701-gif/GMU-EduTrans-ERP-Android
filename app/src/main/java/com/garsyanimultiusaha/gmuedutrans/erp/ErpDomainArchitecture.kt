@@ -12,6 +12,10 @@ package com.garsyanimultiusaha.gmuedutrans.erp
  * - MainViewModel.kt -> session/action coordinator, never presentation analytics
  * - DashboardDomainQueries.kt -> read-only dashboard/finance projections
  *
+ * Access contract:
+ * - MainViewModel action checks consume ErpRolePolicy instead of raw role strings.
+ * - FinancialAccess remains the single gate for Owner/Manager financial visibility.
+ *
  * UI authorization remains enforced by [RoleAccess]. This layer owns reusable
  * role policy and data-source ownership so ViewModels/screens do not repeat raw
  * role strings and table lists throughout the codebase.
