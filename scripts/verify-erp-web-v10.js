@@ -2,7 +2,7 @@ const fs = require('fs');
 const vm = require('vm');
 
 const files = {
-  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',automation:'erp-web/automation-orchestrator-v111.js',automationFix:'erp-web/automation-orchestrator-fix-v111.js',loader:'erp-web/unified-v10-loader.js'
+  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',automation:'erp-web/automation-orchestrator-v111.js',automationFix:'erp-web/automation-orchestrator-fix-v111.js',activation:'erp-web/crm-finance-notification-v112.js',loader:'erp-web/unified-v10-loader.js'
 };
 const src=Object.fromEntries(Object.entries(files).map(([k,f])=>{const t=fs.readFileSync(f,'utf8');new vm.Script(t,{filename:f});return[k,t];}));
 function must(k,t,l){if(!src[k].includes(t))throw new Error(`Missing ERP contract [${k}]: ${l}`)}
@@ -41,11 +41,18 @@ must('automation','next_follow_up_at','CRM next follow-up');
 must('automation','lost_reason','CRM lost reason');
 must('automation','requires_approval','AI approval field');
 must('automationFix',"const VERSION = 'v11.1-automation-runtime-stabilizer'",'runtime stabilizer version');
-must('automationFix','obs.disconnect()','observer loop guard');
-must('automationFix','select.value = row.status','CAPA status preservation');
+must('automationFix','obs.disconnect()','observer loop guard');must('automationFix','select.value = row.status','CAPA status preservation');
 
-for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js'])must('loader',`'${m}'`,`loader module ${m}`);
-must('loader','v11.1-transactional-automation-orchestrator','v11.1 release marker');must('loader','perubahan bisnis memicu event','transactional notice');must('loader','backend production secara langsung','production backend notice');
+must('activation',"const VERSION = 'v11.2-crm-finance-notification-activation'",'v11.2 activation version');
+for(const t of ['crm_lead_controls','booking_requests','crm_activities','finance_periods','customer_notification_outbox','customer_notification_deliveries','internal_notification_deliveries'])must('activation',`'${t}'`,`v11.2 backend ${t}`);
+for(const f of ['internal_crm_sales_scorecard','internal_management_ar_aging','internal_management_ap_aging','internal_gl_trial_balance','internal_gl_profit_loss','internal_gl_balance_sheet','internal_gl_cash_flow'])must('activation',`'${f}'`,`v11.2 RPC ${f}`);
+for(const l of ['Pipeline, Assignment & Conversion','Scorecard Sales Bulan Ini','Accounting & Financial Statements','Laporan Keuangan & Closing Control','AR Aging / Piutang','AP Aging / Hutang Vendor','Trial Balance','Pusat Notifikasi','Notification Delivery Center'])must('activation',l,`v11.2 UI ${l}`);
+must('activation','setInterval(()=>{if(role()&&db()&&!document.hidden)refresh();},60000)','conservative 60-second refresh');
+mustNot('activation','MutationObserver','no mutation observer loop');
+must('activation','data-g112-activity','CRM activity action');must('activation','data-g112-lead','CRM lead control action');must('activation','Lost Reason wajib diisi','lost reason guard');
 
-console.log('GMU ERP Web v11.1 Transactional Automation contract passed.');
-console.log('Automation Events | Cross-role Tasks | CRM Activities | Payroll/Fee | Recruitment | CAPA | Workforce | Risk | AI Drafts | Focus UI');
+for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js'])must('loader',`'${m}'`,`loader module ${m}`);
+must('loader','v11.2-crm-finance-notification-activation','v11.2 release marker');must('loader','CRM, Accounting & Notification Activation aktif','v11.2 activation notice');must('loader','delivery log notifikasi','delivery log notice');
+
+console.log('GMU ERP Web v11.2 CRM, Accounting & Notification contract passed.');
+console.log('CRM Assignment | Follow-up | Recovery | Sales Scorecard | AR/AP | Trial Balance | P&L | Balance Sheet | Cash Flow | Notification Delivery');
