@@ -42,11 +42,9 @@ create index if not exists booking_requests_customer_account_idx on public.booki
 
 alter table public.customer_accounts enable row level security;
 
+-- Customer accounts are authenticated users, but CRM columns remain internal.
+-- Public web writes interest only through the restricted RPC below; customers do not SELECT this table directly.
 drop policy if exists customer_accounts_self_read on public.customer_accounts;
-create policy customer_accounts_self_read
-on public.customer_accounts for select to authenticated
-using ((select auth.uid()) = user_id);
-
 drop policy if exists customer_accounts_staff_read on public.customer_accounts;
 create policy customer_accounts_staff_read
 on public.customer_accounts for select to authenticated
@@ -100,7 +98,11 @@ with check (
   )
 );
 
-grant select, update on public.customer_accounts to authenticated;
+-- Staff may read CRM rows. Direct UPDATE is limited to operational CRM columns so consent/contact identity cannot be rewritten from ERP controls accidentally.
+grant select on public.customer_accounts to authenticated;
+revoke update on public.customer_accounts from authenticated;
+grant update (assigned_sales, lead_stage, account_status, last_contact_at, next_follow_up_at)
+  on public.customer_accounts to authenticated;
 
 create or replace function private.gmu_v220_capture_customer_signup()
 returns trigger
@@ -168,8 +170,8 @@ create trigger trg_gmu_v220_customer_account_touch
 before update on public.customer_accounts
 for each row execute function private.gmu_v220_touch_customer_account();
 
--- Customer-safe RPC: the signed-in customer may record package/program interest,
--- but may not assign sales, alter CRM stage directly, or read other customers.
+-- Customer-safe RPC: signed-in customer may record package/program interest only.
+-- Authorization is based on auth.uid(), never user-editable metadata.
 create or replace function public.gmu_customer_account_touch_interest(
   p_program text default null,
   p_package text default null
