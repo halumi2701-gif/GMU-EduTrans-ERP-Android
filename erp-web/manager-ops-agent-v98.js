@@ -4,7 +4,11 @@
   const VERSION = 'v9.8-manager-ops-agent';
   const ALLOWED_ROLES = new Set(['Owner', 'Director', 'Direktur', 'Manager', 'Manager EduTrans']);
   const MANAGER_ROLES = new Set(['Manager', 'Manager EduTrans']);
-  const DIRECTOR_APPROVAL_LIMIT = 2_000_000;
+  const MANAGER_PLANNED_RAB_LIMIT = 1_000_000;
+  const MANAGER_UNPLANNED_LIMIT = 250_000;
+  const MANAGER_EMERGENCY_LIMIT = 500_000;
+  const MANAGER_MAX_DISCOUNT_PCT = 5;
+  const CRITICAL_MARGIN_PCT = 20;
   const QUICK_ACTIONS = ['Siapkan Trip','Buat Rundown','Cek Kesiapan','Susun Crew','Cek Vendor','Analisis RAB','Buat Operation Sheet','Buat Laporan'];
   const q = (sel, root = document) => root.querySelector(sel);
   const h = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
@@ -50,7 +54,22 @@
   }
 
   function rabSnapshot(){const rab=extra.costs.reduce((s,r)=>s+Number(r?.rab_amount||0),0),actual=extra.costs.reduce((s,r)=>s+Number(r?.actual_amount||0),0);return{rab,actual,variance:rab-actual}}
-  function authorityFor(action,amount=0){const n=String(action||'').toLowerCase();if(Number(amount||0)>DIRECTOR_APPROVAL_LIMIT)return'DIRECTOR_APPROVAL';if(['refund','closing','hapus piutang','ubah harga','rekening','jurnal'].some(x=>n.includes(x)))return'DIRECTOR_APPROVAL';if(['assign','kirim','approve','ubah','final','konfirmasi vendor'].some(x=>n.includes(x)))return'MANAGER_CONFIRMATION';return'AUTO'}
+  function authorityFor(action,amount=0){
+    const n=String(action||'').toLowerCase(),value=Number(amount||0);
+    if(['refund','closing','hapus piutang','ubah harga','rekening','jurnal','gunakan cadangan','reserve'].some(x=>n.includes(x)))return'DIRECTOR_APPROVAL';
+    const discountMatch=n.match(/(?:diskon|discount)\s*(?:sebesar\s*)?([0-9]+(?:[.,][0-9]+)?)\s*%/i),discountPct=discountMatch?Number(discountMatch[1].replace(',','.')):0;
+    if(discountPct>MANAGER_MAX_DISCOUNT_PCT)return'DIRECTOR_APPROVAL';
+    if(discountPct>0)return'MANAGER_CONFIRMATION';
+    const marginMatch=n.match(/margin\s*([0-9]+(?:[.,][0-9]+)?)\s*%/i),marginPct=marginMatch?Number(marginMatch[1].replace(',','.')):null;
+    if(marginPct!==null&&marginPct<CRITICAL_MARGIN_PCT)return'DIRECTOR_APPROVAL';
+    if(marginPct!==null&&marginPct<25)return'MANAGER_CONFIRMATION';
+    if(['darurat','emergency'].some(x=>n.includes(x))){return value>MANAGER_EMERGENCY_LIMIT?'DIRECTOR_APPROVAL':'MANAGER_CONFIRMATION'}
+    if(['di luar rab','diluar rab','unplanned','tidak ada di rab'].some(x=>n.includes(x))){return value>MANAGER_UNPLANNED_LIMIT?'DIRECTOR_APPROVAL':'MANAGER_CONFIRMATION'}
+    if(['rab','biaya','vendor','pengeluaran','expense','cost'].some(x=>n.includes(x))&&value>0){return value>MANAGER_PLANNED_RAB_LIMIT?'DIRECTOR_APPROVAL':'MANAGER_CONFIRMATION'}
+    if(value>MANAGER_PLANNED_RAB_LIMIT)return'DIRECTOR_APPROVAL';
+    if(['assign','kirim','approve','ubah','final','konfirmasi vendor'].some(x=>n.includes(x)))return'MANAGER_CONFIRMATION';
+    return'AUTO'
+  }
   function statusText(a){return a==='DIRECTOR_APPROVAL'?'Perlu Approval Direktur':a==='MANAGER_CONFIRMATION'?'Perlu Konfirmasi Manager':'Assist / Auto Draft'}
 
   function renderTripSelect(){const select=q('#gmuOpsTripSelect');if(!select)return;const rows=bookings().filter(b=>String(b.status||'')!=='Closed');if(!selectedBookingId&&nextTrip())selectedBookingId=String(nextTrip().id);select.innerHTML=rows.map(b=>`<option value="${h(b.id)}" ${String(b.id)===String(selectedBookingId)?'selected':''}>${h(b.booking_no)} • ${h(b.program_name)} • ${h(b.trip_date)}</option>`).join('')||'<option value="">Belum ada trip</option>'}
@@ -89,7 +108,7 @@
     const text=String(command||'').toLowerCase().trim();if(!text)return;
     const amountMatch=text.match(/(?:rp\s*)?([0-9][0-9.]{5,})/i),amount=amountMatch?Number(amountMatch[1].replace(/\./g,'')):0,authority=authorityFor(text,amount);
     q('#gmuOpsAuthority').textContent=statusText(authority);
-    if(authority==='DIRECTOR_APPROVAL'&&amount>DIRECTOR_APPROVAL_LIMIT){reply(`Nilai ${money(amount)} melewati batas Manager ${money(DIRECTOR_APPROVAL_LIMIT)}. Tindakan harus dinaikkan ke Direktur.`,'warn');return}
+    if(authority==='DIRECTOR_APPROVAL'){reply('Tindakan ini berada di luar kewenangan Manager sesuai matriks persetujuan GMU EduTrans dan harus dinaikkan ke Direktur.','warn');return}
     if(text.includes('rab')||text.includes('biaya')||text.includes('cost'))return runAction('Analisis RAB');
     if(text.includes('vendor')||text.includes(' po '))return runAction('Cek Vendor');
     if(text.includes('rundown'))return runAction('Buat Rundown');
@@ -107,7 +126,7 @@
   }
 
   function installPage(){
-    if(q('#opsAgent'))return;const content=q('.content');if(!content)return;const page=document.createElement('section');page.id='opsAgent';page.className='page';page.innerHTML=`<div class="notice">GMU EduTrans Ops Agent ${VERSION} • Assistant operasional. Perubahan penting tetap memakai konfirmasi dan approval.</div><div class="gmu-ops-shell"><div><div class="card section" style="margin-top:0"><div class="head"><div><h3>Daily Ops Brief</h3><p>Kesiapan trip dan kebutuhan tindakan Manager</p></div><button id="gmuOpsRefresh" class="btn ghost" type="button">↻ Refresh</button></div><label class="note">Trip aktif</label><select id="gmuOpsTripSelect" class="gmu-ops-select"></select><div id="gmuOpsBrief" style="margin-top:12px"></div></div><div class="card section"><div class="head"><div><h3>Ask Ops Agent</h3><p>Perintah natural untuk membuka pekerjaan operasional</p></div><span id="gmuOpsAuthority" class="badge info">Assist / Auto Draft</span></div><div id="gmuOpsReply" class="gmu-ops-reply">Saya siap membantu menyiapkan dan mengontrol operasional EduTrans.</div><div class="gmu-ops-command"><input id="gmuOpsCommand" placeholder="Contoh: cek vendor trip besok"><button id="gmuOpsSend" class="btn primary" type="button">Kirim</button></div></div></div><div class="card section" style="margin-top:0"><div class="head"><div><h3>Perintah Cepat</h3><p>Pilih pekerjaan yang ingin dibantu</p></div></div><div class="gmu-ops-actions">${QUICK_ACTIONS.map(a=>`<button type="button" class="gmu-ops-action" data-ops-action="${h(a)}"><b>${h(a)}</b><small>${a==='Analisis RAB'?'Analisis →':'Buka →'}</small></button>`).join('')}</div><div class="gmu-ops-policy" style="margin-top:14px">Assign/finalisasi/konfirmasi penting memerlukan konfirmasi Manager. Transaksi di atas ${money(DIRECTOR_APPROVAL_LIMIT)} serta refund, closing, perubahan harga, rekening dan jurnal memerlukan approval Direktur.</div></div></div>`;content.appendChild(page);
+    if(q('#opsAgent'))return;const content=q('.content');if(!content)return;const page=document.createElement('section');page.id='opsAgent';page.className='page';page.innerHTML=`<div class="notice">GMU EduTrans Ops Agent ${VERSION} • Assistant operasional. Perubahan penting tetap memakai konfirmasi dan approval.</div><div class="gmu-ops-shell"><div><div class="card section" style="margin-top:0"><div class="head"><div><h3>Daily Ops Brief</h3><p>Kesiapan trip dan kebutuhan tindakan Manager</p></div><button id="gmuOpsRefresh" class="btn ghost" type="button">↻ Refresh</button></div><label class="note">Trip aktif</label><select id="gmuOpsTripSelect" class="gmu-ops-select"></select><div id="gmuOpsBrief" style="margin-top:12px"></div></div><div class="card section"><div class="head"><div><h3>Ask Ops Agent</h3><p>Perintah natural untuk membuka pekerjaan operasional</p></div><span id="gmuOpsAuthority" class="badge info">Assist / Auto Draft</span></div><div id="gmuOpsReply" class="gmu-ops-reply">Saya siap membantu menyiapkan dan mengontrol operasional EduTrans.</div><div class="gmu-ops-command"><input id="gmuOpsCommand" placeholder="Contoh: cek vendor trip besok"><button id="gmuOpsSend" class="btn primary" type="button">Kirim</button></div></div></div><div class="card section" style="margin-top:0"><div class="head"><div><h3>Perintah Cepat</h3><p>Pilih pekerjaan yang ingin dibantu</p></div></div><div class="gmu-ops-actions">${QUICK_ACTIONS.map(a=>`<button type="button" class="gmu-ops-action" data-ops-action="${h(a)}"><b>${h(a)}</b><small>${a==='Analisis RAB'?'Analisis →':'Buka →'}</small></button>`).join('')}</div><div class="gmu-ops-policy" style="margin-top:14px">Assign/finalisasi/konfirmasi penting memerlukan konfirmasi Manager. Batas Manager: biaya dalam RAB ≤ ${money(MANAGER_PLANNED_RAB_LIMIT)}, di luar RAB ≤ ${money(MANAGER_UNPLANNED_LIMIT)}, darurat ≤ ${money(MANAGER_EMERGENCY_LIMIT)}, diskon ≤ ${MANAGER_MAX_DISCOUNT_PCT}%. Margin <${CRITICAL_MARGIN_PCT}% serta refund, penggunaan cadangan, perubahan harga, rekening dan jurnal memerlukan approval Direktur.</div></div></div>`;content.appendChild(page);
   }
 
   function installNav(){if(!allowed()||q('#nav [data-page="opsAgent"]'))return;const nav=q('#nav');if(!nav)return;const button=document.createElement('button');button.dataset.page='opsAgent';button.innerHTML='✦ &nbsp; Ops Agent';const operation=q('#nav [data-page="operation"]');if(operation?.nextSibling)nav.insertBefore(button,operation.nextSibling);else nav.appendChild(button)}
@@ -123,6 +142,6 @@
     q('#gmuOpsSend')?.addEventListener('click',send);q('#gmuOpsCommand')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send()}});
   }
 
-  function init(){installStyle();patchApplyRole();const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile||typeof sb==='undefined'||!sb)return;clearInterval(timer);if(!allowed())return;installPage();installNav();installDock();bind();if(!selectedBookingId&&nextTrip())selectedBookingId=String(nextTrip().id);refresh().catch(e=>reply(e?.message||String(e),'warn'))},250);window.GmuManagerOpsAgent=Object.freeze({version:VERSION,authorityFor,refresh,quickActions:[...QUICK_ACTIONS],directorApprovalLimit:DIRECTOR_APPROVAL_LIMIT})}
+  function init(){installStyle();patchApplyRole();const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile||typeof sb==='undefined'||!sb)return;clearInterval(timer);if(!allowed())return;installPage();installNav();installDock();bind();if(!selectedBookingId&&nextTrip())selectedBookingId=String(nextTrip().id);refresh().catch(e=>reply(e?.message||String(e),'warn'))},250);window.GmuManagerOpsAgent=Object.freeze({version:VERSION,authorityFor,refresh,quickActions:[...QUICK_ACTIONS],authorityMatrix:Object.freeze({plannedRab:MANAGER_PLANNED_RAB_LIMIT,unplanned:MANAGER_UNPLANNED_LIMIT,emergency:MANAGER_EMERGENCY_LIMIT,maxDiscountPct:MANAGER_MAX_DISCOUNT_PCT,criticalMarginPct:CRITICAL_MARGIN_PCT})})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
