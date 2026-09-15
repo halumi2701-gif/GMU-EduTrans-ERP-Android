@@ -1,182 +1,65 @@
-name: GAWONE Mitra Stage 4J Nine Services RC5
+name: GAWONE Mitra Legacy RC5 Compile
 
 on:
   push:
-    branches:
-      - gawone-mitra-stage4j-build
+    branches: [gawone-mitra-stage4j-build]
     paths:
       - "gawone-mitra-stage4j-rc3-pilot.py"
       - "gawone-mitra-stage4j-rc3-static.py"
       - "gawone-mitra-stage4j-rc4-reliability.py"
+      - "gawone-mitra-stage4j-rc5-nine-services.py"
       - "gawone-stage4j-rc2-patch.b64"
       - "gawone-stage4j-source.part*"
-      - "gawone-mitra-emulator-smoke.sh"
       - ".github/workflows/gawone-mitra-stage4j.yml"
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
+# Historical RC5 reconstruction/compile only. Current emulator coverage lives in RC6 P2 Final.
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-
-      - name: Reconstruct GAWONE Stage 4J source
+      - name: Reconstruct Stage 4J source
         shell: bash
         run: |
-          cat gawone-stage4j-source.part00 gawone-stage4j-source.part01 gawone-stage4j-source.part02 gawone-stage4j-source.part03 gawone-stage4j-source.part04 > gawone-stage4j-source.b64
-          base64 -d gawone-stage4j-source.b64 > gawone-stage4j-source.zip
-          unzip -q gawone-stage4j-source.zip
+          cat gawone-stage4j-source.part00 gawone-stage4j-source.part01 gawone-stage4j-source.part02 gawone-stage4j-source.part03 gawone-stage4j-source.part04 > /tmp/gawone-stage4j-source.b64
+          base64 -d /tmp/gawone-stage4j-source.b64 > /tmp/gawone-stage4j-source.zip
+          unzip -q /tmp/gawone-stage4j-source.zip
           test -f gawone-mitra-stage4j/app/build.gradle.kts
-
-      - name: Apply proven RC2 hardening
+      - name: Apply cumulative RC2 to RC5
         shell: bash
         run: |
-          base64 -d gawone-stage4j-rc2-patch.b64 > gawone-stage4j-rc2-patch.py
-          python gawone-stage4j-rc2-patch.py gawone-mitra-stage4j
-          grep -q 'versionCode = 11' gawone-mitra-stage4j/app/build.gradle.kts
-
-      - name: Apply controlled-pilot RC3 hardening
-        shell: bash
-        run: |
+          base64 -d gawone-stage4j-rc2-patch.b64 > /tmp/rc2.py
+          python /tmp/rc2.py gawone-mitra-stage4j
           python gawone-mitra-stage4j-rc3-pilot.py gawone-mitra-stage4j
           python gawone-mitra-stage4j-rc3-static.py gawone-mitra-stage4j
-          grep -q 'versionCode = 12' gawone-mitra-stage4j/app/build.gradle.kts
-          grep -q 'versionName = "1.0.2-stage4j-pilot-rc3"' gawone-mitra-stage4j/app/build.gradle.kts
-
-      - name: Apply Reliability RC4 safe error UX
-        shell: bash
-        run: |
           python gawone-mitra-stage4j-rc4-reliability.py gawone-mitra-stage4j
-          grep -q 'versionCode = 13' gawone-mitra-stage4j/app/build.gradle.kts
-          grep -q 'versionName = "1.0.3-stage4j-reliability-rc4"' gawone-mitra-stage4j/app/build.gradle.kts
-          grep -q 'object GawoneMitraFailureMapper' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/GawoneMitraFailure.kt
-
-      - name: Apply Nine-Service RC5 eligibility sync
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          root=Path('gawone-mitra-stage4j')
-          main=root/'app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt'
-          build=root/'app/build.gradle.kts'
-          s=main.read_text()
-          s=s.replace('var service by remember { mutableStateOf("RIDE") }','var service by remember { mutableStateOf("CLEANING") }',1)
-          old='''    LaunchedEffect(tick) { refresh() }\n\n    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(bottom = 18.dp)) {'''
-          new='''    LaunchedEffect(tick) { refresh() }\n    val eligibleServices = remember(dashboard) { partnerEligibleServiceCodes(dashboard) }\n    LaunchedEffect(eligibleServices) {\n        if (eligibleServices.isNotEmpty() && service !in eligibleServices) service = eligibleServices.first()\n    }\n\n    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentPadding = PaddingValues(bottom = 18.dp)) {'''
-          if old not in s: raise SystemExit('home launched anchor missing')
-          s=s.replace(old,new,1)
-          old='''            SectionTitle("Pilih layanan online")\n            ServiceSelector(service) { service = it }\n            Spacer(Modifier.height(10.dp))\n            Button('''
-          new='''            SectionTitle("Pilih layanan online")\n            EligibleServiceSelector(service, eligibleServices) { service = it }\n            if (eligibleServices.isEmpty()) InfoCard("Belum ada layanan yang bisa online", "Layanan akan aktif setelah KYC dan verifikasi skill/kendaraan sesuai layanan selesai.")\n            Spacer(Modifier.height(10.dp))\n            Button('''
-          if old not in s: raise SystemExit('online selector anchor missing')
-          s=s.replace(old,new,1)
-          old='''                modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = GGreen)\n            ) { if (busy)'''
-          new='''                enabled = !busy && service in eligibleServices && activePresence == null,\n                modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = GGreen)\n            ) { if (busy)'''
-          if old not in s: raise SystemExit('online button anchor missing')
-          s=s.replace(old,new,1)
-          old='''private val SERVICES = listOf("RIDE","CAR","DELIVERY","DRIVER","CLEANING","HANDYMAN","TECHNICIAN","HELPER","WAREHOUSE_HELPER","OFFICE_SUPPORT","EVENT_CREW","BULK_WORKFORCE")\n\n@Composable\nprivate fun ServiceSelector(selected:String,onSelect:(String)->Unit){Column{SERVICES.chunked(3).forEach{row->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{s->FilterChip(selected=selected==s,onClick={onSelect(s)},label={Text(s.replace('_',' ').lowercase().replaceFirstChar{it.uppercase()},fontSize=9.sp)},modifier=Modifier.weight(1f),colors=FilterChipDefaults.filterChipColors(selectedContainerColor=GLight,selectedLabelColor=Color(0xFF15803D)));};repeat(3-row.size){Spacer(Modifier.weight(1f))}}}}}\n'''
-          new='''private val OFFICIAL_SERVICES = listOf("RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE")\n\nprivate fun serviceLabel(code:String):String = when(code){\n    "RIDE" -> "Ride"\n    "CAR" -> "Car"\n    "DELIVERY" -> "Delivery"\n    "CLEANING" -> "Cleaning"\n    "HANDYMAN" -> "Tukang"\n    "HELPER" -> "Helper"\n    "TECHNICIAN" -> "Teknisi"\n    "DRIVER" -> "Driver"\n    "BULK_WORKFORCE" -> "Labour"\n    else -> code\n}\n\nprivate fun partnerEligibleServiceCodes(dashboard:Any?):List<String>{\n    val root=dashboard as? JSONObject ?: return emptyList()\n    val services=JsonUtil.items(root,"services")\n    return OFFICIAL_SERVICES.filter { code ->\n        services.any { item ->\n            JsonUtil.firstString(item,"serviceCode","service_code")?.uppercase()==code &&\n                JsonUtil.firstBoolean(item,"eligible")==true &&\n                JsonUtil.firstString(item,"verificationStatus","verification_status")?.uppercase()=="VERIFIED"\n        }\n    }\n}\n\n@Composable\nprivate fun ServiceSelector(selected:String,onSelect:(String)->Unit){Column{OFFICIAL_SERVICES.chunked(3).forEach{row->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{s->FilterChip(selected=selected==s,onClick={onSelect(s)},label={Text(serviceLabel(s),fontSize=9.sp)},modifier=Modifier.weight(1f),colors=FilterChipDefaults.filterChipColors(selectedContainerColor=GLight,selectedLabelColor=Color(0xFF15803D)));};repeat(3-row.size){Spacer(Modifier.weight(1f))}}}}}\n\n@Composable\nprivate fun EligibleServiceSelector(selected:String,eligible:List<String>,onSelect:(String)->Unit){\n    val shown=OFFICIAL_SERVICES.filter{it in eligible}\n    if(shown.isEmpty()) return\n    Column{shown.chunked(3).forEach{row->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{s->FilterChip(selected=selected==s,onClick={onSelect(s)},label={Text(serviceLabel(s),fontSize=9.sp)},modifier=Modifier.weight(1f),colors=FilterChipDefaults.filterChipColors(selectedContainerColor=GLight,selectedLabelColor=Color(0xFF15803D)));};repeat(3-row.size){Spacer(Modifier.weight(1f))}}}}\n}\n'''
-          if old not in s: raise SystemExit('services block missing')
-          s=s.replace(old,new,1)
-          main.write_text(s)
-          b=build.read_text()
-          if 'versionCode = 13' not in b or 'versionName = "1.0.3-stage4j-reliability-rc4"' not in b: raise SystemExit('RC4 version anchor missing')
-          b=b.replace('versionCode = 13','versionCode = 14',1)
-          b=b.replace('versionName = "1.0.3-stage4j-reliability-rc4"','versionName = "1.0.4-stage4j-nine-services-rc5"',1)
-          build.write_text(b)
-          out=main.read_text()
-          for token in ['OFFICIAL_SERVICES = listOf("RIDE","CAR","DELIVERY","CLEANING","HANDYMAN","HELPER","TECHNICIAN","DRIVER","BULK_WORKFORCE")','partnerEligibleServiceCodes','EligibleServiceSelector','service in eligibleServices']:
-              if token not in out: raise SystemExit('verification missing '+token)
-          for forbidden in ['WAREHOUSE_HELPER','OFFICE_SUPPORT','EVENT_CREW']:
-              if forbidden in out: raise SystemExit('legacy service remains '+forbidden)
-          print('GAWONE Mitra RC5 nine-service eligibility sync applied')
-          PY
+          python gawone-mitra-stage4j-rc5-nine-services.py gawone-mitra-stage4j
           grep -q 'versionCode = 14' gawone-mitra-stage4j/app/build.gradle.kts
           grep -q 'versionName = "1.0.4-stage4j-nine-services-rc5"' gawone-mitra-stage4j/app/build.gradle.kts
           grep -q 'partnerEligibleServiceCodes' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
-          zip -qr GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SOURCE.zip gawone-mitra-stage4j
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: android-actions/setup-android@v3
-
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: '17'}
       - name: Install Android SDK
         shell: bash
         run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
-
+        with: {gradle-version: '8.10.2'}
       - name: Static QA and compile
         working-directory: gawone-mitra-stage4j
         run: gradle :app:lintRelease :app:assembleRelease --stacktrace
-
-      - name: Verify Nine Services RC5 APK
+      - name: Verify RC5 APK
         shell: bash
         run: |
           APK=gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
-          cp "$APK" GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk
-          unzip -t GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk >/dev/null
-          sha256sum GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk | tee GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SHA256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk > GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_BADGING.txt
-          grep -q "package: name='site.garsyanimultiusaha.gawone.mitra' versionCode='14' versionName='1.0.4-stage4j-nine-services-rc5'" GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_BADGING.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk > GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SIGNATURE.txt
-          test -f gawone-mitra-stage4j/app/build/reports/lint-results-release.html
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5
-          if-no-files-found: error
-          retention-days: 14
-          path: |
-            GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk
-            GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SHA256.txt
-            GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SOURCE.zip
-            GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_BADGING.txt
-            GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_SIGNATURE.txt
-            gawone-mitra-stage4j/app/build/reports/lint-results-release.html
-
-  emulator_smoke:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5
-      - name: Prepare emulator reports
-        shell: bash
-        run: mkdir -p emulator-reports
-      - name: Enable KVM permissions
-        shell: bash
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-      - name: Nine Services RC5 Android emulator gate
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          target: google_apis
-          profile: pixel_4
-          disable-animations: true
-          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
-          script: bash gawone-mitra-emulator-smoke.sh
-      - name: Upload emulator evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5_EMULATOR_GATE
-          if-no-files-found: warn
-          path: emulator-reports
+          cp "$APK" /tmp/GAWONE_Mitra_RC5.apk
+          unzip -t /tmp/GAWONE_Mitra_RC5.apk >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging /tmp/GAWONE_Mitra_RC5.apk | grep -q "package: name='site.garsyanimultiusaha.gawone.mitra' versionCode='14' versionName='1.0.4-stage4j-nine-services-rc5'"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose /tmp/GAWONE_Mitra_RC5.apk >/dev/null
