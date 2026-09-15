@@ -42,8 +42,6 @@ async function main() {
   assertIncludes(brandedBaseline, '<title>GMU EduTrans ERP v11.1', 'v11.1 browser title');
   assertIncludes(brandedBaseline, 'ERP v11.1 — Transactional Automation', 'v11.1 login branding');
   assertIncludes(brandedBaseline, 'ERP v11.1 Online', 'v11.1 sidebar branding');
-  assertIncludes(brandedBaseline, 'Tugas Otomatis', 'task automation visible notice');
-  assertIncludes(brandedBaseline, 'Target & Kinerja', 'target visible notice');
   if (brandedBaseline.includes('ERP v9.5')) throw new Error('Legacy ERP v9.5 branding remains in production output.');
 
   const closeBodyIndex = brandedBaseline.lastIndexOf('</body>');
@@ -68,6 +66,13 @@ async function main() {
     if (!fs.existsSync(src)) throw new Error(`Missing module: ${src}`);
     fs.copyFileSync(src, path.join(OUT_DIR, file));
   }
+
+  const loaderSource = fs.readFileSync(path.join('erp-web', 'unified-v10-loader.js'), 'utf8');
+  const automationSource = fs.readFileSync(path.join('erp-web', 'automation-orchestrator-v111.js'), 'utf8');
+  assertIncludes(loaderSource, 'v11.1-transactional-automation-orchestrator', 'v11.1 loader marker');
+  assertIncludes(loaderSource, 'automation-orchestrator-v111.js', 'transactional orchestrator module');
+  assertIncludes(automationSource, 'Tugas Otomatis Aktual', 'transactional task UI');
+  assertIncludes(automationSource, 'Aktivitas & Tindak Lanjut Sales', 'transactional CRM UI');
 
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
