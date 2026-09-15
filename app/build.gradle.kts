@@ -31,8 +31,8 @@ android {
         applicationId = "com.garsyanimultiusaha.gmuedutrans.erp"
         minSdk = 23
         targetSdk = 35
-        versionCode = 20002
-        versionName = "20.2"
+        versionCode = 21001
+        versionName = "21.1"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://gtgnwasijweewmaubvyg.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW\"")
