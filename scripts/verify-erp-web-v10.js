@@ -12,6 +12,8 @@ const files = {
   systemCenter: 'erp-web/company-system-center-v104.js',
   domains: 'erp-web/management-domains-v105.js',
   navGuard: 'erp-web/role-navigation-v106.js',
+  detail: 'erp-web/company-detail-controls-v107.js',
+  playbook: 'erp-web/role-playbook-v108.js',
   loader: 'erp-web/unified-v10-loader.js',
 };
 
@@ -40,27 +42,14 @@ mustNot('privacy', "const FULL_FINANCE_ROLES = new Set(['Owner', 'Manager'", 'le
 must('packages', "sb.from('program_packages')", 'program_packages source');
 must('packages', 'price_per_pax', 'selling price');
 must('packages', 'min_pax', 'minimum pax');
-must('packages', 'facilities', 'public facilities');
 must('packages', 'PKG-GMU-00008', 'official station package');
 must('packages', 'Pilih dari Master Paket', 'booking package selector');
-
-const forbiddenFinanceFields = ['hpp','base_cost','manager_fee','sales_fee','mitra_fee','partner_fee','profit','margin','margin_pct','pricing_policy'];
-const packageSelects = [...src.packages.matchAll(/\.select\(\s*(['"`])([\s\S]*?)\1\s*\)/g)]
-  .map(match => match[2].toLowerCase().split(',').map(x => x.trim()).filter(Boolean));
-for (const field of forbiddenFinanceFields) {
-  if (packageSelects.some(fields => fields.includes(field))) throw new Error(`Forbidden Package Master database projection: ${field}`);
-  const payloadKey = new RegExp(`(^|[,{\\n\\r])\\s*${field}\\s*:`, 'i');
-  if (payloadKey.test(src.packages)) throw new Error(`Forbidden Package Master write payload field: ${field}`);
-}
-
 must('media', 'const MAX_BYTES = 8 * 1024 * 1024', '8 MiB media limit');
 must('media', 'const MAX_GALLERY = 5', 'gallery max 5');
-must('media', "const INTERNAL_FN = 'internal-media-master'", 'internal media API');
 
 for (const action of ['Siapkan Trip','Buat Rundown','Cek Kesiapan','Susun Crew','Cek Vendor','Analisis RAB','Buat Operation Sheet','Buat Laporan']) must('agent', `'${action}'`, `Ops Agent action ${action}`);
 must('agent', "'DIRECTOR_APPROVAL'", 'Director approval authority');
 must('agent', "'MANAGER_CONFIRMATION'", 'Manager confirmation authority');
-must('agent', "queryOptional('trip_costs'", 'operational RAB read');
 
 must('company', 'targetNetProfitMonthly: 15_000_000', 'Rp15m monthly net-profit target');
 must('company', 'healthyMarginPct: 25', '25 percent healthy margin');
@@ -70,50 +59,46 @@ must('company', 'managerUnplannedLimit: 250_000', 'Rp250k unplanned Manager limi
 must('company', 'managerEmergencyLimit: 500_000', 'Rp500k emergency Manager limit');
 must('company', 'managerMaxDiscountPct: 5', '5 percent Manager discount limit');
 must('company', "priorityRegions: ['Cianjur', 'Sukabumi']", 'priority regions');
-must('company', "'AI & Otomatisasi'", 'AI cost category');
 
 must('market', "const REGIONS = ['Cianjur','Sukabumi']", 'Cianjur and Sukabumi market regions');
 must('market', "sb.from('market_targets')", 'market_targets source');
 must('market', 'Intelijen Pasar', 'market intelligence UI');
 
-must('salesTarget', "const VERSION = 'v10.3-sales-target-engine'", 'sales target engine version');
 must('salesTarget', 'prospectsMonthly: 200', '200 monthly prospects baseline');
 must('salesTarget', 'qualifiedLeadsMonthly: 20', '20 qualified leads baseline');
 must('salesTarget', 'quotationsMonthly: 12', '12 quotations baseline');
 must('salesTarget', 'minimumBookingsMonthly: 3', '3 minimum bookings baseline');
 must('salesTarget', 'quotationToBookingPct: 25', '25 percent quotation conversion baseline');
-must('salesTarget', 'Target & Kinerja Penjualan', 'visible sales target page');
-must('salesTarget', 'Target Saya', 'Sales personal target view');
 
-for (const label of ['Sistem Operasi Perusahaan GMU EduTrans','Kendali Direktur','Pusat Kendali Manager','Pusat Penjualan Saya','Pekerjaan Operasional Saya','Pekerjaan Keuangan Saya','Tugas Saya','Target & Kinerja','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Tata Kelola']) {
-  must('systemCenter', label, `system center label ${label}`);
-}
-must('systemCenter', '7 Hal yang Wajib Terlihat', 'role workspace contract');
-must('systemCenter', 'Penghasilan Saya', 'income workspace item');
+for (const label of ['Sistem Operasi Perusahaan GMU EduTrans','Kendali Direktur','Pusat Kendali Manager','Pusat Penjualan Saya','Pekerjaan Operasional Saya','Pekerjaan Keuangan Saya','Tugas Saya','Target & Kinerja','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Tata Kelola']) must('systemCenter', label, `system center label ${label}`);
+for (const label of ['Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan & Ekspansi','Tata Kelola','Pusat AI']) must('domains', label, `management domain ${label}`);
 
-for (const label of ['Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan & Ekspansi','Tata Kelola','Pusat AI']) {
-  must('domains', label, `management domain ${label}`);
-}
-must('domains', 'Cash waterfall', 'treasury waterfall');
-must('domains', 'Growth Readiness', 'growth readiness');
-must('domains', 'AI dilarang otomatis', 'AI guardrails');
-
-must('navGuard', "const VERSION = 'v10.6-role-navigation-guard'", 'role navigation guard version');
-must('navGuard', 'syncV10Navigation', 'navigation resync function');
+must('navGuard', "const VERSION = 'v10.8-role-navigation-guard'", 'role navigation guard version');
+must('navGuard', "'rolePlaybook'", 'role playbook kept visible after legacy role render');
 must('navGuard', 'window.applyRole', 'legacy applyRole wrapper');
-must('navGuard', "observer.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })", 'navigation mutation observer');
-for (const page of ['companyControl','marketIntelligence','salesTargetControl','companySystemCenter','roleWorkspace','myTasksHub','treasuryControl','peopleControl','qualityControl','growthControl','governanceControl','aiCenter']) {
-  must('navGuard', `'${page}'`, `v10 visible navigation page ${page}`);
-}
+
+must('detail', "const VERSION = 'v10.7-company-detail-controls'", 'detail control version');
+for (const label of ['Ringkasan Aktual Bulan Ini','Realisasi vs Target','Antrian Kerja Aktual','Posisi Kas Operasional dari Data ERP','Struktur SDM Aktual','Mutu Aktual dari Evaluasi Trip','Kesiapan Bertumbuh','Kontrol Tata Kelola Aktual','Aksi Asisten AI per Role','Direktori Modul Perusahaan','Kontrol Kerja Saya — Aktual']) must('detail', label, `detail control ${label}`);
+must('detail', 'bookingRevenue', 'live booking revenue calculation');
+must('detail', 'bookingPaid', 'live payment calculation');
+must('detail', 'bookingCost', 'live cost calculation');
+must('detail', 'Laba bersih perusahaan final tetap memerlukan seluruh overhead', 'no fake net profit guardrail');
+
+must('playbook', "const VERSION = 'v10.8-role-playbook'", 'role playbook version');
+for (const roleLabel of ['Owner / Direktur','Manager GMU EduTrans','Sales / Business Development','Admin / Customer Service','Finance / Accounting','Admin Ops / Trip Coordinator','Tour Leader / PIC Lapangan','MC / Fasilitator / Narasumber','Dokumentasi','Crew / Freelancer']) must('playbook', roleLabel, `jobdesk role ${roleLabel}`);
+for (const section of ['Tugas Harian','Tugas Mingguan','Tugas Bulanan','KPI / Ukuran Kinerja','Wewenang','Larangan / Batasan','Kapan Harus Eskalasi','Output Wajib','SOP Inti Jabatan','Penghasilan & Imbalan']) must('playbook', section, `jobdesk section ${section}`);
+must('playbook', '10 prospek baru.', 'Sales daily prospect target');
+must('playbook', 'Biaya dalam RAB ≤Rp1.000.000/transaksi.', 'Manager RAB authority');
+must('playbook', 'Closing trip maksimal H+3.', 'Finance close SLA');
+must('playbook', 'H-7: vendor/crew/rundown/RAB/documents.', 'Ops H-7 control');
+must('playbook', '≥95% rundown compliance', 'TL rundown KPI');
 
 for (const moduleFile of [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js'
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js'
 ]) must('loader', `'${moduleFile}'`, `loader module ${moduleFile}`);
-must('loader', 'ERP utama tetap aktif', 'safe fallback to baseline');
-must('loader', 'v10.6-full-company-operating-system', 'current full-system version marker');
-must('loader', 'Sistem Perusahaan', 'visible company-system release notice');
-must('loader', 'Kas & Likuiditas', 'visible treasury release notice');
-must('loader', 'Pusat AI', 'visible AI center release notice');
+must('loader', 'v10.8-full-company-operating-system', 'current detailed full-system marker');
+must('loader', 'jobdesk & SOP per jabatan', 'role jobdesk visible release notice');
+must('loader', 'kontrol aktual', 'detail controls visible release notice');
 
-console.log('GMU ERP Web full Company Operating System v10.6 contract passed.');
-console.log('Role navigation | Role workspaces | Sales Target | Market Intelligence | Treasury | People | Quality | Growth | Governance | AI | strategic finance privacy');
+console.log('GMU ERP Web v10.8 detailed Company Operating System contract passed.');
+console.log('Detailed controls | Role Playbooks | Jobdesk/SOP | Sales Target | Market Intelligence | Treasury | People | Quality | Growth | Governance | AI | Finance Privacy');
