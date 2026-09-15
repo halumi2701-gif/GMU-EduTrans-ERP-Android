@@ -24,13 +24,18 @@ check_no_crash() {
 
 wait_ui_text() {
   local needle="$1"; local label="$2"
-  for i in $(seq 1 20); do
+  for i in $(seq 1 24); do
     adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 || true
     adb pull /sdcard/window.xml "$REPORT_DIR/${label}-ui.xml" >/dev/null 2>&1 || true
     if test -f "$REPORT_DIR/${label}-ui.xml" && grep -Fq "$needle" "$REPORT_DIR/${label}-ui.xml"; then return 0; fi
+    if test -f "$REPORT_DIR/${label}-ui.xml" && grep -Fq "Pixel Launcher isn't responding" "$REPORT_DIR/${label}-ui.xml"; then
+      adb shell am force-stop com.google.android.apps.nexuslauncher || true
+      adb shell am start -W -n "$(resolve_launcher)" >/dev/null 2>&1 || true
+    fi
     sleep 1
   done
   echo "UI text not found: $needle ($label)" >&2
+  test -f "$REPORT_DIR/${label}-ui.xml" && cat "$REPORT_DIR/${label}-ui.xml" >&2 || true
   return 1
 }
 
@@ -52,6 +57,10 @@ adb uninstall "$PKG" >/dev/null 2>&1 || true
 adb install "$APK" | tee "$REPORT_DIR/01-install.txt"
 adb shell pm path "$PKG" | tr -d '\r' | tee "$REPORT_DIR/02-package-path.txt"
 grep -q '^package:' "$REPORT_DIR/02-package-path.txt"
+
+# The CI emulator occasionally raises a Pixel Launcher ANR unrelated to GAWONE.
+# Force-stop the launcher before direct activity testing so only the app process is gated.
+adb shell am force-stop com.google.android.apps.nexuslauncher >/dev/null 2>&1 || true
 
 echo "=== COLD START ==="
 adb shell am force-stop "$PKG"; adb logcat -c
