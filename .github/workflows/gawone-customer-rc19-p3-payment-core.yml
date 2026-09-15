@@ -68,7 +68,7 @@ jobs:
           r=json.load(open('P2_MOBILITY_ROUTE_HEALTH.json')); t=json.load(open('P2_MOBILITY_TRACKING_HEALTH.json')); p=json.load(open('P3_PAYMENT_CHECKOUT_HEALTH.json'))
           assert r.get('ok') is True and r.get('version') == 3
           assert t.get('ok') is True and t.get('version') == 3
-          assert p.get('ok') is True and p.get('version') == 1
+          assert p.get('ok') is True and p.get('version') == 2
           assert p.get('mode') == 'PROVIDER_GATED_FOUNDATION'
           assert isinstance(p.get('providerConfigured'), bool)
           PY2
