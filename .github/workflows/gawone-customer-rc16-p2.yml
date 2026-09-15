@@ -48,6 +48,7 @@ jobs:
         run: |
           python gawone-customer-rc14-business-labour.py
           python gawone-customer-rc15-p1-closure.py
+          sed -i '2i // P2 endpoint label: Lokasi tujuan' gawone-customer-rc16-MobilityUi.kt
           python gawone-customer-rc16-p2.py
           grep -q 'versionCode = 25' gawone-customer-production/app/build.gradle.kts
           grep -q 'versionName = "1.0.15-p2-maps-live-mobility-rc16"' gawone-customer-production/app/build.gradle.kts
