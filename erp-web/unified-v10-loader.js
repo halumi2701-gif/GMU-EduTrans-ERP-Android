@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v11.0-automation-focus-ui';
+  const VERSION = 'v11.1-transactional-automation-orchestrator';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -18,6 +18,8 @@
     'role-playbook-v108.js',
     'execution-control-v109.js',
     'ui-focus-shell-v110.js',
+    'automation-orchestrator-v111.js',
+    'automation-orchestrator-fix-v111.js',
   ];
 
   function scriptBase() {
@@ -85,10 +87,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v11.0 • Automation & Focus UI aktif: seluruh sistem perusahaan tetap lengkap, tetapi menu dikelompokkan per fungsi, mode ringkas aktif, pencarian menu tersedia, dan detail ditampilkan bertahap agar setiap role lebih mudah bekerja.');
+      notice('ERP Web v11.1 • Transactional Automation aktif: perubahan bisnis memicu event, tugas lintas divisi, audit, CAPA, follow-up, payroll/fee dan draft tindakan AI. Tugas, CRM, payroll, recruitment, workforce, risk dan AI sekarang membaca backend production secara langsung sesuai hak akses role.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU ERP Web v11.0 loader', error);
+      console.error('GMU ERP Web v11.1 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
