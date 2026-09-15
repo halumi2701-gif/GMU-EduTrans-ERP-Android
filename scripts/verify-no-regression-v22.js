@@ -40,6 +40,8 @@ function mustContain(rel, marker) {
   'erp-web/business-priority-v201.js',
   'erp-web/recovery-command-v202.js',
   'erp-web/company-autopilot-v210.js',
+  'erp-web/target-cascade-v212.js',
+  'erp-web/company-control-v213.js',
   'erp-web/unified-v10-loader.js'
 ].forEach(mustExist);
 
@@ -65,6 +67,11 @@ mustContain('erp-web/automation-orchestrator-v111.js', 'automation');
 mustContain('erp-web/crm-finance-notification-v112.js', 'finance');
 mustContain('erp-web/enterprise-os-v200.js', 'enterprise');
 mustContain('erp-web/company-autopilot-v210.js', 'autopilot');
+mustContain('erp-web/target-cascade-v212.js', 'internal_target_cascade_status');
+mustContain('erp-web/company-control-v213.js', 'v_company_command_center');
+mustContain('erp-web/company-control-v213.js', 'payment_requests');
+mustContain('erp-web/company-control-v213.js', 'compensation_accruals');
+mustContain('erp-web/company-control-v213.js', 'recruitment_cases');
 mustContain('app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/CompanyOperatingSystemV1.kt', 'TARGET_MARGIN_SEHAT_PCT');
 mustContain('supabase/migrations/20260915023020_gmu_v111_automation_core.sql', 'recruitment_cases');
 mustContain('supabase/migrations/20260915023020_gmu_v111_automation_core.sql', 'payroll_entries');
@@ -74,6 +81,7 @@ mustContain('supabase/migrations/20260915133000_gmu_v20_company_control_finance_
 
 // Existing release builder must preserve the old pinned baseline for rollback/regression comparison.
 mustContain('scripts/build-erp-web-v10-release.js', 'baseline-v95');
+mustContain('scripts/build-erp-web-v10-release.js', 'company-control-v213.js');
 mustContain('.github/workflows/validate-erp-web-v10.yml', 'Verify preserved baseline');
 
 if (failures.length) {
