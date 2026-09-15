@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PKG="site.garsyanimultiusaha.gawone.management.debug"
-APK="GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk"
+APK="GAWONE-Management-v1.0.7-M2.24-GATED-NAV-debug.apk"
 REPORT_DIR="management-emulator-reports"
 mkdir -p "$REPORT_DIR"
 
@@ -83,4 +83,4 @@ adb shell dumpsys package "$PKG" > "$REPORT_DIR/16-package-dumpsys.txt"
 adb shell getprop ro.build.version.release > "$REPORT_DIR/17-android-version.txt"
 adb shell getprop ro.build.version.sdk > "$REPORT_DIR/18-api-level.txt"
 
-echo "GAWONE Management M2.23 emulator gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
+echo "GAWONE Management M2.24 emulator gate: PASS" | tee "$REPORT_DIR/RESULT.txt"
