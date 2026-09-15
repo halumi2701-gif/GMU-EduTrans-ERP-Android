@@ -88,7 +88,7 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v11.2 • CRM, Accounting & Notification Activation aktif: lead memiliki stage, PIC, follow-up, lost reason, conversion dan recovery; laporan AR/AP, Trial Balance, Laba Rugi, Neraca dan Arus Kas membaca accounting production; Delivery Center menampilkan email/WhatsApp/internal delivery, retry dan error log sesuai hak akses.');
+      notice('ERP Web v11.2 • CRM, Accounting & Notification Activation aktif: lead memiliki stage, PIC, follow-up, lost reason, conversion dan recovery; laporan AR/AP, Trial Balance, Laba Rugi, Neraca dan Arus Kas membaca accounting production; Delivery Center menampilkan email/WhatsApp/internal delivery, retry, error dan delivery log notifikasi sesuai hak akses.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
       console.error('GMU ERP Web v11.2 loader', error);
