@@ -12,7 +12,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val api = SupabaseApi()
+    // Session/loading coordinator only; business actions are split by domain extension files.
+    internal val api = SupabaseApi()
     private val masterKey = MasterKey.Builder(application)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
@@ -25,63 +26,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     var state by mutableStateOf<AppState>(AppState.Splash)
-        private set
+        internal set
     var currentPage by mutableStateOf(AppPage.DASHBOARD)
-        private set
+        internal set
     var customers by mutableStateOf<List<Customer>>(emptyList())
-        private set
+        internal set
     var bookings by mutableStateOf<List<Booking>>(emptyList())
-        private set
+        internal set
     var rows by mutableStateOf<Map<String, List<ErpRow>>>(emptyMap())
-        private set
+        internal set
     var dataBusy by mutableStateOf(false)
-        private set
+        internal set
     var actionBusy by mutableStateOf(false)
-        private set
+        internal set
     var dataError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var managementDashboard by mutableStateOf<ManagementDashboard?>(null)
-        private set
+        internal set
     var managementError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var planningDashboard by mutableStateOf<PlanningDashboard?>(null)
-        private set
+        internal set
     var planningScenario by mutableStateOf<PlanningScenarioResult?>(null)
-        private set
+        internal set
     var planningError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var bookingRequests by mutableStateOf<List<BookingRequestItem>>(emptyList())
-        private set
+        internal set
     var bookingRequestError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var customerPortalCredential by mutableStateOf<CustomerPortalCredential?>(null)
-        private set
+        internal set
     var customerPortalTokenError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var quotationQueue by mutableStateOf<List<QuotationQueueItem>>(emptyList())
-        private set
+        internal set
     var quotationDetail by mutableStateOf<QuotationDetail?>(null)
-        private set
+        internal set
     var quotationError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var pricingDashboard by mutableStateOf<PricingDashboard?>(null)
-        private set
+        internal set
     var pricingError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var packageMaster by mutableStateOf<List<PackageMasterItem>>(emptyList())
-        private set
+        internal set
     var packageMasterError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var pricingMaster by mutableStateOf<PricingMasterDashboard?>(null)
-        private set
+        internal set
     var pricingMasterError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var paymentGateway by mutableStateOf<PaymentGatewayDashboard?>(null)
-        private set
+        internal set
     var paymentGatewayError by mutableStateOf<String?>(null)
-        private set
+        internal set
     var quotationSuggestion by mutableStateOf<QuotationDraftSuggestion?>(null)
-        private set
+        internal set
 
     init {
         viewModelScope.launch {
@@ -274,920 +275,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createCustomer(name: String, type: String, pic: String, wa: String, email: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.createCustomer(session.accessToken, session.userId, name, type, pic, wa, email)
-                done(true, "Customer berhasil dibuat.")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal membuat customer.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun createBooking(
-        customerId: String,
-        program: String,
-        tripDate: String,
-        pax: Int,
-        price: Double,
-        status: String,
-        group: String,
-        meeting: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.createBooking(
-                    session.accessToken,
-                    session.userId,
-                    session.profile.role,
-                    customerId,
-                    program,
-                    tripDate,
-                    pax,
-                    price,
-                    status,
-                    group,
-                    meeting
-                )
-                done(true, "Booking berhasil dibuat.")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal membuat booking.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun insert(table: String, values: Map<String, Any?>, successMessage: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.insertRow(session.accessToken, table, values)
-                api.audit(session.accessToken, session.userId, "CREATE", table, "", successMessage)
-                done(true, successMessage)
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal menyimpan data.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun updateBookingStatus(
-        bookingId: String,
-        status: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canEditBookings(session.profile.role)) {
-            done(false, "Tidak memiliki akses update status Booking.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                val saved = api.updateBookingStatus(session.accessToken, bookingId, status)
-                done(true, "Status booking berhasil diperbarui menjadi " + saved + ".")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Status booking gagal diperbarui.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun update(table: String, id: String, values: Map<String, Any?>, successMessage: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.updateRow(session.accessToken, table, id, values)
-                api.audit(session.accessToken, session.userId, "UPDATE", table, id, successMessage)
-                done(true, successMessage)
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal memperbarui data.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun openQuotationRequest(
-        requestId: String,
-        done: (Boolean, String) -> Unit = { _, _ -> }
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
-            done(false, "Tidak memiliki akses Quotation Workflow.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.getQuotationDetail(session.accessToken, requestId)
-                quotationSuggestion = null
-                quotationError = null
-                done(true, "Quotation berhasil dimuat.")
-            } catch (e: Exception) {
-                quotationDetail = null
-                quotationError = e.message ?: "Quotation gagal dimuat."
-                done(false, quotationError ?: "Quotation gagal dimuat.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun createQuotationDraft(
-        requestId: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
-            done(false, "Tidak memiliki akses membuat draft quotation.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.createQuotationDraft(session.accessToken, requestId)
-                quotationSuggestion = null
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                done(true, "Draft quotation berhasil dibuat.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Draft quotation gagal dibuat.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun saveQuotationDraft(
-        items: List<QuotationLine>,
-        discount: Double,
-        tax: Double,
-        validUntil: String,
-        notesCustomer: String,
-        terms: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        if (current.quotationId.isBlank()) {
-            done(false, "Draft quotation belum dibuat.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.saveQuotationDraft(
-                    session.accessToken,current.requestId,current.quotationId,items,
-                    discount,tax,validUntil,notesCustomer,terms
-                )
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                done(true, "Draft quotation berhasil disimpan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Draft quotation gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun publishQuotation(
-        pricingOverrideReason: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat publish quotation.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.publishQuotation(
-                    session.accessToken,current.requestId,current.quotationId,pricingOverrideReason
-                )
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                if (FinancialAccess.canView(session.profile.role)) {
-                    pricingDashboard = runCatching { api.getPricingDashboard(session.accessToken) }.getOrNull()
-                }
-                done(true, "Quotation berhasil dipublish dan PDF dibuat.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Quotation gagal dipublish.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun acceptQuotation(done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat menerima quotation.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.acceptQuotation(session.accessToken,current.requestId,current.quotationId)
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                bookingRequests = runCatching { api.getBookingRequests(session.accessToken) }.getOrElse { bookingRequests }
-                done(true, "Quotation diterima. Pengajuan masuk Waiting DP.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Quotation gagal diterima.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun rejectQuotation(reason: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat menolak quotation.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationDetail = api.rejectQuotation(session.accessToken,current.requestId,current.quotationId,reason)
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                bookingRequests = runCatching { api.getBookingRequests(session.accessToken) }.getOrElse { bookingRequests }
-                done(true, "Quotation ditolak. Pengajuan kembali ke Verifikasi.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Quotation gagal ditolak.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun savePricingPolicy(
-        policyId: String?,
-        scopeType: String,
-        programId: String?,
-        targetMarginPct: Double?,
-        floorMarginPct: Double?,
-        maxDiscountPct: Double?,
-        contingencyPct: Double,
-        roundingIncrement: Double,
-        effectiveFrom: String,
-        effectiveUntil: String?,
-        notes: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Pricing Policy hanya untuk Owner / Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.savePricingPolicy(
-                    session.accessToken,policyId,scopeType,programId,targetMarginPct,
-                    floorMarginPct,maxDiscountPct,contingencyPct,roundingIncrement,
-                    effectiveFrom,effectiveUntil,notes
-                )
-                pricingDashboard = api.getPricingDashboard(session.accessToken)
-                pricingMaster = runCatching { api.getPricingMasterDashboard(session.accessToken) }.getOrNull()
-                quotationDetail?.requestId?.takeIf { it.isNotBlank() }?.let {
-                    quotationDetail = runCatching { api.getQuotationDetail(session.accessToken,it) }.getOrNull()
-                }
-                done(true, "Pricing Policy berhasil disimpan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Pricing Policy gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun loadQuotationDraftSuggestion(done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        if (current.quotationId.isBlank()) {
-            done(false, "Draft quotation belum tersedia.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                quotationSuggestion = api.getQuotationDraftSuggestion(
-                    session.accessToken,
-                    current.quotationId
-                )
-                done(
-                    true,
-                    if (quotationSuggestion?.ready == true) {
-                        "Saran quotation siap diterapkan."
-                    } else {
-                        "Saran belum siap. Periksa blocker Pricing Master."
-                    }
-                )
-            } catch (e: Exception) {
-                quotationSuggestion = null
-                done(false, e.message ?: "Saran quotation gagal dimuat.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun applyQuotationDraftSuggestion(done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        val current = quotationDetail ?: run {
-            done(false, "Quotation belum dipilih.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.applyQuotationDraftSuggestion(session.accessToken, current.quotationId)
-                quotationDetail = api.getQuotationDetail(session.accessToken, current.requestId)
-                quotationSuggestion = null
-                quotationQueue = api.getQuotationQueue(session.accessToken)
-                done(true, "Saran harga berhasil diterapkan ke Draft Quotation.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Saran quotation gagal diterapkan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun savePackageDraft(
-        existingId: String?,
-        programId: String,
-        name: String,
-        description: String,
-        pricePerPax: Double,
-        minPax: Int,
-        facilities: List<String>,
-        priceNote: String,
-        effectiveFrom: String,
-        effectiveUntil: String,
-        sortOrder: Int,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canManagePackages(session.profile.role)) {
-            done(false, "Tidak memiliki akses Master Paket.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                if (existingId.isNullOrBlank()) {
-                    api.createPackageDraft(
-                        session.accessToken,programId,name,description,pricePerPax,minPax,
-                        facilities,priceNote,effectiveFrom,effectiveUntil,sortOrder
-                    )
-                } else {
-                    api.updatePackageDraft(
-                        session.accessToken,existingId,name,description,pricePerPax,minPax,
-                        facilities,priceNote,effectiveFrom,effectiveUntil,sortOrder
-                    )
-                }
-                packageMaster = api.getPackageMaster(session.accessToken)
-                if (FinancialAccess.canView(session.profile.role)) {
-                    pricingMaster = runCatching {
-                        api.getPricingMasterDashboard(session.accessToken)
-                    }.getOrNull()
-                }
-                done(true, if (existingId.isNullOrBlank()) "Draft paket berhasil dibuat." else "Draft paket berhasil diperbarui.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Master Paket gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun clonePackage(id: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.clonePackage(session.accessToken,id)
-                packageMaster = api.getPackageMaster(session.accessToken)
-                done(true, "Paket berhasil di-clone menjadi Draft baru.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Clone paket gagal.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun archivePackage(id: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat mengarsipkan paket.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.archivePackage(session.accessToken,id)
-                packageMaster = api.getPackageMaster(session.accessToken)
-                pricingMaster = runCatching {
-                    api.getPricingMasterDashboard(session.accessToken)
-                }.getOrNull()
-                done(true, "Paket berhasil diarsipkan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Paket gagal diarsipkan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun applyRecommendedPackagePrice(id: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat menerapkan recommended price.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.applyRecommendedPackagePrice(session.accessToken,id)
-                packageMaster = api.getPackageMaster(session.accessToken)
-                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
-                done(true, "Recommended price berhasil diterapkan. Paket tetap DRAFT.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Recommended price gagal diterapkan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun activatePackage(id: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat mengaktifkan paket.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.activatePackage(session.accessToken,id)
-                packageMaster = api.getPackageMaster(session.accessToken)
-                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
-                done(true, "Paket ACTIVE dan siap tampil di Web Customer.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Paket belum dapat diaktifkan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun saveCostTemplate(
-        templateId: String?,
-        scopeType: String,
-        programId: String?,
-        packageId: String?,
-        category: String,
-        description: String,
-        costMode: String,
-        amount: Double,
-        minPax: Int?,
-        maxPax: Int?,
-        effectiveFrom: String,
-        effectiveUntil: String?,
-        notes: String,
-        active: Boolean,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Cost Template hanya untuk Owner / Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.saveCostTemplate(
-                    session.accessToken,templateId,scopeType,programId,packageId,
-                    category,description,costMode,amount,minPax,maxPax,
-                    effectiveFrom,effectiveUntil,notes,active
-                )
-                pricingMaster = api.getPricingMasterDashboard(session.accessToken)
-                pricingDashboard = runCatching { api.getPricingDashboard(session.accessToken) }.getOrNull()
-                done(true, "Cost Template berhasil disimpan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Cost Template gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun setPaymentChannel(
-        code: String,
-        enabled: Boolean,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Payment Gateway hanya untuk Owner / Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.setPaymentChannel(session.accessToken,code,enabled)
-                paymentGateway = api.getPaymentGatewayDashboard(session.accessToken)
-                done(true, if (enabled) "$code berhasil diaktifkan." else "$code dinonaktifkan.")
-            } catch (e: Exception) {
-                paymentGateway = runCatching {
-                    api.getPaymentGatewayDashboard(session.accessToken)
-                }.getOrNull()
-                done(false, e.message ?: "Payment channel gagal diperbarui.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun refreshCommerce() {
-        val session = activeSession() ?: return
-        if (actionBusy) return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                if (ErpRolePolicy.canManagePackages(session.profile.role)) {
-                    packageMaster = api.getPackageMaster(session.accessToken)
-                    packageMasterError = null
-                }
-                if (FinancialAccess.canView(session.profile.role)) {
-                    pricingMaster = api.getPricingMasterDashboard(session.accessToken)
-                    paymentGateway = api.getPaymentGatewayDashboard(session.accessToken)
-                    pricingMasterError = null
-                    paymentGatewayError = null
-                }
-            } catch (e: Exception) {
-                dataError = e.message ?: "Refresh commerce gagal."
-            }
-            actionBusy = false
-        }
-    }
 
-    fun clearQuotationDetail() {
-        quotationDetail = null
-        quotationSuggestion = null
-        quotationError = null
-    }
 
-    fun loadCustomerPortalToken(
-        requestId: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canHandleBookingIntake(session.profile.role)) {
-            done(false, "Hanya Owner / Manager / Sales yang dapat melihat token customer.")
-            return
-        }
-        actionBusy = true
-        customerPortalTokenError = null
-        viewModelScope.launch {
-            try {
-                customerPortalCredential = api.getBookingRequestToken(session.accessToken, requestId)
-                done(true, "Token customer berhasil dimuat.")
-            } catch (e: Exception) {
-                customerPortalCredential = null
-                customerPortalTokenError = e.message ?: "Token customer gagal dimuat."
-                done(false, customerPortalTokenError ?: "Token customer gagal dimuat.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun clearCustomerPortalToken() {
-        customerPortalCredential = null
-        customerPortalTokenError = null
-    }
 
-    fun startBookingRequestQuotation(
-        requestId: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat memulai quotation.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                val quotationNo = api.startBookingRequestQuotation(session.accessToken, requestId)
-                bookingRequests = api.getBookingRequests(session.accessToken)
-                bookingRequestError = null
-                done(
-                    true,
-                    if (quotationNo.isNotBlank()) {
-                        "Status Quotation berhasil disimpan. Draft " + quotationNo + " siap dilengkapi."
-                    } else {
-                        "Status Quotation berhasil disimpan."
-                    }
-                )
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Status Quotation gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun reviewBookingRequest(
-        requestId: String,
-        accepted: Boolean,
-        reason: String = "",
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
-            done(false, "Hanya Owner / Manager yang dapat memproses pengajuan.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.reviewBookingRequest(session.accessToken, requestId, accepted, reason)
-                bookingRequests = api.getBookingRequests(session.accessToken)
-                bookingRequestError = null
-                val message = if (accepted) {
-                    "Pengajuan diterima dan masuk tahap verifikasi."
-                } else {
-                    "Pengajuan ditolak."
-                }
-                done(true, message)
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Status pengajuan gagal diperbarui.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun approve(approvalId: String, approved: Boolean, notes: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.approve(session.accessToken, approvalId, session.userId, approved, notes)
-                val message = if (approved) "Approval disetujui." else "Approval ditolak."
-                api.audit(session.accessToken, session.userId, if (approved) "APPROVE" else "REJECT", "approvals", approvalId, message)
-                done(true, message)
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Approval gagal.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun createStaff(
-        fullName: String,
-        email: String,
-        phone: String,
-        role: String,
-        password: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.isOwner(session.profile.role)) {
-            done(false, "Hanya Owner yang dapat membuat akun staf.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.createStaff(session.accessToken, fullName, email, phone, role, password)
-                done(true, "Akun staf berhasil dibuat.")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal membuat akun staf.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun setStaffActive(id: String, active: Boolean, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.isOwner(session.profile.role)) {
-            done(false, "Hanya Owner yang dapat mengubah akun staf.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.updateProfile(session.accessToken, id, active = active)
-                done(true, if (active) "Akun diaktifkan." else "Akun dinonaktifkan.")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal mengubah akun.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun setStaffRole(id: String, role: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.isOwner(session.profile.role)) {
-            done(false, "Hanya Owner yang dapat mengubah role.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.updateProfile(session.accessToken, id, role = role)
-                done(true, "Role staf berhasil diperbarui.")
-                loadAll(session)
-            } catch (e: Exception) {
-                done(false, e.message ?: "Gagal mengubah role.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun resetStaffPassword(id: String, password: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!ErpRolePolicy.isOwner(session.profile.role)) {
-            done(false, "Hanya Owner yang dapat reset password staf.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.resetStaffPassword(session.accessToken, id, password)
-                done(true, "Password staf berhasil direset.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Reset password gagal.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun savePlanningTarget(
-        targetId: String?,
-        periodMonth: String,
-        scopeType: String,
-        salesId: String?,
-        programId: String?,
-        targetRevenue: Double,
-        targetBookings: Int,
-        targetPax: Int,
-        targetProfit: Double,
-        targetMarginPct: Double,
-        targetCashIn: Double,
-        notes: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.savePlanningTarget(
-                    session.accessToken,targetId,periodMonth,scopeType,salesId,programId,
-                    targetRevenue,targetBookings,targetPax,targetProfit,targetMarginPct,targetCashIn,notes
-                )
-                planningDashboard = api.getPlanningDashboard(session.accessToken)
-                planningError = null
-                done(true, "Target planning berhasil disimpan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Target planning gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun savePlanningBudget(
-        budgetId: String?,
-        periodMonth: String,
-        budgetType: String,
-        category: String,
-        programId: String?,
-        amount: Double,
-        notes: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.savePlanningBudget(session.accessToken,budgetId,periodMonth,budgetType,category,programId,amount,notes)
-                planningDashboard = api.getPlanningDashboard(session.accessToken)
-                planningError = null
-                done(true, "Budget planning berhasil disimpan.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Budget planning gagal disimpan.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun deletePlanningBudget(budgetId: String, done: (Boolean, String) -> Unit) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.deletePlanningBudget(session.accessToken,budgetId)
-                planningDashboard = api.getPlanningDashboard(session.accessToken)
-                done(true, "Budget planning dihapus.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Budget planning gagal dihapus.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun setPlanningPipelineWeight(
-        status: String,
-        probabilityPct: Double,
-        notes: String,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Planning hanya tersedia untuk Owner dan Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                api.setPlanningPipelineWeight(session.accessToken,status,probabilityPct,notes)
-                planningDashboard = api.getPlanningDashboard(session.accessToken)
-                done(true, "Bobot pipeline diperbarui.")
-            } catch (e: Exception) {
-                done(false, e.message ?: "Bobot pipeline gagal diperbarui.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun runPlanningScenario(
-        bookingId: String,
-        pax: Int?,
-        pricePerPax: Double?,
-        vendorIncreasePct: Double,
-        transportIncreasePct: Double,
-        discountPct: Double,
-        variableCostSharePct: Double,
-        done: (Boolean, String) -> Unit
-    ) {
-        val session = activeSession() ?: return
-        if (!FinancialAccess.canView(session.profile.role)) {
-            done(false, "Scenario Simulator hanya tersedia untuk Owner dan Manager.")
-            return
-        }
-        actionBusy = true
-        viewModelScope.launch {
-            try {
-                planningScenario = api.runPlanningScenario(
-                    session.accessToken,bookingId,pax,pricePerPax,vendorIncreasePct,
-                    transportIncreasePct,discountPct,variableCostSharePct
-                )
-                done(true, "Scenario berhasil dihitung.")
-            } catch (e: Exception) {
-                planningScenario = null
-                done(false, e.message ?: "Scenario gagal dihitung.")
-            }
-            actionBusy = false
-        }
-    }
 
-    fun clearPlanningScenario() {
-        planningScenario = null
-    }
 
     fun logout() {
         val session = activeSession()
@@ -1220,7 +344,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (session != null) viewModelScope.launch { api.signOut(session.accessToken) }
     }
 
-    private fun activeSession(): SessionState? = (state as? AppState.LoggedIn)?.session
+    internal fun activeSession(): SessionState? = (state as? AppState.LoggedIn)?.session
 
     private fun persist(session: SessionState) {
         prefs.edit()
