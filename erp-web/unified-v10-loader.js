@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v20.1-priority-command-layer';
+  const VERSION = 'v20-enterprise-operating-system';
+  const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -77,6 +78,7 @@
     if (window.__GMU_ERP_WEB_V10__?.booted) return;
     const state = window.__GMU_ERP_WEB_V10__ = {
       version: VERSION,
+      priorityVersion: PRIORITY_VERSION,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
@@ -90,10 +92,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans Enterprise OS v20.1 aktif: Enterprise OS v20 tetap utuh, dengan Priority Command Layer yang memfokuskan pemulihan pada Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower. Required revenue/booking hanya dihitung dari histori closing nyata; keputusan sensitif tetap membutuhkan approval manusia.');
+      notice('GMU EduTrans Enterprise OS v20 aktif dengan Priority Command Layer v20.1: Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower. Required revenue/booking hanya dihitung dari histori closing nyata; keputusan sensitif tetap membutuhkan approval manusia. Enterprise Control Tower, People OS, Exception Center dan Automation Map tetap aktif.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans Enterprise OS v20.1 loader', error);
+      console.error('GMU EduTrans Enterprise OS v20 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
