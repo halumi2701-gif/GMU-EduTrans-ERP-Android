@@ -1,4 +1,4 @@
-name: Validate ERP Web v21.3
+name: Validate ERP Web v21.4
 
 on:
   push:
@@ -11,7 +11,15 @@ on:
       - "scripts/verify-erp-web-v21.js"
       - "scripts/verify-erp-web-v212.js"
       - "scripts/verify-erp-web-v213.js"
+      - "scripts/verify-erp-web-v214.js"
       - "scripts/build-erp-web-v10-release.js"
+      - ".github/workflows/validate-erp-web-v10.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "erp-web/**"
+      - "supabase/migrations/**"
+      - "scripts/**"
       - ".github/workflows/validate-erp-web-v10.yml"
   workflow_dispatch:
 
@@ -19,7 +27,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gmu-compensation-v213-${{ github.ref }}
+  group: gmu-performance-payroll-v214-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,6 +47,7 @@ jobs:
           node --check scripts/verify-erp-web-v21.js
           node --check scripts/verify-erp-web-v212.js
           node --check scripts/verify-erp-web-v213.js
+          node --check scripts/verify-erp-web-v214.js
           node --check scripts/build-erp-web-v10-release.js
 
       - name: Verify Media Master contract
@@ -56,7 +65,10 @@ jobs:
       - name: Verify Compensation Autopilot v21.3 contract
         run: node scripts/verify-erp-web-v213.js
 
-      - name: Verify release bundle source
+      - name: Verify Performance Payroll & Workforce v21.4 contract
+        run: node scripts/verify-erp-web-v214.js
+
+      - name: Verify additive source bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -68,24 +80,27 @@ jobs:
             ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js \
             crm-finance-notification-v112.js enterprise-os-v200.js business-priority-v201.js \
             recovery-command-v202.js company-autopilot-v210.js target-cascade-v212.js \
-            compensation-autopilot-v213.js unified-v10-loader.js; do
+            compensation-autopilot-v213.js company-control-v214.js unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
           test -f supabase/migrations/20260915050000_gmu_v21_company_autopilot_core.sql
           test -f supabase/migrations/20260915061804_gmu_v212_target_cascade_workforce_autopilot.sql
           test -f supabase/migrations/20260915062732_gmu_v213_compensation_capacity_autopilot.sql
-          echo "GMU EduTrans v21.3 source bundle: PASS"
+          test -f supabase/migrations/20260915070000_gmu_v214_company_control_finance_hr.sql
+          test -f supabase/migrations/20260915071000_gmu_v214_performance_payroll_workforce_capacity.sql
+          echo "GMU EduTrans v21.4 additive source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
 
-      - name: Verify preserved baseline and v21.3 output
+      - name: Verify preserved baseline and v21.4 output
         shell: bash
         run: |
           set -euo pipefail
           test -f dist/erp-web-v10/index.html
           test -f dist/erp-web-v10/baseline-v95.html
           test -f dist/erp-web-v10/release-manifest.json
+          test -f dist/erp-web-v10/company-control-v214.js
           grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
           grep -Fq 'GMU EduTrans ERP v21' dist/erp-web-v10/index.html
           grep -Fq 'Company Autopilot v21 — Enterprise Operating System' dist/erp-web-v10/index.html
@@ -97,29 +112,26 @@ jobs:
           grep -Fq 'GMU EduTrans Company Autopilot v21 aktif' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'v21.2-target-cascade-workforce-autopilot-layer' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'v21.3-compensation-capacity-autopilot-layer' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'company-autopilot-v210.js' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'target-cascade-v212.js' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'compensation-autopilot-v213.js' dist/erp-web-v10/unified-v10-loader.js
-          grep -Fq 'v21.2-target-cascade-workforce-autopilot' dist/erp-web-v10/target-cascade-v212.js
-          grep -Fq 'internal_target_cascade_status' dist/erp-web-v10/target-cascade-v212.js
-          grep -Fq 'internal_set_executive_profit_target' dist/erp-web-v10/target-cascade-v212.js
+          grep -Fq 'v21.4-company-control-center-layer' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'company-control-v214.js' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'internal_performance_payroll_v214_status' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'Target Direktur Rp50 jt' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'WhatsApp automation tetap dilewati' dist/erp-web-v10/company-control-v214.js
           grep -Fq 'v21.3-compensation-capacity-autopilot' dist/erp-web-v10/compensation-autopilot-v213.js
-          grep -Fq 'internal_compensation_autopilot_status' dist/erp-web-v10/compensation-autopilot-v213.js
-          grep -Fq 'ERP tidak mengarang gaji atau fee' dist/erp-web-v10/compensation-autopilot-v213.js
+          grep -Fq 'v21.2-target-cascade-workforce-autopilot' dist/erp-web-v10/target-cascade-v212.js
           grep -Fq 'v21-company-autopilot' dist/erp-web-v10/company-autopilot-v210.js
           grep -Fq 'v20.2-recovery-accountability-command' dist/erp-web-v10/recovery-command-v202.js
           grep -Fq 'v20.1-business-priority-command' dist/erp-web-v10/business-priority-v201.js
           grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/enterprise-os-v200.js
-          for module in enterprise-os-v200.js business-priority-v201.js recovery-command-v202.js company-autopilot-v210.js target-cascade-v212.js compensation-autopilot-v213.js; do test -f "dist/erp-web-v10/$module"; done
-          grep -Fq 'v21.3-compensation-capacity-autopilot' dist/erp-web-v10/vercel.json
-          grep -Fq 'v21.2-target-cascade-workforce-autopilot-layer' dist/erp-web-v10/vercel.json
-          grep -Fq 'v21.3-compensation-capacity-autopilot-layer' dist/erp-web-v10/vercel.json
-          echo "Pinned rollback baseline + GMU EduTrans v21.3 release: PASS"
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' dist/erp-web-v10/vercel.json
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity-layer' dist/erp-web-v10/vercel.json
+          echo "Pinned rollback baseline + GMU EduTrans v21.4 release: PASS"
 
-      - name: Upload v21.3 release candidate
+      - name: Upload v21.4 release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: gmu-edutrans-compensation-v21-3-release-candidate
+          name: gmu-edutrans-performance-payroll-v21-4-release-candidate
           path: dist/erp-web-v10/
           if-no-files-found: error
           retention-days: 30
@@ -138,17 +150,18 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$snapshot"/. .
           git add -A
-          git commit -m "release: GMU EduTrans v21.3 Compensation Autopilot from ${GITHUB_SHA}"
+          git commit -m "release: GMU EduTrans v21.4 Performance Payroll & Workforce from ${GITHUB_SHA}"
           git push --force origin HEAD:erp-web-v10-release
 
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans Compensation Capacity Autopilot v21.3 validated."
-          echo "Flow: Director Target → Target Cascade → Compensation Capacity → SDM Execution → Actual Profit → Reforecast."
-          echo "Recovery target: Rp50m cumulative; monthly profit floor: Rp15m; healthy margin: 25%."
-          echo "Compensation: recommendation-only, evidence-based, Owner approval required."
-          echo "Director: management by exception; sensitive actions remain approval-only."
+          echo "GMU EduTrans Performance-Based Payroll & Workforce Capacity v21.4 validated."
+          echo "Flow: Director Rp50m → Monthly Profit → Revenue Need → SDM Target → Auto Tasks → Execution → Closing → Actual Profit → Recovery Gap → Recalculate Target → Recalculate Salary/Fee Capacity."
+          echo "Variable pay: KPI + collection + margin → earned → approval → payment request; no automatic transfer."
+          echo "Workforce: optimize existing first; recruit review only when performance, workload and payroll headroom justify it."
+          echo "WhatsApp automation remains deferred."
+          echo "No-regression: previous ERP modules are preserved."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
           echo "Visible UI branding: Company Autopilot v21"
           echo "Release branch: erp-web-v10-release"
