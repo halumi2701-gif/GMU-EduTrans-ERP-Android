@@ -17,154 +17,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
       - name: Split MainViewModel actions by domain
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          root = Path('app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp')
-          main_path = root / 'MainViewModel.kt'
-          text = main_path.read_text()
-
-          domain_methods = {
-              'SalesActions.kt': [
-                  'createCustomer', 'createBooking', 'updateBookingStatus',
-                  'loadCustomerPortalToken', 'clearCustomerPortalToken',
-                  'startBookingRequestQuotation', 'reviewBookingRequest',
-              ],
-              'CommerceActions.kt': [
-                  'openQuotationRequest', 'createQuotationDraft', 'saveQuotationDraft',
-                  'publishQuotation', 'acceptQuotation', 'rejectQuotation',
-                  'savePricingPolicy', 'loadQuotationDraftSuggestion',
-                  'applyQuotationDraftSuggestion', 'savePackageDraft', 'clonePackage',
-                  'archivePackage', 'applyRecommendedPackagePrice', 'activatePackage',
-                  'saveCostTemplate', 'setPaymentChannel', 'refreshCommerce',
-                  'clearQuotationDetail',
-              ],
-              'FinanceActions.kt': [
-                  'savePlanningTarget', 'savePlanningBudget', 'deletePlanningBudget',
-                  'setPlanningPipelineWeight', 'runPlanningScenario',
-                  'clearPlanningScenario',
-              ],
-              'OperationsActions.kt': ['insert', 'update', 'approve'],
-              'PeopleActions.kt': [
-                  'createStaff', 'setStaffActive', 'setStaffRole', 'resetStaffPassword',
-              ],
-          }
-
-          for filename in domain_methods:
-              if (root / filename).exists():
-                  raise SystemExit(f'{filename} already exists; refusing duplicate split')
-
-          def find_function_block(src: str, name: str):
-              m = re.search(rf'(?m)^    fun {re.escape(name)}\b', src)
-              if not m:
-                  raise SystemExit(f'Function not found: {name}')
-              start = m.start()
-              brace = src.find('{', m.end())
-              if brace < 0:
-                  raise SystemExit(f'Opening brace not found: {name}')
-
-              depth = 0
-              i = brace
-              state = 'code'
-              while i < len(src):
-                  c = src[i]
-                  n = src[i+1] if i + 1 < len(src) else ''
-                  tri = src[i:i+3]
-                  if state == 'code':
-                      if tri == '"""':
-                          state = 'triple'; i += 3; continue
-                      if c == '"':
-                          state = 'string'; i += 1; continue
-                      if c == "'":
-                          state = 'char'; i += 1; continue
-                      if c == '/' and n == '/':
-                          state = 'line'; i += 2; continue
-                      if c == '/' and n == '*':
-                          state = 'block'; i += 2; continue
-                      if c == '{': depth += 1
-                      elif c == '}':
-                          depth -= 1
-                          if depth == 0:
-                              end = i + 1
-                              while end < len(src) and src[end] in ' \t': end += 1
-                              if end < len(src) and src[end] == '\n': end += 1
-                              return start, end, src[start:end]
-                      i += 1; continue
-                  if state == 'string':
-                      if c == '\\': i += 2; continue
-                      if c == '"': state = 'code'
-                      i += 1; continue
-                  if state == 'char':
-                      if c == '\\': i += 2; continue
-                      if c == "'": state = 'code'
-                      i += 1; continue
-                  if state == 'triple':
-                      if tri == '"""': state = 'code'; i += 3; continue
-                      i += 1; continue
-                  if state == 'line':
-                      if c == '\n': state = 'code'
-                      i += 1; continue
-                  if state == 'block':
-                      if c == '*' and n == '/': state = 'code'; i += 2; continue
-                      i += 1; continue
-              raise SystemExit(f'Unclosed function block: {name}')
-
-          extracted = {}
-          working = text
-          # Extract from current source one-by-one. Removal shifts positions, so re-find each time.
-          for filename, names in domain_methods.items():
-              blocks = []
-              for name in names:
-                  start, end, block = find_function_block(working, name)
-                  working = working[:start] + working[end:]
-                  block = '\n'.join(
-                      line[4:] if line.startswith('    ') else line
-                      for line in block.rstrip().splitlines()
-                  )
-                  block = re.sub(
-                      rf'^fun {re.escape(name)}\b',
-                      f'fun MainViewModel.{name}',
-                      block,
-                      count=1,
-                      flags=re.M,
-                  )
-                  blocks.append(block)
-              extracted[filename] = blocks
-
-          # Domain extensions need controlled access to coordinator internals.
-          working = working.replace('    private val api = SupabaseApi()', '    internal val api = SupabaseApi()', 1)
-          working = working.replace('        private set', '        internal set')
-          working = working.replace('    private fun activeSession(): SessionState?', '    internal fun activeSession(): SessionState?', 1)
-
-          marker = 'class MainViewModel(application: Application) : AndroidViewModel(application) {'
-          replacement = marker + '\n    // Domain actions live in SalesActions, CommerceActions, FinanceActions, OperationsActions, and PeopleActions.'
-          if marker not in working:
-              raise SystemExit('MainViewModel class marker missing')
-          working = working.replace(marker, replacement, 1)
-          main_path.write_text(working)
-
-          header = '''package com.garsyanimultiusaha.gmuedutrans.erp
-
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
-
-'''
-          for filename, blocks in extracted.items():
-              (root / filename).write_text(header + '\n\n'.join(blocks) + '\n')
-
-          # Sanity checks: extracted methods must no longer be members of MainViewModel.
-          final_main = main_path.read_text()
-          for names in domain_methods.values():
-              for name in names:
-                  if re.search(rf'(?m)^    fun {re.escape(name)}\b', final_main):
-                      raise SystemExit(f'{name} still remains in MainViewModel')
-          if final_main.count('class MainViewModel') != 1:
-              raise SystemExit('MainViewModel class count changed unexpectedly')
-          PY
+        run: python3 scripts/split-main-viewmodel-domains.py
 
       - name: Verify domain boundaries
         shell: bash
@@ -181,21 +46,6 @@ import kotlinx.coroutines.launch
           grep -q 'fun MainViewModel.savePlanningTarget' "$ROOT/FinanceActions.kt"
           grep -q 'fun MainViewModel.insert' "$ROOT/OperationsActions.kt"
           grep -q 'fun MainViewModel.createStaff' "$ROOT/PeopleActions.kt"
-          ! grep -q '^    fun createBooking' "$ROOT/MainViewModel.kt"
-          ! grep -q '^    fun publishQuotation' "$ROOT/MainViewModel.kt"
-          ! grep -q '^    fun savePlanningTarget' "$ROOT/MainViewModel.kt"
-          ! grep -q '^    fun createStaff' "$ROOT/MainViewModel.kt"
-
-      - name: Compile split source
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
 
       - name: Compile Kotlin debug
         run: gradle --no-daemon compileDebugKotlin
