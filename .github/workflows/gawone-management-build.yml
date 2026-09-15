@@ -1,4 +1,4 @@
-name: Build GAWONE Management M2.23 Business Labour
+name: Build GAWONE Management M2.24 Gated Navigation
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - "gawone-management-reliability-v4.py"
       - "gawone-management-m223-business-labour.py"
       - "gawone-management-m223-business-labour-v2.py"
+      - "gawone-management-m224-gated-navigation.py"
       - "gawone-management-emulator-smoke.sh"
       - "app/**"
       - ".github/workflows/gawone-management-build.yml"
@@ -69,6 +70,17 @@ jobs:
           grep -q 'QUOTE_WORKFORCE' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
           grep -q 'CONVERT_TO_ORDER' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
 
+      - name: Apply M2.24 gated navigation
+        shell: bash
+        run: |
+          python3 gawone-management-m224-gated-navigation.py
+          grep -q 'versionCode = 9' app/build.gradle.kts
+          grep -q 'versionName = "1.0.7-gated-nav-m2.24"' app/build.gradle.kts
+          grep -q 'nav.optJSONArray("navigation")' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+          grep -q '"BUSINESS" -> "Bisnis"' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+          grep -q '"LABOUR" -> "Labour"' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+          grep -q 'LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp))' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+
       - name: Verify Management contract and auth path
         shell: bash
         run: |
@@ -78,8 +90,8 @@ jobs:
           grep -R "get_management_runtime_config" -n app/src/main/java
           grep -R "get_my_management_bootstrap" -n app/src/main/java
           grep -R "get_my_management_navigation" -n app/src/main/java
-          grep -q 'versionCode = 8' app/build.gradle.kts
-          grep -q 'versionName = "1.0.6-business-labour-m2.23"' app/build.gradle.kts
+          grep -q 'versionCode = 9' app/build.gradle.kts
+          grep -q 'versionName = "1.0.7-gated-nav-m2.24"' app/build.gradle.kts
           if grep -R "/auth/v1/otp\|type.*sms\|requestOtp\|verifyOtp" -n app/src/main/java/site/garsyanimultiusaha/gawone/management; then
             echo "Phone OTP path must not exist in Management"
             exit 1
@@ -98,8 +110,8 @@ jobs:
           if [ -x "$AAPT" ]; then
             "$AAPT" dump badging app/build/outputs/apk/debug/app-debug.apk | tee apk-badging.txt
             grep "package: name='site.garsyanimultiusaha.gawone.management.debug'" apk-badging.txt
-            grep "versionCode='8'" apk-badging.txt
-            grep "versionName='1.0.6-business-labour-m2.23-debug'" apk-badging.txt
+            grep "versionCode='9'" apk-badging.txt
+            grep "versionName='1.0.7-gated-nav-m2.24-debug'" apk-badging.txt
           fi
           unzip -t app/build/outputs/apk/debug/app-debug.apk >/dev/null
           sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release-unsigned.apk | tee apk-sha256.txt
@@ -110,15 +122,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifact-management
-          cp app/build/outputs/apk/debug/app-debug.apk artifact-management/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk artifact-management/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-release-unsigned.apk
+          cp app/build/outputs/apk/debug/app-debug.apk artifact-management/GAWONE-Management-v1.0.7-M2.24-GATED-NAV-debug.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk artifact-management/GAWONE-Management-v1.0.7-M2.24-GATED-NAV-release-unsigned.apk
           cp apk-sha256.txt artifact-management/SHA256.txt
           cp app/build/reports/lint-results-release.html artifact-management/lint-results-release.html
           if [ -f apk-badging.txt ]; then cp apk-badging.txt artifact-management/APK_BADGING.txt; fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR
+          name: GAWONE-Management-v1.0.7-M2.24-GATED-NAV
           path: artifact-management/
           retention-days: 14
 
@@ -130,11 +142,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR
-      - name: Prepare Management M2.23 smoke artifact
+          name: GAWONE-Management-v1.0.7-M2.24-GATED-NAV
+      - name: Prepare Management M2.24 smoke artifact
         shell: bash
         run: |
-          cp GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk /tmp/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk
+          test -f GAWONE-Management-v1.0.7-M2.24-GATED-NAV-debug.apk
           chmod +x gawone-management-emulator-smoke.sh
       - name: Enable KVM permissions
         shell: bash
@@ -142,7 +154,7 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Management M2.23 Android emulator gate
+      - name: Management M2.24 Android emulator gate
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -156,7 +168,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GAWONE-Management-v1.0.6-M2.23-EMULATOR-GATE
+          name: GAWONE-Management-v1.0.7-M2.24-EMULATOR-GATE
           if-no-files-found: warn
           retention-days: 90
           path: management-emulator-reports
