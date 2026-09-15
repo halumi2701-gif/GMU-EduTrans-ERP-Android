@@ -5,11 +5,21 @@ on:
     branches: [ "main" ]
     paths:
       - "erp-web/**"
+      - "app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/**"
       - "supabase/migrations/**"
       - "scripts/verify-erp-web-media.js"
       - "scripts/verify-erp-web-v10.js"
       - "scripts/verify-erp-web-v21.js"
+      - "scripts/verify-no-regression-v22.js"
       - "scripts/build-erp-web-v10-release.js"
+      - ".github/workflows/validate-erp-web-v10.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "erp-web/**"
+      - "app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/**"
+      - "supabase/migrations/**"
+      - "scripts/**"
       - ".github/workflows/validate-erp-web-v10.yml"
   workflow_dispatch:
 
@@ -35,7 +45,11 @@ jobs:
           node --check scripts/verify-erp-web-media.js
           node --check scripts/verify-erp-web-v10.js
           node --check scripts/verify-erp-web-v21.js
+          node --check scripts/verify-no-regression-v22.js
           node --check scripts/build-erp-web-v10-release.js
+
+      - name: Enforce additive no-regression baseline
+        run: node scripts/verify-no-regression-v22.js
 
       - name: Verify Media Master contract
         run: node scripts/verify-erp-web-media.js
@@ -61,7 +75,8 @@ jobs:
             test -f "erp-web/$file"
           done
           test -f supabase/migrations/20260915050000_gmu_v21_company_autopilot_core.sql
-          echo "GMU EduTrans Company Autopilot v21 source bundle: PASS"
+          test -f supabase/migrations/20260915133000_gmu_v20_company_control_finance_hr.sql
+          echo "GMU EduTrans Company Autopilot v21 source bundle + company control layer: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
@@ -125,6 +140,7 @@ jobs:
           echo "GMU EduTrans Company Autopilot v21 validated."
           echo "Flow: Lead → Auto Follow-up → Quotation → Payment → Booking → Ops → Crew/Vendor → Trip → Finance → Payroll → Feedback → Repeat Order."
           echo "Director: management by exception; sensitive actions remain approval-only."
+          echo "No-regression policy: existing ERP features are mandatory and additive upgrades may not remove them."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
           echo "Visible UI branding: Company Autopilot v21"
           echo "Release branch: erp-web-v10-release"
