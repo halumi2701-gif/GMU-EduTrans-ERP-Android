@@ -22,6 +22,7 @@
     'company-operating-system-v100.js',
     'market-intelligence-v101.js',
     'sales-target-engine-v103.js',
+    'station-target-v216.js',
     'company-system-center-v104.js',
     'management-domains-v105.js',
     'role-navigation-v106.js',
