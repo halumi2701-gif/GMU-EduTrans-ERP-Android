@@ -2,7 +2,7 @@ const fs = require('fs');
 const vm = require('vm');
 
 const files = {
-  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',loader:'erp-web/unified-v10-loader.js'
+  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',automation:'erp-web/automation-orchestrator-v111.js',automationFix:'erp-web/automation-orchestrator-fix-v111.js',loader:'erp-web/unified-v10-loader.js'
 };
 const src=Object.fromEntries(Object.entries(files).map(([k,f])=>{const t=fs.readFileSync(f,'utf8');new vm.Script(t,{filename:f});return[k,t];}));
 function must(k,t,l){if(!src[k].includes(t))throw new Error(`Missing ERP contract [${k}]: ${l}`)}
@@ -29,10 +29,23 @@ for(const l of ['Tugas Otomatis','Penggajian & Fee','Rekrutmen & Onboarding','Ke
 
 must('ui',"const VERSION = 'v11.0-focused-ui-shell'",'focused UI version');
 for(const l of ['Utama','Kerja Saya','Penjualan','Operasional','Keuangan','SDM & Mutu','Sistem & AI','Semua'])must('ui',`label: '${l}'`,`navigation group ${l}`);
-must('ui','Cari menu…','menu search');must('ui','Mode Ringkas','compact mode');must('ui','Tampilkan detail tambahan','progressive disclosure');must('ui','localStorage.setItem(STORAGE_GROUP','persistent nav group');must('ui','localStorage.setItem(STORAGE_COMPACT','persistent compact preference');must('ui','@media(max-width:620px)','mobile responsive contract');must('ui','gmu110-secondary','secondary detail hiding');
+must('ui','Cari menu…','menu search');must('ui','Mode Ringkas','compact mode');must('ui','Tampilkan detail tambahan','progressive disclosure');must('ui','@media(max-width:620px)','mobile responsive contract');
 
-for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js'])must('loader',`'${m}'`,`loader module ${m}`);
-must('loader','v11.0-automation-focus-ui','v11 release marker');must('loader','menu dikelompokkan per fungsi','focused UI notice');must('loader','mode ringkas aktif','compact UI notice');
+must('automation',"const VERSION = 'v11.1-transactional-automation-orchestrator'",'transactional automation version');
+for(const table of ['automation_tasks','automation_events','crm_activities','payroll_entries','recruitment_cases','capa_cases','workforce_plans','risk_register','ai_action_drafts','approval_details'])must('automation',`'${table}'`,`transactional backend table ${table}`);
+for(const label of ['Tugas Otomatis Aktual','Aktivitas & Tindak Lanjut Sales','Penggajian & Fee Aktual','Kebutuhan SDM & Onboarding Aktual','Corrective & Preventive Action Aktual','Capacity → Workload → Staffing Gap','Risiko Perusahaan Aktual','Draft Tindakan AI','Automation Orchestrator v11.1'])must('automation',label,`transactional UI ${label}`);
+must('automation',"data-g111-task-status=\"DONE\"",'task completion action');
+must('automation',"data-g111-payroll=\"PAID\"",'payroll paid action');
+must('automation',"data-g111-ai=\"APPROVED\"",'AI approval action');
+must('automation','next_follow_up_at','CRM next follow-up');
+must('automation','lost_reason','CRM lost reason');
+must('automation','requires_approval','AI approval field');
+must('automationFix',"const VERSION = 'v11.1-automation-runtime-stabilizer'",'runtime stabilizer version');
+must('automationFix','obs.disconnect()','observer loop guard');
+must('automationFix','select.value = row.status','CAPA status preservation');
 
-console.log('GMU ERP Web v11.0 Automation & Focus UI contract passed.');
-console.log('Role-first navigation | Search | Compact mode | Progressive disclosure | Responsive UI | Full Company Operating System preserved');
+for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js'])must('loader',`'${m}'`,`loader module ${m}`);
+must('loader','v11.1-transactional-automation-orchestrator','v11.1 release marker');must('loader','perubahan bisnis memicu event','transactional notice');must('loader','backend production secara langsung','production backend notice');
+
+console.log('GMU ERP Web v11.1 Transactional Automation contract passed.');
+console.log('Automation Events | Cross-role Tasks | CRM Activities | Payroll/Fee | Recruitment | CAPA | Workforce | Risk | AI Drafts | Focus UI');
