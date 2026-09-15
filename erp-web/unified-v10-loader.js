@@ -1,11 +1,12 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v21-company-autopilot';
+  const VERSION = 'v21.2-target-cascade-workforce-autopilot';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
   const AUTOPILOT_VERSION = 'v21-company-autopilot-layer';
+  const TARGET_CASCADE_VERSION = 'v21.2-target-cascade-workforce-autopilot-layer';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
@@ -30,6 +31,7 @@
     'business-priority-v201.js',
     'recovery-command-v202.js',
     'company-autopilot-v210.js',
+    'target-cascade-v212.js',
   ];
 
   function scriptBase() {
@@ -85,6 +87,7 @@
       priorityVersion: PRIORITY_VERSION,
       recoveryVersion: RECOVERY_VERSION,
       autopilotVersion: AUTOPILOT_VERSION,
+      targetCascadeVersion: TARGET_CASCADE_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
@@ -99,10 +102,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans Company Autopilot v21 aktif. Lead → Follow-up → Quotation → Payment → Booking → Operasional → Crew/Vendor → Trip → Finance → Payroll → Feedback → Repeat Order terhubung dalam automation-first operating system. Recovery v20.2 tetap aktif dan exception hanya ditutup setelah data sumber kembali sehat. Aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans v21.2 aktif. Target laba Direktur sekarang menggerakkan target omzet, Manager, Sales, Admin, Operation, Finance, TL, recovery task, forecast dan guardrail biaya SDM. Company Autopilot v21 serta Recovery v20.2 tetap aktif. Aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans Company Autopilot v21 loader', error);
+      console.error('GMU EduTrans v21.2 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
