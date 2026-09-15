@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v11.1-transactional-automation-orchestrator';
+  const VERSION = 'v11.2-crm-finance-notification-activation';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -20,6 +20,7 @@
     'ui-focus-shell-v110.js',
     'automation-orchestrator-v111.js',
     'automation-orchestrator-fix-v111.js',
+    'crm-finance-notification-v112.js',
   ];
 
   function scriptBase() {
@@ -87,10 +88,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('ERP Web v11.1 • Transactional Automation aktif: perubahan bisnis memicu event, tugas lintas divisi, audit, CAPA, follow-up, payroll/fee dan draft tindakan AI. Tugas, CRM, payroll, recruitment, workforce, risk dan AI sekarang membaca backend production secara langsung sesuai hak akses role.');
+      notice('ERP Web v11.2 • CRM, Accounting & Notification Activation aktif: lead memiliki stage, PIC, follow-up, lost reason, conversion dan recovery; laporan AR/AP, Trial Balance, Laba Rugi, Neraca dan Arus Kas membaca accounting production; Delivery Center menampilkan email/WhatsApp/internal delivery, retry dan error log sesuai hak akses.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU ERP Web v11.1 loader', error);
+      console.error('GMU ERP Web v11.2 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
