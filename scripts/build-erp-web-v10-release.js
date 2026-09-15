@@ -17,11 +17,24 @@ function assertIncludes(source, needle, label) {
   if (!source.includes(needle)) throw new Error(`Live ERP baseline mismatch: ${label}`);
 }
 
+function applyV102Branding(source) {
+  let output = source.replaceAll('v9.5', 'v10.2');
+  output = output.replace(
+    'ERP v10.2 — Online Multi-User',
+    'ERP v10.2 — Company Operating System'
+  );
+  output = output.replace(
+    'v10.2 memakai database online dengan Trip Folder, private document upload, approval, Trip Archive, Financial Privacy Guard, dan dukungan 3 bahasa. Perubahan antar user akan disinkronkan ulang melalui Supabase Realtime.',
+    'ERP Web v10.2 aktif • Kendali Perusahaan, Master Paket, Master Media, Asisten Operasional, Intelijen Pasar Cianjur–Sukabumi, Trip Folder, Approval, dan sinkronisasi Supabase Realtime.'
+  );
+  return output;
+}
+
 async function main() {
   const response = await fetch(LIVE_URL, {
     headers: {
       accept: 'text/html,application/xhtml+xml',
-      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/1.1',
+      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/1.2',
     },
     redirect: 'follow',
   });
@@ -37,21 +50,28 @@ async function main() {
   assertIncludes(baseline, 'id="operationForm"', 'Operation Sheet');
   assertIncludes(baseline, 'Supabase Auth', 'Supabase authentication marker');
 
-  const closeBodyIndex = baseline.lastIndexOf('</body>');
-  const lastBaselineScriptIndex = baseline.lastIndexOf('</script>');
+  const brandedBaseline = applyV102Branding(baseline);
+  assertIncludes(brandedBaseline, '<title>GMU EduTrans ERP v10.2', 'v10.2 browser title');
+  assertIncludes(brandedBaseline, 'ERP v10.2 — Company Operating System', 'v10.2 login branding');
+  assertIncludes(brandedBaseline, 'ERP v10.2 Online', 'v10.2 sidebar branding');
+  if (brandedBaseline.includes('ERP v9.5')) throw new Error('Legacy v9.5 branding remains in production output.');
+
+  const closeBodyIndex = brandedBaseline.lastIndexOf('</body>');
+  const lastBaselineScriptIndex = brandedBaseline.lastIndexOf('</script>');
   if (closeBodyIndex < 0) throw new Error('Live ERP baseline has no final </body> marker.');
   if (closeBodyIndex <= lastBaselineScriptIndex) throw new Error('Final </body> is not after the baseline application scripts.');
-  if (baseline.includes('unified-v10-loader.js')) throw new Error('Live ERP already contains the v10 loader; refusing double injection.');
+  if (brandedBaseline.includes('unified-v10-loader.js')) throw new Error('Live ERP already contains the v10 loader; refusing double injection.');
 
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   const loaderTag = '\n<script src="./unified-v10-loader.js" defer></script>\n<!-- gmu-erp-v10-additive -->\n';
-  const index = baseline.slice(0, closeBodyIndex) + loaderTag + baseline.slice(closeBodyIndex);
+  const index = brandedBaseline.slice(0, closeBodyIndex) + loaderTag + brandedBaseline.slice(closeBodyIndex);
   const injectedLoaderIndex = index.lastIndexOf('src="./unified-v10-loader.js"');
   if (injectedLoaderIndex <= lastBaselineScriptIndex || injectedLoaderIndex >= index.lastIndexOf('</body>')) {
     throw new Error('v10 loader injection is not in the main document tail.');
   }
+
   fs.writeFileSync(path.join(OUT_DIR, 'index.html'), index, 'utf8');
   fs.writeFileSync(path.join(OUT_DIR, 'baseline-v95.html'), baseline, 'utf8');
 
@@ -69,7 +89,7 @@ async function main() {
 
   const manifest = {
     release: 'GMU EduTrans ERP Web v10.2 — Company Operating System & Market Intelligence',
-    strategy: 'additive-on-live-v9.5',
+    strategy: 'additive-on-live-v9.5-with-v10.2-visible-branding',
     baselineUrl: LIVE_URL,
     baselineBytes: Buffer.byteLength(baseline),
     generatedAt: new Date().toISOString(),
@@ -86,7 +106,8 @@ async function main() {
   fs.writeFileSync(path.join(OUT_DIR, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
   console.log(`ERP Web v10.2 release bundle built: ${OUT_DIR}`);
-  console.log(`Live v9.5 baseline preserved: ${manifest.baselineBytes} bytes`);
+  console.log(`Live v9.5 baseline preserved for rollback only: ${manifest.baselineBytes} bytes`);
+  console.log('Visible production branding: v10.2');
   console.log(`Additive modules: ${MODULES.join(', ')}`);
 }
 
