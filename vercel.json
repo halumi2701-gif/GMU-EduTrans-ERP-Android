@@ -1,0 +1,43 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-GMU-ERP-Release",
+          "value": "v21.4-performance-payroll-workforce-capacity"
+        },
+        {
+          "key": "X-GMU-ERP-Priority-Layer",
+          "value": "v20.1-priority-command-layer"
+        },
+        {
+          "key": "X-GMU-ERP-Recovery-Layer",
+          "value": "v20.2-recovery-accountability-layer"
+        },
+        {
+          "key": "X-GMU-ERP-Autopilot-Layer",
+          "value": "v21-company-autopilot-layer"
+        },
+        {
+          "key": "X-GMU-ERP-Target-Cascade-Layer",
+          "value": "v21.2-target-cascade-workforce-autopilot-layer"
+        },
+        {
+          "key": "X-GMU-ERP-Compensation-Layer",
+          "value": "v21.3-compensation-capacity-autopilot-layer"
+        },
+        {
+          "key": "X-GMU-ERP-Performance-Payroll-Layer",
+          "value": "v21.4-performance-payroll-workforce-capacity-layer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ]
+}
