@@ -1,21 +1,10 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v10.8-role-navigation-guard';
+  const VERSION = 'v10.9-role-navigation-guard';
   const V10_PAGES = new Set([
-    'companyControl',
-    'marketIntelligence',
-    'salesTargetControl',
-    'companySystemCenter',
-    'roleWorkspace',
-    'myTasksHub',
-    'treasuryControl',
-    'peopleControl',
-    'qualityControl',
-    'growthControl',
-    'governanceControl',
-    'aiCenter',
-    'rolePlaybook',
+    'companyControl','marketIntelligence','salesTargetControl','companySystemCenter','roleWorkspace','myTasksHub','treasuryControl','peopleControl','qualityControl','growthControl','governanceControl','aiCenter','rolePlaybook',
+    'taskAutomationControl','payrollControl','recruitmentControl','serviceRecoveryControl','cashForecastControl','workforcePlanningControl','riskRegisterControl',
   ]);
 
   const q = (s, root = document) => root.querySelector(s);
@@ -41,6 +30,7 @@
       const result = original.apply(this, args);
       queueMicrotask(syncV10Navigation);
       setTimeout(syncV10Navigation, 0);
+      setTimeout(syncV10Navigation, 100);
       return result;
     };
     wrapped.__gmuV10Wrapped = true;
@@ -71,9 +61,9 @@
       wrapLegacyApplyRole();
       installObserver();
       syncV10Navigation();
-      if (currentRole() && q('#rolePlaybook')) clearInterval(timer);
+      if (currentRole() && q('#rolePlaybook') && q('#taskAutomationControl')) clearInterval(timer);
     }, 200);
-    setTimeout(() => clearInterval(timer), 20000);
+    setTimeout(() => clearInterval(timer), 25000);
     window.GmuRoleNavigationGuard = Object.freeze({ version: VERSION, sync: syncV10Navigation });
   }
 
