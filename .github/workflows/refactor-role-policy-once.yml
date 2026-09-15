@@ -1,0 +1,91 @@
+name: One-time Role Policy Centralization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refactor-role-policy-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  centralize-role-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace raw role checks with ErpRolePolicy
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              ('session.profile.role in listOf("Owner", "Manager", "Sales")',
+               'ErpRolePolicy.canHandleBookingIntake(session.profile.role)'),
+              ('session.profile.role in listOf("Owner", "Manager", "Admin")',
+               'ErpRolePolicy.canManageQuotationDrafts(session.profile.role)'),
+              ('session.profile.role in listOf("Owner","Manager","Admin")',
+               'ErpRolePolicy.canManageQuotationDrafts(session.profile.role)'),
+              ('session.profile.role !in listOf("Owner", "Manager", "Admin", "Sales")',
+               '!ErpRolePolicy.canEditBookings(session.profile.role)'),
+              ('session.profile.role !in listOf("Owner", "Manager", "Admin")',
+               '!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)'),
+              ('session.profile.role !in listOf("Owner", "Manager")',
+               '!ErpRolePolicy.canApproveCommercial(session.profile.role)'),
+              ('session.profile.role !in listOf("Owner", "Manager", "Sales")',
+               '!ErpRolePolicy.canHandleBookingIntake(session.profile.role)'),
+              ('session.profile.role != "Owner"',
+               '!ErpRolePolicy.isOwner(session.profile.role)'),
+          ]
+
+          total = 0
+          for old, new in replacements:
+              count = text.count(old)
+              if count:
+                  text = text.replace(old, new)
+                  total += count
+
+          if total < 15:
+              raise SystemExit(f'Role-policy guard failed: only {total} raw checks replaced')
+
+          forbidden = [
+              'role in listOf("Owner", "Manager", "Sales")',
+              'role in listOf("Owner", "Manager", "Admin")',
+              'role !in listOf("Owner", "Manager", "Admin", "Sales")',
+              'role !in listOf("Owner", "Manager", "Admin")',
+              'role !in listOf("Owner", "Manager")',
+              'role !in listOf("Owner", "Manager", "Sales")',
+              'role != "Owner"',
+          ]
+          leftovers = [needle for needle in forbidden if needle in text]
+          if leftovers:
+              raise SystemExit(f'Raw role checks remain: {leftovers}')
+
+          path.write_text(text, encoding='utf-8')
+          Path('.github/workflows/refactor-role-policy-once.yml').unlink()
+
+      - name: Verify policy usage
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ErpRolePolicy.canEditBookings' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt
+          grep -q 'ErpRolePolicy.canManageQuotationDrafts' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt
+          grep -q 'ErpRolePolicy.canApproveCommercial' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt
+          grep -q 'ErpRolePolicy.isOwner' app/src/main/java/com/garsyanimultiusaha/gmuedutrans/erp/MainViewModel.kt
+
+      - name: Commit centralized policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'GMU EduTrans Refactor Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'refactor(android): centralize MainViewModel role policy'
+          git push origin HEAD:main
