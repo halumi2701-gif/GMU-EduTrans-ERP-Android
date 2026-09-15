@@ -4,7 +4,7 @@ const path = require('path');
 const VERIFIED_BASELINE_URL = process.env.ERP_BASELINE_URL || 'https://raw.githubusercontent.com/halumi2701-gif/GMU-EduTrans-ERP-Android/f6a28c609b1d82e4afee2988a09876f03452b3a7/baseline-v95.html';
 const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const MODULES = [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','unified-v10-loader.js',
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','unified-v10-loader.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -70,7 +70,10 @@ async function main() {
   const loaderSource = fs.readFileSync(path.join('erp-web', 'unified-v10-loader.js'), 'utf8');
   const enterpriseSource = fs.readFileSync(path.join('erp-web', 'enterprise-os-v200.js'), 'utf8');
   const activationSource = fs.readFileSync(path.join('erp-web', 'crm-finance-notification-v112.js'), 'utf8');
+  const prioritySource = fs.readFileSync(path.join('erp-web', 'business-priority-v201.js'), 'utf8');
   assertIncludes(loaderSource, 'v20-enterprise-operating-system', 'v20 loader marker');
+  assertIncludes(loaderSource, 'business-priority-v201.js', 'v20.1 priority module');
+  assertIncludes(loaderSource, 'v20.1-priority-command-layer', 'v20.1 priority release marker');
   assertIncludes(loaderSource, 'enterprise-os-v200.js', 'v20 enterprise module');
   assertIncludes(enterpriseSource, 'Enterprise Control Tower', 'enterprise control tower');
   assertIncludes(enterpriseSource, 'People OS', 'enterprise people os');
@@ -78,18 +81,27 @@ async function main() {
   assertIncludes(enterpriseSource, 'Automation Map', 'enterprise automation map');
   assertIncludes(enterpriseSource, 'internal_enterprise_control_tower', 'enterprise backend RPC');
   assertIncludes(activationSource, 'internal_gl_profit_loss', 'existing accounting activation preserved');
+  assertIncludes(prioritySource, "const VERSION = 'v20.1-business-priority-command'", 'priority UI version');
+  assertIncludes(prioritySource, 'Sales Engine', 'priority sales engine');
+  assertIncludes(prioritySource, 'Profitability', 'priority profitability');
+  assertIncludes(prioritySource, 'Finance Closing', 'priority finance closing');
+  assertIncludes(prioritySource, 'Master Paket', 'priority master package');
+  assertIncludes(prioritySource, 'Manager AI', 'priority manager ai');
+  assertIncludes(prioritySource, 'Executive Control Tower', 'priority executive tower');
+  assertIncludes(prioritySource, 'internal_gmu_priority_command', 'priority backend RPC');
 
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
     trailingSlash: false,
     headers: [{ source: '/(.*)', headers: [
       { key: 'X-GMU-ERP-Release', value: 'v20-enterprise-operating-system' },
+      { key: 'X-GMU-ERP-Priority-Layer', value: 'v20.1-priority-command-layer' },
       { key: 'Cache-Control', value: 'no-store, max-age=0' },
     ] }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans Enterprise Operating System v20',
+    release: 'GMU EduTrans Enterprise Operating System v20 + Priority Command Layer v20.1',
     strategy: 'additive-enterprise-control-on-verified-pinned-v9.5-baseline',
     baselineUrl: VERIFIED_BASELINE_URL,
     baselineBytes: Buffer.byteLength(baseline),
@@ -100,14 +112,15 @@ async function main() {
     enterpriseFlow: ['Lead','Quotation','DP','Booking','Operations','Crew/Vendor','Trip','Actual Cost','Payroll/Fee','Finance Closing','Feedback/CAPA','Repeat Order'],
     enterpriseDomains: ['Sales & CRM','Booking','Operations & Safety','Finance & Accounting','People & HRIS','Payroll','Vendor & Procurement','Customer Quality','Risk & Governance','Notification','AI & Automation'],
     hrisLifecycle: ['Recruitment','Contract','Onboarding','Probation 30/60/90','Attendance','Leave Balance','KPI','Performance Review','Payroll/Fee','Training','Warning/PIP','Asset & Access Handover','Offboarding'],
-    enterpriseCapabilities: ['Enterprise Control Tower','Exception Center','People OS','Automation Map','Role-first Workspace','Progressive Disclosure','Cross-role Tasks','Approval Matrix','Audit Trail','Notification Delivery','Accounting Statements','CRM Recovery','Risk Register','CAPA','Workforce Planning','AI Action Drafts'],
-    backendV20: ['staff_probation_checkpoints','staff_leave_balances','staff_compensation_profiles','payroll_periods','staff_asset_access_handover','enterprise_automation_policies','enterprise_exception_queue','internal_enterprise_control_tower'],
+    enterpriseCapabilities: ['Enterprise Control Tower','Exception Center','People OS','Automation Map','Role-first Workspace','Progressive Disclosure','Cross-role Tasks','Approval Matrix','Audit Trail','Notification Delivery','Accounting Statements','CRM Recovery','Risk Register','CAPA','Workforce Planning','AI Action Drafts','Business Priority Command'],
+    businessPriorityOrder: ['Sales Engine','Profitability','Finance Closing','Master Paket','Manager AI','Executive Control Tower'],
+    backendV20: ['staff_probation_checkpoints','staff_leave_balances','staff_compensation_profiles','payroll_periods','staff_asset_access_handover','enterprise_automation_policies','enterprise_exception_queue','internal_enterprise_control_tower','internal_gmu_priority_command'],
     uiPrinciples: ['role-first','progressive-disclosure','grouped-navigation','menu-search','compact-by-default','responsive','exception-driven-management'],
     preservedMarkers: ['loginScreen','tripfolder','folderDocumentCenter','tripArchiveBanner','bookingForm','operationForm'],
   };
   fs.writeFileSync(path.join(OUT_DIR, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-  console.log(`GMU EduTrans Enterprise OS v20 release built: ${OUT_DIR}`);
+  console.log(`GMU EduTrans Enterprise OS v20 + Priority Command v20.1 release built: ${OUT_DIR}`);
   console.log(`Verified v9.5 rollback baseline preserved: ${manifest.baselineBytes} bytes`);
   console.log('Visible production branding: v20');
   console.log(`Additive modules: ${MODULES.join(', ')}`);
