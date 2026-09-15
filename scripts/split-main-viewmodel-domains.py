@@ -32,91 +32,114 @@ DOMAIN_METHODS = {
 }
 
 
+def scan_state(src: str, i: int, state: str):
+    c = src[i]
+    n = src[i + 1] if i + 1 < len(src) else ''
+    tri = src[i:i + 3]
+    if state == 'code':
+        if tri == '"""':
+            return i + 3, 'triple', True
+        if c == '"':
+            return i + 1, 'string', True
+        if c == "'":
+            return i + 1, 'char', True
+        if c == '/' and n == '/':
+            return i + 2, 'line', True
+        if c == '/' and n == '*':
+            return i + 2, 'block', True
+        return i, state, False
+    if state == 'string':
+        if c == '\\':
+            return i + 2, state, True
+        if c == '"':
+            return i + 1, 'code', True
+        return i + 1, state, True
+    if state == 'char':
+        if c == '\\':
+            return i + 2, state, True
+        if c == "'":
+            return i + 1, 'code', True
+        return i + 1, state, True
+    if state == 'triple':
+        if tri == '"""':
+            return i + 3, 'code', True
+        return i + 1, state, True
+    if state == 'line':
+        if c == '\n':
+            return i + 1, 'code', True
+        return i + 1, state, True
+    if state == 'block':
+        if c == '*' and n == '/':
+            return i + 2, 'code', True
+        return i + 1, state, True
+    return i, state, False
+
+
+def find_function_body_brace(src: str, declaration_start: int) -> int:
+    paren = src.find('(', declaration_start)
+    if paren < 0:
+        raise SystemExit('Function parameter list not found')
+
+    depth = 0
+    i = paren
+    state = 'code'
+    while i < len(src):
+        next_i, next_state, consumed = scan_state(src, i, state)
+        if consumed:
+            i, state = next_i, next_state
+            continue
+        c = src[i]
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+            if depth == 0:
+                i += 1
+                break
+        i += 1
+    else:
+        raise SystemExit('Unclosed function parameter list')
+
+    state = 'code'
+    while i < len(src):
+        next_i, next_state, consumed = scan_state(src, i, state)
+        if consumed:
+            i, state = next_i, next_state
+            continue
+        if src[i] == '{':
+            return i
+        i += 1
+    raise SystemExit('Function body opening brace not found')
+
+
 def find_function_block(src: str, name: str):
     match = re.search(rf'(?m)^    fun {re.escape(name)}\b', src)
     if not match:
         raise SystemExit(f'Function not found: {name}')
     start = match.start()
-    brace = src.find('{', match.end())
-    if brace < 0:
-        raise SystemExit(f'Opening brace not found: {name}')
+    brace = find_function_body_brace(src, match.end())
 
     depth = 0
     i = brace
     state = 'code'
     while i < len(src):
+        next_i, next_state, consumed = scan_state(src, i, state)
+        if consumed:
+            i, state = next_i, next_state
+            continue
         c = src[i]
-        n = src[i + 1] if i + 1 < len(src) else ''
-        tri = src[i:i + 3]
-        if state == 'code':
-            if tri == '"""':
-                state = 'triple'
-                i += 3
-                continue
-            if c == '"':
-                state = 'string'
-                i += 1
-                continue
-            if c == "'":
-                state = 'char'
-                i += 1
-                continue
-            if c == '/' and n == '/':
-                state = 'line'
-                i += 2
-                continue
-            if c == '/' and n == '*':
-                state = 'block'
-                i += 2
-                continue
-            if c == '{':
-                depth += 1
-            elif c == '}':
-                depth -= 1
-                if depth == 0:
-                    end = i + 1
-                    while end < len(src) and src[end] in ' \t':
-                        end += 1
-                    if end < len(src) and src[end] == '\n':
-                        end += 1
-                    return start, end, src[start:end]
-            i += 1
-            continue
-        if state == 'string':
-            if c == '\\':
-                i += 2
-                continue
-            if c == '"':
-                state = 'code'
-            i += 1
-            continue
-        if state == 'char':
-            if c == '\\':
-                i += 2
-                continue
-            if c == "'":
-                state = 'code'
-            i += 1
-            continue
-        if state == 'triple':
-            if tri == '"""':
-                state = 'code'
-                i += 3
-                continue
-            i += 1
-            continue
-        if state == 'line':
-            if c == '\n':
-                state = 'code'
-            i += 1
-            continue
-        if state == 'block':
-            if c == '*' and n == '/':
-                state = 'code'
-                i += 2
-                continue
-            i += 1
-            continue
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                while end < len(src) and src[end] in ' \t':
+                    end += 1
+                if end < len(src) and src[end] == '\n':
+                    end += 1
+                return start, end, src[start:end]
+        i += 1
     raise SystemExit(f'Unclosed function block: {name}')
 
 
