@@ -3,6 +3,7 @@
 
   const VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
+  const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -24,6 +25,7 @@
     'crm-finance-notification-v112.js',
     'enterprise-os-v200.js',
     'business-priority-v201.js',
+    'recovery-command-v202.js',
   ];
 
   function scriptBase() {
@@ -79,6 +81,7 @@
     const state = window.__GMU_ERP_WEB_V10__ = {
       version: VERSION,
       priorityVersion: PRIORITY_VERSION,
+      recoveryVersion: RECOVERY_VERSION,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
@@ -92,10 +95,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans Enterprise OS v20 aktif dengan Priority Command Layer v20.1: Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower. Required revenue/booking hanya dihitung dari histori closing nyata; keputusan sensitif tetap membutuhkan approval manusia. Enterprise Control Tower, People OS, Exception Center dan Automation Map tetap aktif.');
+      notice('GMU EduTrans Enterprise OS v20 aktif dengan Priority Command v20.1 dan Recovery & Accountability v20.2. Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower tetap menjadi urutan prioritas. Setiap exception HIGH/CRITICAL kini diterjemahkan menjadi tugas recovery dengan PIC, deadline, target hasil dan bukti; task selesai tidak boleh menutup exception sebelum data sumber benar-benar pulih.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans Enterprise OS v20 loader', error);
+      console.error('GMU EduTrans Enterprise OS v20/v20.2 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
