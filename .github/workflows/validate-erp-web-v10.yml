@@ -14,6 +14,7 @@ on:
       - "scripts/verify-erp-web-v214.js"
       - "scripts/build-erp-web-v10-release.js"
       - ".github/workflows/validate-erp-web-v10.yml"
+      - ".github/workflows/deploy-erp-v214-production.yml"
   pull_request:
     branches: [ "main" ]
     paths:
@@ -21,6 +22,7 @@ on:
       - "supabase/migrations/**"
       - "scripts/**"
       - ".github/workflows/validate-erp-web-v10.yml"
+      - ".github/workflows/deploy-erp-v214-production.yml"
   workflow_dispatch:
 
 permissions:
@@ -68,6 +70,21 @@ jobs:
       - name: Verify Performance Payroll & Workforce v21.4 contract
         run: node scripts/verify-erp-web-v214.js
 
+      - name: Verify guarded production deploy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'VERCEL_PROJECT_ID: prj_3enHdsSqMjcLHQCcXPLyZI8UXS9Q' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'supabase db push --dry-run' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'supabase db push' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'verify-erp-web-v214.js' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'confirm_production' .github/workflows/deploy-erp-v214-production.yml
+          grep -Fq 'DEPLOY' .github/workflows/deploy-erp-v214-production.yml
+          echo "Guarded v21.4 production deployment contract: PASS"
+
       - name: Verify additive source bundle
         shell: bash
         run: |
@@ -88,6 +105,8 @@ jobs:
           test -f supabase/migrations/20260915062732_gmu_v213_compensation_capacity_autopilot.sql
           test -f supabase/migrations/20260915070000_gmu_v214_company_control_finance_hr.sql
           test -f supabase/migrations/20260915071000_gmu_v214_performance_payroll_workforce_capacity.sql
+          test -f supabase/migrations/20260915071500_gmu_v214_real_finance_command_center.sql
+          test -f supabase/migrations/20260915072000_gmu_v214_payroll_guardrail_hardening.sql
           echo "GMU EduTrans v21.4 additive source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
