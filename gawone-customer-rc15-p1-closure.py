@@ -57,3 +57,4 @@ for token in ('get_my_bulk_workforce_requests','create_bulk_workforce_request'):
     if token not in repo.read_text(): raise SystemExit(f'Labour repository contract missing: {token}')
 if 'versionCode = 24' not in build.read_text(): raise SystemExit('RC15 version bump failed')
 print('GAWONE Customer RC15 P1 closure applied')
+# Trigger CI after emulator smoke-gate hardening.
