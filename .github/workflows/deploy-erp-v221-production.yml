@@ -55,8 +55,12 @@ jobs:
           test -f supabase/migrations/20260915171000_gmu_v219_program_master_six_programs.sql
           test -f supabase/migrations/20260915173000_gmu_v220_customer_account_crm.sql
           test -f supabase/migrations/20260915181000_gmu_v221_portfolio_target_train_packages.sql
+          test -f supabase/migrations/20260915182000_gmu_v222_sales_portfolio_safe_rpc.sql
+          test -f supabase/migrations/20260915182500_gmu_v223_portfolio_view_privacy.sql
           grep -Fq 'ALL_PROGRAMS' supabase/migrations/20260915181000_gmu_v221_portfolio_target_train_packages.sql
-          grep -Fq 'v_sales_portfolio_monthly' erp-web/sales-target-v217.js
+          grep -Fq 'gmu_sales_portfolio_summary' supabase/migrations/20260915182000_gmu_v222_sales_portfolio_safe_rpc.sql
+          grep -Fq 'revoke all on public.v_sales_paid_booking_attribution' supabase/migrations/20260915182500_gmu_v223_portfolio_view_privacy.sql
+          grep -Fq 'gmu_sales_portfolio_summary' erp-web/sales-target-v217.js
           grep -Fq 'train-package-policy-v221.js' erp-web/unified-v10-loader.js
 
       - name: Validate production credentials
@@ -108,6 +112,7 @@ jobs:
           test -f dist/erp-web-v10/customer-account-crm-v220.js
           test -f dist/erp-web-v10/train-package-policy-v221.js
           grep -Fq 'Target Sales GMU EduTrans • Seluruh Program' dist/erp-web-v10/sales-target-v217.js
+          grep -Fq 'v22.2-sales-portfolio-target-safe' dist/erp-web-v10/sales-target-v217.js
           grep -Fq 'Customer Account & Prospek Web' dist/erp-web-v10/customer-account-crm-v220.js
           grep -Fq 'HPP fasilitas • LOCK' dist/erp-web-v10/train-package-policy-v221.js
 
@@ -145,7 +150,7 @@ jobs:
           for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js; do
             curl --fail --silent --show-error --location "$DEPLOYMENT_URL/$file" -o "/tmp/$file"
           done
-          grep -Fq 'Seluruh Program' /tmp/sales-target-v217.js
+          grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/sales-target-v217.js
           grep -Fq 'Tidak lagi mengunci 200 pax khusus Stasiun' /tmp/station-target-v216.js
           grep -Fq 'Customer Account & Prospek Web' /tmp/customer-account-crm-v220.js
           grep -Fq 'HPP fasilitas • LOCK' /tmp/train-package-policy-v221.js
@@ -160,7 +165,7 @@ jobs:
           for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js; do
             curl --fail --silent --show-error --location "${ERP_LIVE_URL}$file" -o "/tmp/prod-$file"
           done
-          grep -Fq 'v22.1-sales-portfolio-target-automatic' /tmp/prod-sales-target-v217.js
+          grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/prod-sales-target-v217.js
           grep -Fq 'v22.1-station-pricing-policy' /tmp/prod-station-target-v216.js
           grep -Fq 'v22.0-customer-account-crm' /tmp/prod-customer-account-crm-v220.js
           grep -Fq 'v22.1-train-package-policy' /tmp/prod-train-package-policy-v221.js
@@ -171,11 +176,12 @@ jobs:
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          echo "GMU EduTrans v22.1 deployed and verified."
+          echo "GMU EduTrans v22.1/v22.2 deployed and verified."
           echo "Supabase project: $SUPABASE_PROJECT_ID"
           echo "Production: $ERP_LIVE_URL"
           echo "Deployment: $DEPLOYMENT_URL"
           echo "Sales target: 200 paid pax/month across ALL programs; automatic monthly aggregation."
+          echo "Sales privacy: paid pax/fee/bonus only; company finance remains Owner/Manager-only."
           echo "Train packages: 39k / 60k / 75k with internal locked economics and extra-ticket add-ons outside program."
           echo "Customer Account CRM: enabled in ERP."
           echo "Sensitive HPP/profit remains internal and is not exposed by public package catalog."
