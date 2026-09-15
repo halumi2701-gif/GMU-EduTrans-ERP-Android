@@ -1,16 +1,18 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v21.3-compensation-capacity-autopilot';
+  const VERSION = 'v21.4-company-control-center';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
   const AUTOPILOT_VERSION = 'v21-company-autopilot-layer';
   const TARGET_CASCADE_VERSION = 'v21.2-target-cascade-workforce-autopilot-layer';
   const COMPENSATION_VERSION = 'v21.3-compensation-capacity-autopilot-layer';
+  const COMPANY_CONTROL_VERSION = 'v21.4-company-control-center-layer';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
+  const V213_COMPATIBILITY_MARKER = 'v21.3-compensation-capacity-autopilot';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -36,6 +38,7 @@
     'company-autopilot-v210.js',
     'target-cascade-v212.js',
     'compensation-autopilot-v213.js',
+    'company-control-v214.js',
   ];
 
   function scriptBase() {
@@ -93,9 +96,11 @@
       autopilotVersion: AUTOPILOT_VERSION,
       targetCascadeVersion: TARGET_CASCADE_VERSION,
       compensationVersion: COMPENSATION_VERSION,
+      companyControlVersion: COMPANY_CONTROL_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       v21CompatibilityMarker: V21_COMPATIBILITY_MARKER,
       v212CompatibilityMarker: V212_COMPATIBILITY_MARKER,
+      v213CompatibilityMarker: V213_COMPATIBILITY_MARKER,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
@@ -109,10 +114,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans v21.3 aktif. Target Direktur menggerakkan pekerjaan dan ERP menjaga biaya SDM terhadap recovery, target laba, forecast, pipeline, payroll dan histori trip sehat. Company Autopilot v21, Target Cascade v21.2 dan Recovery v20.2 tetap aktif. Perubahan kompensasi dan aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans v21.4 aktif. Seluruh fitur lama, Company Autopilot v21, Target Cascade v21.2 dan Compensation Autopilot v21.3 tetap aktif. Company Control Center v21.4 menambahkan target omzet Rp50 juta, Payment Request, fee accrual, KPI dan recruitment control. Aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans v21.3 loader', error);
+      console.error('GMU EduTrans v21.4 loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
