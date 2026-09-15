@@ -2,7 +2,7 @@ const fs = require('fs');
 const vm = require('vm');
 
 const files = {
-  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',automation:'erp-web/automation-orchestrator-v111.js',automationFix:'erp-web/automation-orchestrator-fix-v111.js',activation:'erp-web/crm-finance-notification-v112.js',enterprise:'erp-web/enterprise-os-v200.js',loader:'erp-web/unified-v10-loader.js'
+  privacy:'erp-web/role-privacy-v99.js',packages:'erp-web/package-master-v97.js',media:'erp-web/media-master-v96.js',agent:'erp-web/manager-ops-agent-v98.js',company:'erp-web/company-operating-system-v100.js',market:'erp-web/market-intelligence-v101.js',salesTarget:'erp-web/sales-target-engine-v103.js',systemCenter:'erp-web/company-system-center-v104.js',domains:'erp-web/management-domains-v105.js',navGuard:'erp-web/role-navigation-v106.js',detail:'erp-web/company-detail-controls-v107.js',playbook:'erp-web/role-playbook-v108.js',execution:'erp-web/execution-control-v109.js',ui:'erp-web/ui-focus-shell-v110.js',automation:'erp-web/automation-orchestrator-v111.js',automationFix:'erp-web/automation-orchestrator-fix-v111.js',activation:'erp-web/crm-finance-notification-v112.js',enterprise:'erp-web/enterprise-os-v200.js',priority:'erp-web/business-priority-v201.js',loader:'erp-web/unified-v10-loader.js'
 };
 const src=Object.fromEntries(Object.entries(files).map(([k,f])=>{const t=fs.readFileSync(f,'utf8');new vm.Script(t,{filename:f});return[k,t];}));
 function must(k,t,l){if(!src[k].includes(t))throw new Error(`Missing ERP contract [${k}]: ${l}`)}
@@ -49,8 +49,15 @@ must('enterprise','Lead → Quote → DP → Booking → Ops → Crew/Vendor →
 must('enterprise','setInterval(()=>{if(role())load()},60000)','enterprise conservative refresh');
 mustNot('enterprise','MutationObserver','enterprise no mutation observer');
 
-for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js'])must('loader',`'${m}'`,`loader module ${m}`);
-must('loader','v20-enterprise-operating-system','v20 release marker');must('loader','GMU EduTrans Enterprise OS v20 aktif','v20 notice');must('loader','Enterprise Control Tower','v20 tower notice');must('loader','People OS','v20 people notice');
+must('priority',"const VERSION = 'v20.1-business-priority-command'",'v20.1 priority version');
+for(const l of ['Prioritas Bisnis','Sales Engine','Profitability','Finance Closing','Master Paket','Manager AI','Executive Control Tower'])must('priority',l,`priority UI ${l}`);
+must('priority',"rpc('internal_gmu_priority_command'",'priority backend RPC');
+must('priority','Required revenue/booking hanya dihitung','truthful profitability math');
+must('priority','setInterval(load,60000)','priority conservative refresh');
+mustNot('priority','MutationObserver','priority no mutation observer');
 
-console.log('GMU EduTrans Enterprise Operating System v20 contract passed.');
-console.log('Enterprise Control Tower | People OS | Exception Center | Automation Map | CRM | Accounting | HRIS | Payroll | Risk | Governance | AI');
+for(const m of ['role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js'])must('loader',`'${m}'`,`loader module ${m}`);
+must('loader','v20-enterprise-operating-system','v20 release marker');must('loader','v20.1-priority-command-layer','priority layer marker');must('loader','GMU EduTrans Enterprise OS v20 aktif','v20 notice');must('loader','Enterprise Control Tower','v20 tower notice');must('loader','People OS','v20 people notice');
+
+console.log('GMU EduTrans Enterprise Operating System v20 + Priority Command v20.1 contract passed.');
+console.log('Priority: Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower');
