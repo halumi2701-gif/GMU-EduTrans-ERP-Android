@@ -23,6 +23,8 @@
     'market-intelligence-v101.js',
     'sales-target-engine-v103.js',
     'station-target-v216.js',
+    'sales-target-v217.js',
+    'station-operating-policy-v218.js',
     'company-system-center-v104.js',
     'management-domains-v105.js',
     'role-navigation-v106.js',
@@ -115,7 +117,7 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans v21.4 aktif. Seluruh fitur lama, Company Autopilot v21, Target Cascade v21.2 dan Compensation Autopilot v21.3 tetap aktif. Company Control Center v21.4 menambahkan target omzet Rp50 juta, Payment Request, fee accrual, KPI dan recruitment control. Aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans v21.4 aktif. Seluruh fitur lama, Company Autopilot v21, Target Cascade v21.2 dan Compensation Autopilot v21.3 tetap aktif. Target program 200 pax, dua tier harga, Sales KPI dan policy margin 35% aktif sebagai modul tambahan. Aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
       console.error('GMU EduTrans v21.4 loader', error);
