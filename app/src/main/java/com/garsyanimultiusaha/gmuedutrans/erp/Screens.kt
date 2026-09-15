@@ -26,16 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun GmuNativeApp(vm: MainViewModel = viewModel()) {
-    MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = GmuGreen,
-            secondary = GmuGold,
-            background = GmuBg,
-            surface = Color.White,
-            error = GmuDanger
-        )
-    ) {
-        Surface(Modifier.fillMaxSize(), color = GmuBg) {
+    GmuV20Theme {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             when (val state = vm.state) {
                 AppState.Splash -> SplashScreen()
                 AppState.Loading -> LoadingScreen()
@@ -60,7 +52,7 @@ private fun SplashScreen() {
             .background(Brush.verticalGradient(listOf(GmuDark, GmuGreen))),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(28.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(GmuSpacing.xl)) {
             Surface(
                 shape = RoundedCornerShape(28.dp),
                 color = Color.White,
@@ -70,15 +62,15 @@ private fun SplashScreen() {
                 Image(
                     painter = painterResource(R.drawable.ic_launcher_gmu),
                     contentDescription = "GMU EduTrans",
-                    modifier = Modifier.size(152.dp).padding(20.dp),
+                    modifier = Modifier.size(152.dp).padding(GmuSpacing.lg),
                     contentScale = ContentScale.Fit
                 )
             }
-            Spacer(Modifier.height(24.dp))
-            Text("GMU EduTrans ERP", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
-            Text("More Than a Trip, It’s a Learning Journey.", color = Color(0xFFDDEBE4), fontSize = 13.sp)
+            Spacer(Modifier.height(GmuSpacing.xl))
+            Text("GMU EduTrans ERP", color = Color.White, style = MaterialTheme.typography.headlineMedium)
+            Text("More Than a Trip, It’s a Learning Journey.", color = Color(0xFFDDEBE4), style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(42.dp))
-            Text("PT Garsyani Multi Usaha", color = Color.White.copy(alpha = .72f), fontSize = 11.sp)
+            Text("ERP v${BuildConfig.VERSION_NAME} • PT Garsyani Multi Usaha", color = Color.White.copy(alpha = .72f), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -88,9 +80,9 @@ private fun LoadingScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(color = GmuGreen)
-            Spacer(Modifier.height(14.dp))
-            Text("GMU EduTrans ERP", fontWeight = FontWeight.Bold, color = GmuDark)
-            Text("Sinkronisasi data…", fontSize = 12.sp, color = Color.Gray)
+            Spacer(Modifier.height(GmuSpacing.sm))
+            Text("GMU EduTrans ERP", style = MaterialTheme.typography.titleMedium, color = GmuDark)
+            Text("Sinkronisasi data…", style = MaterialTheme.typography.bodyMedium, color = GmuMuted)
         }
     }
 }
@@ -106,7 +98,7 @@ private fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(GmuSpacing.xl),
         verticalArrangement = Arrangement.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -118,28 +110,32 @@ private fun LoginScreen(
                     contentScale = ContentScale.Fit
                 )
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(GmuSpacing.sm))
             Column {
-                Text("Welcome Back", color = GmuDark, fontSize = 27.sp, fontWeight = FontWeight.Black)
-                Text("GMU EduTrans ERP", color = GmuGreen, fontWeight = FontWeight.Bold)
+                Text("Welcome Back", color = GmuDark, style = MaterialTheme.typography.headlineMedium)
+                Text("GMU EduTrans ERP v${BuildConfig.VERSION_NAME}", color = GmuGreen, style = MaterialTheme.typography.titleMedium)
             }
         }
 
-        Spacer(Modifier.height(28.dp))
-        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-            Column(Modifier.padding(20.dp)) {
-                Text("Sign in", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Kelola operasional GMU EduTrans dalam satu aplikasi native.", fontSize = 12.sp, color = Color.Gray)
-                Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(GmuSpacing.xl))
+        Card(
+            shape = RoundedCornerShape(GmuRadii.hero),
+            border = androidx.compose.foundation.BorderStroke(1.dp, GmuLine),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(Modifier.padding(GmuSpacing.lg)) {
+                Text("Sign in", style = MaterialTheme.typography.titleLarge)
+                Text("Kelola booking, trip, keuangan, tim, dan kontrol perusahaan dalam satu workspace.", style = MaterialTheme.typography.bodyMedium, color = GmuMuted)
+                Spacer(Modifier.height(GmuSpacing.md))
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(GmuRadii.field)
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(GmuSpacing.xs))
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -147,12 +143,12 @@ private fun LoginScreen(
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(GmuRadii.field)
                 )
                 AnimatedVisibility(visible = !error.isNullOrBlank()) {
-                    Text(error.orEmpty(), color = GmuDanger, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+                    Text(error.orEmpty(), color = GmuDanger, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = GmuSpacing.xs))
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(GmuSpacing.md))
                 Button(
                     onClick = {
                         onClearError?.invoke()
@@ -160,24 +156,16 @@ private fun LoginScreen(
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     enabled = !busy && email.isNotBlank() && password.length >= 8,
-                    shape = RoundedCornerShape(14.dp)
+                    shape = RoundedCornerShape(GmuRadii.field)
                 ) {
                     Text(if (busy) "Memproses…" else "Masuk ke ERP", fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        Spacer(Modifier.height(18.dp))
-        Text("Native Android • Role-based access • Supabase secured", fontSize = 11.sp, color = Color.Gray)
+        Spacer(Modifier.height(GmuSpacing.md))
+        Text("Native Android • Role-based access • Supabase secured", style = MaterialTheme.typography.labelMedium, color = GmuMuted)
     }
-}
-
-private fun mainTabFor(page: AppPage): MainTab = when (page) {
-    AppPage.DASHBOARD -> MainTab.HOME
-    AppPage.BOOKINGS, AppPage.CUSTOMERS -> MainTab.BOOKING
-    AppPage.OPERATIONS, AppPage.TRIP_FOLDER -> MainTab.TRIP
-    AppPage.FINANCE -> MainTab.FINANCE
-    else -> MainTab.MORE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -192,18 +180,19 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
     }
 
     val pendingApprovals = vm.table("approvals").count { it.text("status") == "Pending" }
-    val currentTab = mainTabFor(vm.currentPage)
+    val currentTab = ErpNavigation.mainTabFor(vm.currentPage)
+    val currentDestination = ErpNavigation.destination(vm.currentPage)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("GMU EduTrans ERP", fontWeight = FontWeight.Black, color = GmuDark)
+                        Text(currentDestination.label, style = MaterialTheme.typography.titleLarge, color = GmuDark)
                         Text(
-                            session.profile.fullName + " • " + session.profile.role + " • " + BuildConfig.VERSION_NAME,
-                            fontSize = 11.sp,
-                            color = Color.Gray
+                            "${session.profile.role} • ERP v${BuildConfig.VERSION_NAME}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = GmuMuted
                         )
                     }
                 },
@@ -220,13 +209,13 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                         }
                     }
                     IconButton(onClick = { vm.navigate(AppPage.PROFILE) }) {
-                        Icon(Icons.Rounded.AccountCircle, contentDescription = "Profile", tint = GmuDark)
+                        Icon(Icons.Rounded.AccountCircle, contentDescription = "Workspace", tint = GmuDark)
                     }
                 }
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = Color.White, tonalElevation = 3.dp) {
                 BottomTab(
                     selected = currentTab == MainTab.HOME,
                     icon = Icons.Rounded.Home,
@@ -263,7 +252,7 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
                 BottomTab(
                     selected = currentTab == MainTab.MORE,
                     icon = Icons.Rounded.GridView,
-                    label = "More",
+                    label = "Workspace",
                     onClick = { vm.navigate(AppPage.PROFILE) }
                 )
             }
@@ -296,12 +285,12 @@ private fun MainShell(vm: MainViewModel, session: SessionState) {
 
             notice?.let { msg ->
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(18.dp),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(GmuSpacing.md),
                     color = GmuDark,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(GmuRadii.field),
                     shadowElevation = 8.dp
                 ) {
-                    Text(msg, color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), fontSize = 12.sp)
+                    Text(msg, color = Color.White, modifier = Modifier.padding(horizontal = GmuSpacing.md, vertical = GmuSpacing.sm), style = MaterialTheme.typography.bodyMedium)
                 }
                 LaunchedEffect(msg) {
                     kotlinx.coroutines.delay(2400)
@@ -329,7 +318,7 @@ private fun RowScope.BottomTab(
         onClick = onClick,
         enabled = enabled,
         icon = { Icon(icon, contentDescription = label) },
-        label = { Text(label) }
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
     )
 }
 
@@ -343,16 +332,16 @@ private fun NotificationDialog(vm: MainViewModel, onDismiss: () -> Unit) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 if (pending.isEmpty()) {
-                    Text("Tidak ada approval pending.", color = Color.Gray, fontSize = 12.sp)
+                    Text("Tidak ada approval pending.", color = GmuMuted, style = MaterialTheme.typography.bodyMedium)
                 } else {
                     pending.take(6).forEach {
-                        Text("• " + it.text("approval_type") + " — " + bookingLabel(vm, it.text("booking_id")), fontSize = 12.sp)
-                        Spacer(Modifier.height(6.dp))
+                        Text("• " + it.text("approval_type") + " — " + bookingLabel(vm, it.text("booking_id")), style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(GmuSpacing.xs))
                     }
                 }
                 if (due.isNotEmpty()) {
-                    Spacer(Modifier.height(12.dp))
-                    Text("SOP aktif: " + due.size, color = GmuGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Spacer(Modifier.height(GmuSpacing.sm))
+                    Text("SOP aktif: " + due.size, color = GmuGreen, style = MaterialTheme.typography.labelLarge)
                 }
             }
         },
@@ -360,34 +349,44 @@ private fun NotificationDialog(vm: MainViewModel, onDismiss: () -> Unit) {
     )
 }
 
+private fun workspaceIcon(page: AppPage): ImageVector = when (page) {
+    AppPage.BOOKING_REQUESTS -> Icons.Rounded.Inbox
+    AppPage.QUOTATIONS -> Icons.Rounded.RequestQuote
+    AppPage.PACKAGE_MASTER -> Icons.Rounded.Inventory2
+    AppPage.PRICING_MASTER -> Icons.Rounded.PriceCheck
+    AppPage.PAYMENT_GATEWAY -> Icons.Rounded.Payments
+    AppPage.CUSTOMERS -> Icons.Rounded.Groups
+    AppPage.PLANNING, AppPage.REPORTS -> Icons.Rounded.Assessment
+    AppPage.VENDORS -> Icons.Rounded.Storefront
+    AppPage.TRIP_FOLDER -> Icons.Rounded.Folder
+    AppPage.WORKFLOW -> Icons.Rounded.Approval
+    AppPage.SOP -> Icons.Rounded.Schedule
+    AppPage.CLOSING -> Icons.Rounded.TaskAlt
+    AppPage.TEAM_HR -> Icons.Rounded.Badge
+    AppPage.USERS -> Icons.Rounded.AdminPanelSettings
+    AppPage.AUDIT -> Icons.Rounded.History
+    AppPage.OPERATIONS -> Icons.Rounded.Luggage
+    AppPage.BOOKINGS -> Icons.Rounded.EventNote
+    AppPage.FINANCE -> Icons.Rounded.AccountBalanceWallet
+    else -> Icons.Rounded.GridView
+}
+
 @Composable
 fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
-    val allowed = RoleAccess.pages(session.profile.role)
-    val allMenus = listOf(
-        Triple(AppPage.BOOKING_REQUESTS, "Pengajuan Website", Icons.Rounded.Inbox),
-        Triple(AppPage.QUOTATIONS, "Quotation & Pricing", Icons.Rounded.RequestQuote),
-        Triple(AppPage.PACKAGE_MASTER, "Package Master", Icons.Rounded.Inventory2),
-        Triple(AppPage.PRICING_MASTER, "Pricing Master", Icons.Rounded.PriceCheck),
-        Triple(AppPage.PAYMENT_GATEWAY, "Payment Gateway", Icons.Rounded.Payments),
-        Triple(AppPage.CUSTOMERS, "Customer", Icons.Rounded.Groups),
-        Triple(AppPage.PLANNING, "Planning & Control", Icons.Rounded.Assessment),
-        Triple(AppPage.VENDORS, "Vendor & PO", Icons.Rounded.Storefront),
-        Triple(AppPage.TRIP_FOLDER, "Trip Folder", Icons.Rounded.Folder),
-        Triple(AppPage.WORKFLOW, "Approval", Icons.Rounded.Approval),
-        Triple(AppPage.SOP, "SOP Deadline", Icons.Rounded.Schedule),
-        Triple(AppPage.REPORTS, "Reports", Icons.Rounded.Assessment),
-        Triple(AppPage.CLOSING, "Trip Closing", Icons.Rounded.TaskAlt),
-        Triple(AppPage.TEAM_HR, "Team & HR", Icons.Rounded.Badge),
-        Triple(AppPage.USERS, "User & Role", Icons.Rounded.AdminPanelSettings),
-        Triple(AppPage.AUDIT, "Audit Trail", Icons.Rounded.History)
-    ).filter { it.first in allowed }
+    val groups = remember(session.profile.role) { ErpNavigation.visibleGroups(session.profile.role) }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = GmuSpacing.md, vertical = GmuSpacing.sm)
+    ) {
         Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = GmuDark)
+            shape = RoundedCornerShape(GmuRadii.hero),
+            colors = CardDefaults.cardColors(containerColor = GmuDark),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(GmuSpacing.lg), verticalAlignment = Alignment.CenterVertically) {
                 Surface(shape = RoundedCornerShape(18.dp), color = Color.White.copy(alpha = .12f)) {
                     Icon(
                         Icons.Rounded.AccountCircle,
@@ -396,57 +395,66 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
                         modifier = Modifier.size(60.dp).padding(10.dp)
                     )
                 }
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(GmuSpacing.sm))
                 Column(Modifier.weight(1f)) {
-                    Text(session.profile.fullName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                    Text(session.profile.role + " • GMU EduTrans", color = Color.White.copy(alpha = .7f), fontSize = 12.sp)
-                    Text(BuildConfig.VERSION_NAME, color = GmuGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(session.profile.fullName, color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    Text(session.profile.role + " • GMU EduTrans", color = Color.White.copy(alpha = .72f), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(2.dp))
+                    Text("ERP v${BuildConfig.VERSION_NAME}", color = GmuGold, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
 
-        Spacer(Modifier.height(18.dp))
-        Text("Workspace", fontWeight = FontWeight.Black, fontSize = 18.sp, color = GmuDark)
-        Text("Semua tools sesuai hak akses Anda.", fontSize = 11.sp, color = Color.Gray)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(GmuSpacing.lg))
+        SectionTitle("Workspace", "Modul dikelompokkan berdasarkan proses kerja dan hak akses Anda.")
+        Spacer(Modifier.height(GmuSpacing.md))
 
-        allMenus.chunked(2).forEach { rowMenus ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                rowMenus.forEach { (page, label, icon) ->
+        WorkspaceGroup.values().forEach { group ->
+            val items = groups[group].orEmpty()
+            if (items.isNotEmpty()) {
+                Text(
+                    group.label.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = GmuMuted,
+                    modifier = Modifier.padding(start = 2.dp, bottom = GmuSpacing.xs, top = GmuSpacing.xs)
+                )
+                items.forEach { destination ->
                     Card(
-                        onClick = { vm.navigate(page) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        onClick = { vm.navigate(destination.page) },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = GmuSpacing.xs),
+                        shape = RoundedCornerShape(GmuRadii.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, GmuLine),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
-                        Column(Modifier.padding(16.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(GmuSpacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Surface(shape = RoundedCornerShape(14.dp), color = GmuSoft) {
                                 Icon(
-                                    icon,
-                                    contentDescription = label,
+                                    workspaceIcon(destination.page),
+                                    contentDescription = destination.label,
                                     tint = GmuGreen,
                                     modifier = Modifier.size(42.dp).padding(9.dp)
                                 )
                             }
-                            Spacer(Modifier.height(12.dp))
-                            Text(label, fontWeight = FontWeight.Black, color = GmuDark, fontSize = 13.sp)
-                            Text("Open →", fontSize = 10.sp, color = Color.Gray)
+                            Spacer(Modifier.width(GmuSpacing.sm))
+                            Column(Modifier.weight(1f)) {
+                                Text(destination.label, style = MaterialTheme.typography.titleMedium, color = GmuDark)
+                                Text(destination.description, style = MaterialTheme.typography.bodyMedium, color = GmuMuted)
+                            }
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = GmuMuted)
                         }
                     }
                 }
-                if (rowMenus.size == 1) Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(GmuSpacing.xs))
             }
-            Spacer(Modifier.height(10.dp))
         }
 
         if (FinancialAccess.canView(session.profile.role)) {
-            Spacer(Modifier.height(4.dp))
-            Card(
-                onClick = { vm.navigate(AppPage.FINANCE) },
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF7D6))
-            ) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            GmuSectionCard(accent = true) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = RoundedCornerShape(14.dp), color = Color.White) {
                         Icon(
                             Icons.Rounded.AccountBalanceWallet,
@@ -455,27 +463,28 @@ fun MoreProfileScreen(vm: MainViewModel, session: SessionState) {
                             modifier = Modifier.size(44.dp).padding(10.dp)
                         )
                     }
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(GmuSpacing.sm))
                     Column(Modifier.weight(1f)) {
-                        Text("Financial Health", fontWeight = FontWeight.Black, color = GmuDark)
-                        Text("Omzet, piutang, cost, margin & profit", fontSize = 11.sp, color = Color.Gray)
+                        Text("Financial Health", style = MaterialTheme.typography.titleMedium, color = GmuDark)
+                        Text("Omzet, piutang, biaya, margin, profit dan posisi kas.", style = MaterialTheme.typography.bodyMedium, color = GmuMuted)
                     }
-                    Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = GmuDark)
+                    IconButton(onClick = { vm.navigate(AppPage.FINANCE) }) {
+                        Icon(Icons.Rounded.ChevronRight, contentDescription = "Buka Finance", tint = GmuDark)
+                    }
                 }
             }
+            Spacer(Modifier.height(GmuSpacing.md))
         }
 
-        Spacer(Modifier.height(14.dp))
         OutlinedButton(
             onClick = vm::logout,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(GmuRadii.field)
         ) {
             Icon(Icons.Rounded.Logout, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(GmuSpacing.xs))
             Text("Keluar")
         }
         Spacer(Modifier.height(100.dp))
     }
 }
-
