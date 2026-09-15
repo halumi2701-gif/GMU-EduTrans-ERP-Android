@@ -2,6 +2,7 @@ package com.garsyanimultiusaha.gmuedutrans.erp
 
 /**
  * Business-domain boundaries for ERP v21.1 production readiness.
+ * Commerce package/pricing/payment boundaries are compile-verified independently.
  *
  * Physical UI ownership:
  * - DashboardCoreScreens.kt -> executive/operational snapshot
