@@ -1,0 +1,137 @@
+name: Build GAWONE Management M2.26 Labour Recovery
+
+on:
+  push:
+    branches: [ "gawone-management-m2-22-build" ]
+    paths:
+      - "gawone-management-m226-labour-recovery.py"
+      - "gawone-management-m226-emulator-smoke.sh"
+      - ".github/workflows/gawone-management-m226.yml"
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      GAWONE_SUPABASE_URL: https://fhtxlojbguineyqayhai.supabase.co
+      GAWONE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_kMYXQocud4kbds7q5fWG-A_Lr-5Xl3h
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Apply Management UIUX V2
+        run: python3 gawone-management-uiux-v2.py
+      - name: Apply Management UIUX V3
+        run: python3 gawone-management-uiux-v3.py
+      - name: Apply Management Reliability V4
+        run: python3 gawone-management-reliability-v4.py
+      - name: Apply M2.23 Business and Labour
+        run: python3 gawone-management-m223-business-labour-v2.py
+      - name: Apply M2.24 gated navigation
+        run: python3 gawone-management-m224-gated-navigation.py
+      - name: Apply M2.25 Labour dispatch workspace
+        run: python3 gawone-management-m225-labour-dispatch.py
+      - name: Apply M2.26 Labour recovery and auto assignment
+        shell: bash
+        run: |
+          python3 gawone-management-m226-labour-recovery.py
+          grep -q 'versionCode = 11' app/build.gradle.kts
+          grep -q 'versionName = "1.0.9-labour-recovery-m2.26"' app/build.gradle.kts
+          grep -q 'management_recover_bulk_workforce_slot' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
+          grep -q 'management_auto_assign_bulk_workforce' app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
+          grep -q 'Isi otomatis hingga 25 Mitra' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+          grep -q 'Tandai no-show' app/src/main/java/site/garsyanimultiusaha/gawone/management/FullMainActivity.kt
+
+      - name: Verify Management contract and auth path
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -R "grant_type=password" -n app/src/main/java/site/garsyanimultiusaha/gawone/management
+          grep -R "BuildConfig.VERSION_CODE" -n app/src/main/java/site/garsyanimultiusaha/gawone/management/SupabaseManagementClient.java
+          grep -R "get_management_runtime_config" -n app/src/main/java
+          grep -R "get_my_management_navigation" -n app/src/main/java
+          if grep -R "/auth/v1/otp\|type.*sms\|requestOtp\|verifyOtp" -n app/src/main/java/site/garsyanimultiusaha/gawone/management; then exit 1; fi
+          if grep -R "android.webkit.WebView\|<WebView" -n app/src/main; then exit 1; fi
+
+      - name: Lint and build debug/release APKs
+        run: gradle --no-daemon :app:lintRelease :app:assembleDebug :app:assembleRelease --stacktrace
+
+      - name: Verify APKs
+        shell: bash
+        run: |
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/apk/release/app-release-unsigned.apk
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          if [ -x "$AAPT" ]; then
+            "$AAPT" dump badging app/build/outputs/apk/debug/app-debug.apk | tee apk-badging.txt
+            grep "package: name='site.garsyanimultiusaha.gawone.management.debug'" apk-badging.txt
+            grep "versionCode='11'" apk-badging.txt
+            grep "versionName='1.0.9-labour-recovery-m2.26-debug'" apk-badging.txt
+          fi
+          unzip -t app/build/outputs/apk/debug/app-debug.apk >/dev/null
+          sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release-unsigned.apk | tee apk-sha256.txt
+          test -f app/build/reports/lint-results-release.html
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p artifact-management
+          cp app/build/outputs/apk/debug/app-debug.apk artifact-management/GAWONE-Management-v1.0.9-M2.26-LABOUR-RECOVERY-debug.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk artifact-management/GAWONE-Management-v1.0.9-M2.26-LABOUR-RECOVERY-release-unsigned.apk
+          cp apk-sha256.txt artifact-management/SHA256.txt
+          cp app/build/reports/lint-results-release.html artifact-management/lint-results-release.html
+          if [ -f apk-badging.txt ]; then cp apk-badging.txt artifact-management/APK_BADGING.txt; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Management-v1.0.9-M2.26-LABOUR-RECOVERY
+          path: artifact-management/
+          retention-days: 14
+
+  emulator_smoke:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE-Management-v1.0.9-M2.26-LABOUR-RECOVERY
+      - name: Prepare M2.26 smoke artifact
+        shell: bash
+        run: |
+          test -f GAWONE-Management-v1.0.9-M2.26-LABOUR-RECOVERY-debug.apk
+          chmod +x gawone-management-m226-emulator-smoke.sh
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Management M2.26 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash gawone-management-m226-emulator-smoke.sh
+      - name: Upload M2.26 emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Management-v1.0.9-M2.26-EMULATOR-GATE
+          if-no-files-found: warn
+          retention-days: 90
+          path: management-m226-emulator-reports
