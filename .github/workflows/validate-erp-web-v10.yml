@@ -83,8 +83,6 @@ jobs:
           grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
           grep -Fq 'GMU EduTrans ERP v11.1' dist/erp-web-v10/index.html
           grep -Fq 'ERP v11.1 — Transactional Automation' dist/erp-web-v10/index.html
-          grep -Fq 'Tugas Otomatis' dist/erp-web-v10/index.html
-          grep -Fq 'Target & Kinerja' dist/erp-web-v10/index.html
           if grep -Fq 'ERP v9.5' dist/erp-web-v10/index.html; then
             echo 'Legacy ERP v9.5 branding leaked into production output' >&2
             exit 1
@@ -95,9 +93,12 @@ jobs:
           grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
           grep -Fq 'v11.1-transactional-automation-orchestrator' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'v11.1-transactional-automation-orchestrator' dist/erp-web-v10/automation-orchestrator-v111.js
+          grep -Fq 'Tugas Otomatis Aktual' dist/erp-web-v10/automation-orchestrator-v111.js
+          grep -Fq 'Aktivitas & Tindak Lanjut Sales' dist/erp-web-v10/automation-orchestrator-v111.js
           grep -Fq 'automation_tasks' dist/erp-web-v10/automation-orchestrator-v111.js
           grep -Fq 'crm_activities' dist/erp-web-v10/automation-orchestrator-v111.js
           grep -Fq 'payroll_entries' dist/erp-web-v10/automation-orchestrator-v111.js
+          grep -Fq 'Target & Kinerja' dist/erp-web-v10/sales-target-engine-v103.js
           grep -Fq 'v11.1-automation-runtime-stabilizer' dist/erp-web-v10/automation-orchestrator-fix-v111.js
           grep -Fq 'obs.disconnect()' dist/erp-web-v10/automation-orchestrator-fix-v111.js
           grep -Fq 'v11.0-focused-ui-shell' dist/erp-web-v10/ui-focus-shell-v110.js
