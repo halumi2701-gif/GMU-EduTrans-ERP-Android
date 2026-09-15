@@ -4,6 +4,7 @@ on:
     branches: [gawone-customer-production-build]
     paths:
       - "gawone-customer-rc19-p3-payment-foundation.py"
+      - "gawone-customer-rc19-emulator-smoke.sh"
       - ".github/workflows/gawone-customer-rc19-p3-payment-foundation.yml"
   workflow_dispatch:
 
@@ -129,12 +130,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: {name: GAWONE_Customer_v1.0.18_P3_PAYMENT_FOUNDATION_RC19}
-      - name: Prepare RC19 smoke
+      - name: Prepare RC19 stable smoke
         shell: bash
         run: |
           mkdir -p emulator-reports
-          sed -e 's/GAWONE_Customer_v1.0.3_RC4.apk/GAWONE_Customer_v1.0.18_P3_PAYMENT_FOUNDATION_RC19.apk/g' -e 's/RC4 emulator production-prep gate/RC19 P3 payment foundation emulator gate/g' gawone-customer-emulator-smoke.sh > /tmp/rc19-smoke.sh
-          chmod +x /tmp/rc19-smoke.sh
+          chmod +x gawone-customer-rc19-emulator-smoke.sh
+          grep -q "Pixel Launcher isn't responding" gawone-customer-rc19-emulator-smoke.sh
+          grep -q 'ANR in $PKG' gawone-customer-rc19-emulator-smoke.sh
       - name: Enable KVM permissions
         shell: bash
         run: |
@@ -150,7 +152,7 @@ jobs:
           profile: pixel_4
           disable-animations: true
           emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
-          script: bash /tmp/rc19-smoke.sh
+          script: bash gawone-customer-rc19-emulator-smoke.sh
       - name: Upload emulator evidence
         if: always()
         uses: actions/upload-artifact@v4
