@@ -21,7 +21,7 @@ async function main() {
   const response = await fetch(LIVE_URL, {
     headers: {
       accept: 'text/html,application/xhtml+xml',
-      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/1.0',
+      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/1.1',
     },
     redirect: 'follow',
   });
@@ -37,14 +37,18 @@ async function main() {
   assertIncludes(baseline, 'id="operationForm"', 'Operation Sheet');
   assertIncludes(baseline, 'Supabase Auth', 'Supabase authentication marker');
 
-  if (!baseline.includes('</body>')) throw new Error('Live ERP baseline has no </body> marker.');
+  const closeBodyIndex = baseline.lastIndexOf('</body>');
+  if (closeBodyIndex < 0) throw new Error('Live ERP baseline has no final </body> marker.');
   if (baseline.includes('unified-v10-loader.js')) throw new Error('Live ERP already contains the v10 loader; refusing double injection.');
 
   fs.rmSync(OUT_DIR, { recursive: true, force: true });
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   const loaderTag = '\n<script src="./unified-v10-loader.js" defer></script>\n<!-- gmu-erp-v10-additive -->\n';
-  const index = baseline.replace('</body>', `${loaderTag}</body>`);
+  const index = baseline.slice(0, closeBodyIndex) + loaderTag + baseline.slice(closeBodyIndex);
+  if (index.lastIndexOf('src="./unified-v10-loader.js"') < index.lastIndexOf('</script>')) {
+    throw new Error('v10 loader injection is not in the main document tail.');
+  }
   fs.writeFileSync(path.join(OUT_DIR, 'index.html'), index, 'utf8');
   fs.writeFileSync(path.join(OUT_DIR, 'baseline-v95.html'), baseline, 'utf8');
 
