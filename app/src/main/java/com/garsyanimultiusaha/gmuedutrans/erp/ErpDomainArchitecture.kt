@@ -2,7 +2,7 @@ package com.garsyanimultiusaha.gmuedutrans.erp
 
 /**
  * Business-domain boundaries for ERP v21.1 production readiness.
- * Commerce package/pricing/payment boundaries are compile-verified independently.
+ * Commerce package/pricing/payment boundaries and MainViewModel action domains are compile-verified.
  *
  * Physical UI ownership:
  * - DashboardCoreScreens.kt -> executive/operational snapshot
@@ -14,7 +14,12 @@ package com.garsyanimultiusaha.gmuedutrans.erp
  * - CommerceSharedUi.kt -> commerce-only UI primitives
  * - SharedCoreUi.kt -> cross-domain primitives only
  * - ErpPageHost.kt -> page routing only, never business logic
- * - MainViewModel.kt -> session/action coordinator, never presentation analytics
+ * - MainViewModel.kt -> session, shared state, loading, navigation, and logout coordinator
+ * - SalesActions.kt -> customer, booking, website intake, and customer portal actions
+ * - CommerceActions.kt -> quotation, package, pricing, and payment gateway actions
+ * - FinanceActions.kt -> planning and finance-control actions
+ * - OperationsActions.kt -> operational row mutations and approval actions
+ * - PeopleActions.kt -> staff account and people-management actions
  * - DashboardDomainQueries.kt -> read-only dashboard/finance projections
  *
  * UI authorization remains enforced by [RoleAccess]. This layer owns reusable
