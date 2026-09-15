@@ -12,7 +12,7 @@ s=main.read_text()
 old='''    LaunchedEffect(Unit){load()}'''
 new='''    LaunchedEffect(Unit){
         load()
-        while(kotlinx.coroutines.currentCoroutineContext().isActive){
+        while(true){
             delay(8000)
             runCatching{requests=repo.workforceRequests()}
         }
