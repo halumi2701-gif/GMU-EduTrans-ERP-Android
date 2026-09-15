@@ -13,6 +13,7 @@ const MODULES = [
   'sales-target-engine-v103.js',
   'company-system-center-v104.js',
   'management-domains-v105.js',
+  'role-navigation-v106.js',
   'unified-v10-loader.js',
 ];
 
@@ -37,7 +38,7 @@ async function main() {
   const response = await fetch(VERIFIED_BASELINE_URL, {
     headers: {
       accept: 'text/html,application/xhtml+xml',
-      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/3.0',
+      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/3.1',
     },
     redirect: 'follow',
   });
@@ -93,21 +94,21 @@ async function main() {
     headers: [{
       source: '/(.*)',
       headers: [
-        { key: 'X-GMU-ERP-Release', value: 'v10.5-full-company-system' },
+        { key: 'X-GMU-ERP-Release', value: 'v10.6-full-company-system' },
         { key: 'Cache-Control', value: 'no-store, max-age=0' },
       ],
     }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans ERP Web v10.5 — Full Company Operating System',
+    release: 'GMU EduTrans ERP Web v10.6 — Full Company Operating System',
     strategy: 'additive-on-verified-pinned-v9.5-baseline',
     baselineUrl: VERIFIED_BASELINE_URL,
     baselineBytes: Buffer.byteLength(baseline),
     generatedAt: new Date().toISOString(),
     modules: MODULES,
     visibleBranding: 'v10.2',
-    systemModules: ['Sistem Perusahaan','Workspace per-role','Tugas Saya','Target & Kinerja','Intelijen Pasar','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan','Tata Kelola','Pusat AI'],
+    systemModules: ['Sistem Perusahaan','Workspace per-role','Tugas Saya','Target & Kinerja','Intelijen Pasar','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan','Tata Kelola','Pusat AI','Role Navigation Guard'],
     preservedMarkers: [
       'loginScreen',
       'tripfolder',
