@@ -2,9 +2,11 @@
   'use strict';
 
   const VERSION = 'v21-company-autopilot';
+  const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
   const AUTOPILOT_VERSION = 'v21-company-autopilot-layer';
+  const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const RELEASE_CHANNEL = 'production';
   const MODULES = [
     'role-privacy-v99.js',
@@ -79,9 +81,11 @@
     if (window.__GMU_ERP_WEB_V10__?.booted) return;
     const state = window.__GMU_ERP_WEB_V10__ = {
       version: VERSION,
+      enterpriseBaselineVersion: ENTERPRISE_BASELINE_VERSION,
       priorityVersion: PRIORITY_VERSION,
       recoveryVersion: RECOVERY_VERSION,
       autopilotVersion: AUTOPILOT_VERSION,
+      legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       releaseChannel: RELEASE_CHANNEL,
       booted: false,
       modules: [],
