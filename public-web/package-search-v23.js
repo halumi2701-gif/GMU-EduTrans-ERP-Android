@@ -1,9 +1,21 @@
 /* GMU EduTrans Public Web — package search integration v23
  * Requires package-renderer-v23.js loaded first.
- * Keeps existing booking/account flow intact.
+ * When Customer Account Gate v25 is configured, package ordering requires a signed-in customer account.
  */
 
 (function () {
+  async function chooseWithAccountGate(id) {
+    const choose = async (packageId) => {
+      if (typeof window.choosePackage === 'function') return window.choosePackage(packageId);
+    };
+
+    const gate = window.GMU_CUSTOMER_ACCOUNT_GATE_V25;
+    if (gate?.guardedChoose) {
+      return gate.guardedChoose(choose)(id);
+    }
+    return choose(id);
+  }
+
   async function searchPackagesV23() {
     const programSel = document.getElementById('programSel');
     const tripDate = document.getElementById('tripDate');
@@ -33,9 +45,7 @@
       const d = await window.api(`public-package-catalog?${qs.toString()}`);
       window.packages = Array.isArray(d.items) ? d.items : [];
       if (health) health.textContent = `${window.packages.length} ACTIVE`;
-      window.GMU_PACKAGE_RENDERER_V23.renderPackageCatalog(cards, window.packages, (id) => {
-        if (typeof window.choosePackage === 'function') window.choosePackage(id);
-      });
+      window.GMU_PACKAGE_RENDERER_V23.renderPackageCatalog(cards, window.packages, chooseWithAccountGate);
     } catch (error) {
       if (health) health.textContent = 'ON DEMAND';
       cards.innerHTML = '<div class="card" style="grid-column:1/-1"><h3>Paket sedang sinkron ulang</h3><p class="muted">Program Master tetap aktif. Silakan coba lagi atau ajukan booking.</p></div>';
