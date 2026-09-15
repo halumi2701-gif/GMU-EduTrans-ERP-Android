@@ -14,6 +14,8 @@ const MODULES = [
   'company-system-center-v104.js',
   'management-domains-v105.js',
   'role-navigation-v106.js',
+  'company-detail-controls-v107.js',
+  'role-playbook-v108.js',
   'unified-v10-loader.js',
 ];
 
@@ -29,7 +31,7 @@ function applyV102Branding(source) {
   );
   output = output.replace(
     'v10.2 memakai database online dengan Trip Folder, private document upload, approval, Trip Archive, Financial Privacy Guard, dan dukungan 3 bahasa. Perubahan antar user akan disinkronkan ulang melalui Supabase Realtime.',
-    'ERP Web v10.2 aktif • Sistem Perusahaan, workspace per-role, Target & Kinerja, Intelijen Pasar Cianjur–Sukabumi, Kas & Likuiditas, SDM, Mutu, Pertumbuhan, Tata Kelola, Pusat AI, Trip Folder, Approval, dan Supabase Realtime.'
+    'ERP Web v10.2 aktif • Full Company Operating System: detail control, Jobdesk & SOP per jabatan, Target & Kinerja, Intelijen Pasar Cianjur–Sukabumi, Kas & Likuiditas, SDM, Mutu, Pertumbuhan, Tata Kelola, Pusat AI, Trip Folder, Approval, dan Supabase Realtime.'
   );
   return output;
 }
@@ -38,7 +40,7 @@ async function main() {
   const response = await fetch(VERIFIED_BASELINE_URL, {
     headers: {
       accept: 'text/html,application/xhtml+xml',
-      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/3.1',
+      'user-agent': 'GMU-EduTrans-ERP-v10-release-builder/3.2',
     },
     redirect: 'follow',
   });
@@ -58,7 +60,7 @@ async function main() {
   assertIncludes(brandedBaseline, '<title>GMU EduTrans ERP v10.2', 'v10.2 browser title');
   assertIncludes(brandedBaseline, 'ERP v10.2 — Company Operating System', 'v10.2 login branding');
   assertIncludes(brandedBaseline, 'ERP v10.2 Online', 'v10.2 sidebar branding');
-  assertIncludes(brandedBaseline, 'Sistem Perusahaan', 'company system visible notice');
+  assertIncludes(brandedBaseline, 'Jobdesk & SOP', 'jobdesk visible notice');
   assertIncludes(brandedBaseline, 'Target & Kinerja', 'sales target visible notice');
   assertIncludes(brandedBaseline, 'Intelijen Pasar Cianjur–Sukabumi', 'market intelligence visible notice');
   if (brandedBaseline.includes('ERP v9.5')) throw new Error('Legacy ERP v9.5 branding remains in production output.');
@@ -94,33 +96,27 @@ async function main() {
     headers: [{
       source: '/(.*)',
       headers: [
-        { key: 'X-GMU-ERP-Release', value: 'v10.6-full-company-system' },
+        { key: 'X-GMU-ERP-Release', value: 'v10.8-full-company-system' },
         { key: 'Cache-Control', value: 'no-store, max-age=0' },
       ],
     }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans ERP Web v10.6 — Full Company Operating System',
+    release: 'GMU EduTrans ERP Web v10.8 — Detailed Company Operating System',
     strategy: 'additive-on-verified-pinned-v9.5-baseline',
     baselineUrl: VERIFIED_BASELINE_URL,
     baselineBytes: Buffer.byteLength(baseline),
     generatedAt: new Date().toISOString(),
     modules: MODULES,
     visibleBranding: 'v10.2',
-    systemModules: ['Sistem Perusahaan','Workspace per-role','Tugas Saya','Target & Kinerja','Intelijen Pasar','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan','Tata Kelola','Pusat AI','Role Navigation Guard'],
-    preservedMarkers: [
-      'loginScreen',
-      'tripfolder',
-      'folderDocumentCenter',
-      'tripArchiveBanner',
-      'bookingForm',
-      'operationForm',
-    ],
+    systemModules: ['Sistem Perusahaan','Workspace per-role','Tugas Saya','Target & Kinerja','Intelijen Pasar','Kas & Likuiditas','SDM & Personalia','Mutu & Pelanggan','Pertumbuhan','Tata Kelola','Pusat AI','Role Navigation Guard','Detail Control Layer','Jobdesk & SOP per Jabatan'],
+    rolePlaybooks: ['Owner/Direktur','Manager','Sales/BD','Admin/CS','Finance','Admin Ops/Trip Coordinator','Tour Leader/PIC','MC/Fasilitator/Narasumber','Dokumentasi','Crew/Freelancer'],
+    preservedMarkers: ['loginScreen','tripfolder','folderDocumentCenter','tripArchiveBanner','bookingForm','operationForm'],
   };
   fs.writeFileSync(path.join(OUT_DIR, 'release-manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 
-  console.log(`ERP Web full company-system release built: ${OUT_DIR}`);
+  console.log(`ERP Web v10.8 detailed company-system release built: ${OUT_DIR}`);
   console.log(`Verified v9.5 rollback baseline preserved: ${manifest.baselineBytes} bytes`);
   console.log('Visible production branding: v10.2');
   console.log(`Additive modules: ${MODULES.join(', ')}`);
