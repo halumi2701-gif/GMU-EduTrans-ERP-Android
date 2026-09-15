@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v10.6-role-navigation-guard';
+  const VERSION = 'v10.8-role-navigation-guard';
   const V10_PAGES = new Set([
     'companyControl',
     'marketIntelligence',
@@ -15,6 +15,7 @@
     'growthControl',
     'governanceControl',
     'aiCenter',
+    'rolePlaybook',
   ]);
 
   const q = (s, root = document) => root.querySelector(s);
@@ -29,8 +30,6 @@
       const button = q(`#nav [data-page="${page}"]`);
       const view = q(`#${page}`);
       if (!button) continue;
-      // The feature module itself decides whether the page is allowed for this role.
-      // If an allowed module created its page, legacy v9 applyRole must not hide it.
       button.classList.toggle('hidden', !view);
     }
   }
@@ -72,9 +71,9 @@
       wrapLegacyApplyRole();
       installObserver();
       syncV10Navigation();
-      if (currentRole() && q('#companySystemCenter')) clearInterval(timer);
+      if (currentRole() && q('#rolePlaybook')) clearInterval(timer);
     }, 200);
-    setTimeout(() => clearInterval(timer), 15000);
+    setTimeout(() => clearInterval(timer), 20000);
     window.GmuRoleNavigationGuard = Object.freeze({ version: VERSION, sync: syncV10Navigation });
   }
 
