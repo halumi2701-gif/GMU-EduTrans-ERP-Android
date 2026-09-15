@@ -68,10 +68,11 @@ jobs:
             crm-finance-notification-v112.js \
             enterprise-os-v200.js \
             business-priority-v201.js \
+            recovery-command-v202.js \
             unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
-          echo "GMU EduTrans Enterprise OS v20 + Priority Command v20.1 source bundle: PASS"
+          echo "GMU EduTrans Enterprise OS v20 + Priority Command v20.1 + Recovery Accountability v20.2 source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
@@ -96,7 +97,9 @@ jobs:
           grep -Fq 'gmu-enterprise-os-v20-additive' dist/erp-web-v10/index.html
           grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'v20.1-priority-command-layer' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v20.2-recovery-accountability-layer' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'business-priority-v201.js' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'recovery-command-v202.js' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'enterprise-os-v200.js' dist/erp-web-v10/unified-v10-loader.js
           grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/enterprise-os-v200.js
           grep -Fq 'Enterprise Control Tower' dist/erp-web-v10/enterprise-os-v200.js
@@ -118,12 +121,17 @@ jobs:
           grep -Fq 'Master Paket' dist/erp-web-v10/business-priority-v201.js
           grep -Fq 'Manager AI' dist/erp-web-v10/business-priority-v201.js
           grep -Fq 'Executive Control Tower' dist/erp-web-v10/business-priority-v201.js
-          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js crm-finance-notification-v112.js enterprise-os-v200.js business-priority-v201.js; do
+          grep -Fq 'v20.2-recovery-accountability-command' dist/erp-web-v10/recovery-command-v202.js
+          grep -Fq 'Recovery Command & Accountability' dist/erp-web-v10/recovery-command-v202.js
+          grep -Fq 'RECOVERY_ACTION' dist/erp-web-v10/recovery-command-v202.js
+          grep -Fq 'TIDAK ADA TINDAKAN DIREKTUR' dist/erp-web-v10/recovery-command-v202.js
+          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js crm-finance-notification-v112.js enterprise-os-v200.js business-priority-v201.js recovery-command-v202.js; do
             test -f "dist/erp-web-v10/$module"
           done
           grep -Fq 'v20-enterprise-operating-system' dist/erp-web-v10/vercel.json
           grep -Fq 'v20.1-priority-command-layer' dist/erp-web-v10/vercel.json
-          echo "Pinned rollback baseline + GMU EduTrans Enterprise OS v20 + Priority Command v20.1 release: PASS"
+          grep -Fq 'v20.2-recovery-accountability-layer' dist/erp-web-v10/vercel.json
+          echo "Pinned rollback baseline + GMU EduTrans Enterprise OS v20 + Priority Command v20.1 + Recovery Accountability v20.2 release: PASS"
 
       - name: Upload Enterprise OS release candidate
         uses: actions/upload-artifact@v4
@@ -147,15 +155,16 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$snapshot"/. .
           git add -A
-          git commit -m "release: GMU EduTrans Enterprise OS v20 + Priority Command v20.1 from ${GITHUB_SHA}"
+          git commit -m "release: GMU EduTrans Enterprise OS v20 + Priority Command v20.1 + Recovery Accountability v20.2 from ${GITHUB_SHA}"
           git push --force origin HEAD:erp-web-v10-release
 
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans Enterprise Operating System v20 + Priority Command v20.1 validated."
+          echo "GMU EduTrans Enterprise Operating System v20 + Priority Command v20.1 + Recovery Accountability v20.2 validated."
           echo "Priority: Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower."
-          echo "Control: Enterprise Control Tower, Exception Center and Automation Map."
+          echo "Recovery: Masalah → Penyebab/Data → PIC → Tindakan → Deadline → Target Hasil → Bukti → Evaluasi."
+          echo "Control: Enterprise Control Tower, Exception Center, Automation Map and Pusat Pemulihan."
           echo "People: recruitment, contract, onboarding, probation 30/60/90, attendance, leave, KPI, review, payroll, training, warning, asset/access and offboarding."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
           echo "Visible UI branding: Enterprise OS v20"
