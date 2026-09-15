@@ -1,7 +1,7 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
 /**
- * Business-domain boundaries for ERP v20.2.
+ * Business-domain boundaries for ERP v21.1 production readiness.
  *
  * Physical UI ownership:
  * - DashboardCoreScreens.kt -> executive/operational snapshot
@@ -12,35 +12,37 @@ package com.garsyanimultiusaha.gmuedutrans.erp
  * - MainViewModel.kt -> session/action coordinator, never presentation analytics
  * - DashboardDomainQueries.kt -> read-only dashboard/finance projections
  *
- * Access contract:
- * - MainViewModel action checks consume ErpRolePolicy instead of raw role strings.
- * - FinancialAccess remains the single gate for Owner/Manager financial visibility.
- *
  * UI authorization remains enforced by [RoleAccess]. This layer owns reusable
  * role policy and data-source ownership so ViewModels/screens do not repeat raw
  * role strings and table lists throughout the codebase.
  */
 object ErpRolePolicy {
     private val bookingEditors = setOf("Owner", "Manager", "Admin", "Sales")
-    private val bookingIntake = setOf("Owner", "Manager", "Sales")
-    private val quotationDraftManagers = setOf("Owner", "Manager", "Admin")
+    private val bookingIntake = setOf("Owner", "Manager", "Admin", "Sales")
+    private val quotationDraftManagers = setOf("Owner", "Manager", "Admin", "Sales")
     private val commercialApprovers = setOf("Owner", "Manager")
     private val operations = setOf("Owner", "Manager", "Admin", "Operation", "TL")
-    private val vendorManagers = setOf("Owner", "Manager", "Operation")
-    private val approvalReaders = setOf("Owner", "Manager", "Operation", "Admin")
+    private val vendorManagers = setOf("Owner", "Manager", "Admin", "Operation")
+    private val approvalReaders = setOf("Owner", "Manager", "Admin", "Finance", "Operation")
     private val auditReaders = setOf("Owner", "Manager", "Admin", "Finance", "Operation")
     private val peopleManagers = setOf("Owner", "Manager", "Admin")
 
-    fun canEditBookings(role: String) = role in bookingEditors
-    fun canHandleBookingIntake(role: String) = role in bookingIntake
-    fun canManageQuotationDrafts(role: String) = role in quotationDraftManagers
-    fun canApproveCommercial(role: String) = role in commercialApprovers
-    fun canOperateTrips(role: String) = role in operations
-    fun canManageVendors(role: String) = role in vendorManagers
-    fun canReadApprovals(role: String) = role in approvalReaders
-    fun canReadAudit(role: String) = role in auditReaders
-    fun canManagePeople(role: String) = role in peopleManagers
-    fun isOwner(role: String) = role == "Owner"
+    private fun accessRole(role: String): String = when {
+        role == ErpRoles.OWNER || ErpRoles.isDirector(role) -> "Owner"
+        ErpRoles.isManagerEduTrans(role) -> "Manager"
+        else -> role
+    }
+
+    fun canEditBookings(role: String) = accessRole(role) in bookingEditors
+    fun canHandleBookingIntake(role: String) = accessRole(role) in bookingIntake
+    fun canManageQuotationDrafts(role: String) = accessRole(role) in quotationDraftManagers
+    fun canApproveCommercial(role: String) = accessRole(role) in commercialApprovers
+    fun canOperateTrips(role: String) = accessRole(role) in operations
+    fun canManageVendors(role: String) = accessRole(role) in vendorManagers
+    fun canReadApprovals(role: String) = accessRole(role) in approvalReaders
+    fun canReadAudit(role: String) = accessRole(role) in auditReaders
+    fun canManagePeople(role: String) = accessRole(role) in peopleManagers
+    fun isOwner(role: String) = accessRole(role) == "Owner"
 }
 
 data class ErpTableSource(

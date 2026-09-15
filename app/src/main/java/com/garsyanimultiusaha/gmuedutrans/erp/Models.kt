@@ -219,17 +219,19 @@ object RoleAccess {
         ErpRoles.isDirector(role) -> AppPage.entries.toSet() - AppPage.USERS
         ErpRoles.isManagerEduTrans(role) -> ManagerEduTransPolicy.operationalPages
         role == "Admin" -> setOf(
-            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.QUOTATIONS, AppPage.PACKAGE_MASTER, AppPage.CUSTOMERS,
-            AppPage.OPERATIONS, AppPage.TRIP_FOLDER, AppPage.WORKFLOW,
-            AppPage.SOP, AppPage.REPORTS, AppPage.AUDIT, AppPage.PROFILE
+            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS, AppPage.QUOTATIONS,
+            AppPage.PACKAGE_MASTER, AppPage.CUSTOMERS, AppPage.OPERATIONS, AppPage.VENDORS,
+            AppPage.TRIP_FOLDER, AppPage.WORKFLOW, AppPage.SOP, AppPage.REPORTS,
+            AppPage.AUDIT, AppPage.PROFILE
         )
         role == "Sales" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS,
-            AppPage.CUSTOMERS, AppPage.PROFILE
+            AppPage.QUOTATIONS, AppPage.CUSTOMERS, AppPage.PROFILE
         )
         role == "Finance" -> setOf(
-            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.FINANCE, AppPage.PLANNING,
-            AppPage.WORKFLOW, AppPage.REPORTS, AppPage.CLOSING, AppPage.AUDIT, AppPage.PROFILE
+            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.FINANCE, AppPage.PAYMENT_GATEWAY,
+            AppPage.PLANNING, AppPage.WORKFLOW, AppPage.REPORTS, AppPage.CLOSING,
+            AppPage.AUDIT, AppPage.PROFILE
         )
         role == "Operation" -> setOf(
             AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.OPERATIONS,
