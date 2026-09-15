@@ -178,7 +178,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 rows = loaded
                 dataError = firstError
-                if (session.profile.role in listOf("Owner", "Manager", "Sales")) {
+                if (ErpRolePolicy.canHandleBookingIntake(session.profile.role)) {
                     try {
                         bookingRequests = api.getBookingRequests(session.accessToken)
                         bookingRequestError = null
@@ -191,7 +191,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     bookingRequestError = null
                 }
 
-                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
                     try {
                         quotationQueue = api.getQuotationQueue(session.accessToken)
                         quotationError = null
@@ -205,7 +205,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     quotationError = null
                 }
 
-                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
                     try {
                         packageMaster = api.getPackageMaster(session.accessToken)
                         packageMasterError = null
@@ -348,7 +348,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager", "Admin", "Sales")) {
+        if (!ErpRolePolicy.canEditBookings(session.profile.role)) {
             done(false, "Tidak memiliki akses update status Booking.")
             return
         }
@@ -386,7 +386,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit = { _, _ -> }
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
             done(false, "Tidak memiliki akses Quotation Workflow.")
             return
         }
@@ -411,7 +411,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
             done(false, "Tidak memiliki akses membuat draft quotation.")
             return
         }
@@ -472,7 +472,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             done(false, "Quotation belum dipilih.")
             return
         }
-        if (session.profile.role !in listOf("Owner", "Manager")) {
+        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
             done(false, "Hanya Owner / Manager yang dapat publish quotation.")
             return
         }
@@ -500,7 +500,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             done(false, "Quotation belum dipilih.")
             return
         }
-        if (session.profile.role !in listOf("Owner", "Manager")) {
+        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
             done(false, "Hanya Owner / Manager yang dapat menerima quotation.")
             return
         }
@@ -524,7 +524,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             done(false, "Quotation belum dipilih.")
             return
         }
-        if (session.profile.role !in listOf("Owner", "Manager")) {
+        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
             done(false, "Hanya Owner / Manager yang dapat menolak quotation.")
             return
         }
@@ -651,7 +651,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager", "Admin")) {
+        if (!ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
             done(false, "Tidak memiliki akses Master Paket.")
             return
         }
@@ -832,7 +832,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         actionBusy = true
         viewModelScope.launch {
             try {
-                if (session.profile.role in listOf("Owner","Manager","Admin")) {
+                if (ErpRolePolicy.canManageQuotationDrafts(session.profile.role)) {
                     packageMaster = api.getPackageMaster(session.accessToken)
                     packageMasterError = null
                 }
@@ -860,7 +860,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager", "Sales")) {
+        if (!ErpRolePolicy.canHandleBookingIntake(session.profile.role)) {
             done(false, "Hanya Owner / Manager / Sales yang dapat melihat token customer.")
             return
         }
@@ -889,7 +889,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager")) {
+        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
             done(false, "Hanya Owner / Manager yang dapat memulai quotation.")
             return
         }
@@ -922,7 +922,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role !in listOf("Owner", "Manager")) {
+        if (!ErpRolePolicy.canApproveCommercial(session.profile.role)) {
             done(false, "Hanya Owner / Manager yang dapat memproses pengajuan.")
             return
         }
@@ -972,7 +972,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         done: (Boolean, String) -> Unit
     ) {
         val session = activeSession() ?: return
-        if (session.profile.role != "Owner") {
+        if (!ErpRolePolicy.isOwner(session.profile.role)) {
             done(false, "Hanya Owner yang dapat membuat akun staf.")
             return
         }
@@ -991,7 +991,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setStaffActive(id: String, active: Boolean, done: (Boolean, String) -> Unit) {
         val session = activeSession() ?: return
-        if (session.profile.role != "Owner") {
+        if (!ErpRolePolicy.isOwner(session.profile.role)) {
             done(false, "Hanya Owner yang dapat mengubah akun staf.")
             return
         }
@@ -1010,7 +1010,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setStaffRole(id: String, role: String, done: (Boolean, String) -> Unit) {
         val session = activeSession() ?: return
-        if (session.profile.role != "Owner") {
+        if (!ErpRolePolicy.isOwner(session.profile.role)) {
             done(false, "Hanya Owner yang dapat mengubah role.")
             return
         }
@@ -1029,7 +1029,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetStaffPassword(id: String, password: String, done: (Boolean, String) -> Unit) {
         val session = activeSession() ?: return
-        if (session.profile.role != "Owner") {
+        if (!ErpRolePolicy.isOwner(session.profile.role)) {
             done(false, "Hanya Owner yang dapat reset password staf.")
             return
         }
