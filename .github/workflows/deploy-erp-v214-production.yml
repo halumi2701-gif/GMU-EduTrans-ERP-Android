@@ -1,0 +1,165 @@
+name: Deploy GMU ERP v21.4 Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: "Ketik DEPLOY untuk menerapkan DB + ERP Web v21.4 ke production"
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "DEPLOY"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmu-edutrans-v214-production
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
+  ERP_LIVE_URL: https://erp.edutrans.garsyanimultiusaha.site/
+  VERCEL_ORG_ID: team_eb0gRoeVYnxOU49hZdWSUqYF
+  VERCEL_PROJECT_ID: prj_3enHdsSqMjcLHQCcXPLyZI8UXS9Q
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm_production == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Checkout exact main release
+        uses: actions/checkout@v4
+
+      - name: Validate v21.4 additive contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-erp-web-media.js
+          node scripts/verify-erp-web-v10.js
+          node scripts/verify-erp-web-v21.js
+          node scripts/verify-erp-web-v212.js
+          node scripts/verify-erp-web-v213.js
+          node scripts/verify-erp-web-v214.js
+          node --check scripts/build-erp-web-v10-release.js
+          test -f supabase/migrations/20260915070000_gmu_v214_company_control_finance_hr.sql
+          test -f supabase/migrations/20260915071000_gmu_v214_performance_payroll_workforce_capacity.sql
+          test -f supabase/migrations/20260915071500_gmu_v214_real_finance_command_center.sql
+          test -f supabase/migrations/20260915072000_gmu_v214_payroll_guardrail_hardening.sql
+
+      - name: Validate production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}" || { echo "SUPABASE_ACCESS_TOKEN belum tersedia."; exit 1; }
+          test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN belum tersedia."; exit 1; }
+
+      - name: Setup pinned Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: v2.117.0
+
+      - name: Link exact production database
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          else
+            supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          fi
+          supabase migration list
+
+      - name: Dry-run all pending production migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --dry-run
+
+      - name: Apply production migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push
+
+      - name: Build verified v21.4 web release
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/build-erp-web-v10-release.js
+          test -f dist/erp-web-v10/index.html
+          test -f dist/erp-web-v10/release-manifest.json
+          test -f dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'GMU EduTrans ERP v21' dist/erp-web-v10/index.html
+          grep -Fq 'company-control-v214.js' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'internal_performance_payroll_v214_status' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' dist/erp-web-v10/vercel.json
+
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@59.16.0
+
+      - name: Link exact ERP Vercel project
+        working-directory: dist/erp-web-v10
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Deploy ERP v21.4 production
+        id: deploy
+        working-directory: dist/erp-web-v10
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(vercel deploy --yes --prod --token="$VERCEL_TOKEN")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployment: $url"
+
+      - name: Verify deployment URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$DEPLOYMENT_URL" -o /tmp/erp-v214.html
+          grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-v214.html
+          grep -Fq 'gmu-company-autopilot-v21-additive' /tmp/erp-v214.html
+          grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-v214.html
+          curl --fail --silent --show-error --location "$DEPLOYMENT_URL/company-control-v214.js" -o /tmp/company-control-v214.js
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' /tmp/company-control-v214.js
+
+      - name: Verify production custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$ERP_LIVE_URL" -o /tmp/erp-prod.html
+          grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-prod.html
+          grep -Fq 'gmu-company-autopilot-v21-additive' /tmp/erp-prod.html
+          grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-prod.html
+          curl --fail --silent --show-error --location "${ERP_LIVE_URL}company-control-v214.js" -o /tmp/prod-v214.js
+          grep -Fq 'v21.4-performance-payroll-workforce-capacity' /tmp/prod-v214.js
+          echo "ERP v21.4 production marker: PASS"
+
+      - name: Production summary
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          echo "GMU EduTrans ERP v21.4 deployed and verified."
+          echo "Supabase project: $SUPABASE_PROJECT_ID"
+          echo "Production: $ERP_LIVE_URL"
+          echo "Deployment: $DEPLOYMENT_URL"
+          echo "Chain: Director Rp50m -> Profit -> Revenue Need -> SDM Target -> Auto Tasks -> Execution -> Closing -> Actual Profit -> Recovery -> Recalculate Payroll/Workforce."
+          echo "WhatsApp automation: DEFERRED"
+          echo "Money transfer and permanent hiring remain approval/manual execution only."
