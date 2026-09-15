@@ -31,14 +31,16 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val vm: MainViewModel = viewModel()
-            LaunchedEffect(launchTarget, vm.state) {
-                if (launchTarget == "WORKFLOW" && vm.state is AppState.LoggedIn) {
-                    vm.navigate(AppPage.WORKFLOW)
-                    launchTarget = null
+            GmuV20Theme {
+                val vm: MainViewModel = viewModel()
+                LaunchedEffect(launchTarget, vm.state) {
+                    if (launchTarget == "WORKFLOW" && vm.state is AppState.LoggedIn) {
+                        vm.navigate(AppPage.WORKFLOW)
+                        launchTarget = null
+                    }
                 }
+                GmuNativeAppWithCorrectivePlanReviewCalendar(vm)
             }
-            GmuNativeAppWithCorrectivePlanReviewCalendar(vm)
         }
     }
 
