@@ -9,6 +9,7 @@ on:
       - "gawone-management-reliability-v4.py"
       - "gawone-management-m223-business-labour.py"
       - "gawone-management-m223-business-labour-v2.py"
+      - "gawone-management-emulator-smoke.sh"
       - "app/**"
       - ".github/workflows/gawone-management-build.yml"
   workflow_dispatch:
@@ -120,3 +121,42 @@ jobs:
           name: GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR
           path: artifact-management/
           retention-days: 14
+
+  emulator_smoke:
+    needs: android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR
+      - name: Prepare Management M2.23 smoke artifact
+        shell: bash
+        run: |
+          cp GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk /tmp/GAWONE-Management-v1.0.6-M2.23-BUSINESS-LABOUR-debug.apk
+          chmod +x gawone-management-emulator-smoke.sh
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Management M2.23 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash gawone-management-emulator-smoke.sh
+      - name: Upload Management emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE-Management-v1.0.6-M2.23-EMULATOR-GATE
+          if-no-files-found: warn
+          retention-days: 90
+          path: management-emulator-reports
