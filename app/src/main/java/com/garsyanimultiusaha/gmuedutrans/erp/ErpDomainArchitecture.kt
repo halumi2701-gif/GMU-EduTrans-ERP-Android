@@ -1,7 +1,16 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
 /**
- * Business-domain boundaries for ERP v20.
+ * Business-domain boundaries for ERP v20.2.
+ *
+ * Physical UI ownership:
+ * - DashboardCoreScreens.kt -> executive/operational snapshot
+ * - SalesCoreScreens.kt -> booking + customer workflow
+ * - FinanceCoreScreens.kt -> financial health + finance entry workflow
+ * - SharedCoreUi.kt -> cross-domain primitives only
+ * - ErpPageHost.kt -> page routing only, never business logic
+ * - MainViewModel.kt -> session/action coordinator, never presentation analytics
+ * - DashboardDomainQueries.kt -> read-only dashboard/finance projections
  *
  * UI authorization remains enforced by [RoleAccess]. This layer owns reusable
  * role policy and data-source ownership so ViewModels/screens do not repeat raw
