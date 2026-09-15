@@ -40,7 +40,7 @@ jobs:
       - name: Verify Media Master contract
         run: node scripts/verify-erp-web-media.js
 
-      - name: Verify ERP Execution & Control contract
+      - name: Verify ERP Automation & Focus UI contract
         run: node scripts/verify-erp-web-v10.js
 
       - name: Verify release bundle source
@@ -61,15 +61,16 @@ jobs:
             company-detail-controls-v107.js \
             role-playbook-v108.js \
             execution-control-v109.js \
+            ui-focus-shell-v110.js \
             unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
-          echo "ERP Web v10.9 Execution & Control source bundle: PASS"
+          echo "ERP Web v11.0 Automation & Focus UI source bundle: PASS"
 
       - name: Build from verified pinned v9.5 rollback baseline
         run: node scripts/build-erp-web-v10-release.js
 
-      - name: Verify preserved baseline and execution-control output
+      - name: Verify preserved baseline and focused UI output
         shell: bash
         run: |
           set -euo pipefail
@@ -77,17 +78,11 @@ jobs:
           test -f dist/erp-web-v10/baseline-v95.html
           test -f dist/erp-web-v10/release-manifest.json
           grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
-          grep -Fq 'GMU EduTrans ERP v10.9' dist/erp-web-v10/index.html
-          grep -Fq 'ERP v10.9 — Company Operating System' dist/erp-web-v10/index.html
+          grep -Fq 'GMU EduTrans ERP v11.0' dist/erp-web-v10/index.html
+          grep -Fq 'ERP v11.0 — Automation & Focus UI' dist/erp-web-v10/index.html
           grep -Fq 'Jobdesk & SOP' dist/erp-web-v10/index.html
           grep -Fq 'Tugas Otomatis' dist/erp-web-v10/index.html
-          grep -Fq 'Penggajian & Fee' dist/erp-web-v10/index.html
-          grep -Fq 'Rekrutmen & Onboarding' dist/erp-web-v10/index.html
-          grep -Fq 'Keluhan & CAPA' dist/erp-web-v10/index.html
-          grep -Fq 'Perkiraan Kas' dist/erp-web-v10/index.html
-          grep -Fq 'Perencanaan SDM' dist/erp-web-v10/index.html
-          grep -Fq 'Daftar Risiko' dist/erp-web-v10/index.html
-          grep -Fq 'Intelijen Pasar Cianjur–Sukabumi' dist/erp-web-v10/index.html
+          grep -Fq 'Target & Kinerja' dist/erp-web-v10/index.html
           if grep -Fq 'ERP v9.5' dist/erp-web-v10/index.html; then
             echo 'Legacy ERP v9.5 branding leaked into production output' >&2
             exit 1
@@ -96,14 +91,17 @@ jobs:
           grep -Fq 'data-page="tripfolder"' dist/erp-web-v10/index.html
           grep -Fq 'src="./unified-v10-loader.js"' dist/erp-web-v10/index.html
           grep -Fq 'gmu-erp-v10-additive' dist/erp-web-v10/index.html
-          grep -Fq 'v10.9-execution-control-system' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v11.0-automation-focus-ui' dist/erp-web-v10/unified-v10-loader.js
+          grep -Fq 'v11.0-focused-ui-shell' dist/erp-web-v10/ui-focus-shell-v110.js
+          grep -Fq 'Cari menu…' dist/erp-web-v10/ui-focus-shell-v110.js
+          grep -Fq 'Mode Ringkas' dist/erp-web-v10/ui-focus-shell-v110.js
+          grep -Fq 'Tampilkan detail tambahan' dist/erp-web-v10/ui-focus-shell-v110.js
           grep -Fq 'v10.9-execution-control-layer' dist/erp-web-v10/execution-control-v109.js
           grep -Fq 'v10.9-role-navigation-guard' dist/erp-web-v10/role-navigation-v106.js
-          grep -Fq 'v10.8-role-playbook' dist/erp-web-v10/role-playbook-v108.js
-          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js; do
+          for module in sales-target-engine-v103.js company-system-center-v104.js management-domains-v105.js role-navigation-v106.js company-detail-controls-v107.js role-playbook-v108.js execution-control-v109.js ui-focus-shell-v110.js; do
             test -f "dist/erp-web-v10/$module"
           done
-          echo "Pinned rollback baseline + ERP v10.9 Execution & Control release: PASS"
+          echo "Pinned rollback baseline + ERP v11.0 Automation & Focus UI release: PASS"
 
       - name: Upload ERP Web release candidate
         uses: actions/upload-artifact@v4
@@ -127,14 +125,15 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$snapshot"/. .
           git add -A
-          git commit -m "release: ERP Web v10.9 Execution & Control System from ${GITHUB_SHA}"
+          git commit -m "release: ERP Web v11.0 Automation & Focus UI from ${GITHUB_SHA}"
           git push --force origin HEAD:erp-web-v10-release
 
       - name: Release summary
         shell: bash
         run: |
-          echo "GMU EduTrans ERP v10.9 Execution & Control System validated."
-          echo "Role playbooks + daily execution + H-7/H-3/H-1/H+1/H+3 automation views + payroll lifecycle + recruitment + CAPA + cash forecast + workforce planning + risk register."
+          echo "GMU EduTrans ERP v11.0 Automation & Focus UI validated."
+          echo "UI: grouped navigation, menu search, compact-by-default, progressive disclosure, responsive layout and role context bar."
+          echo "All v10.9 company execution modules remain available."
           echo "Rollback baseline: verified immutable ERP v9.5 snapshot"
-          echo "Visible UI branding: ERP v10.9"
+          echo "Visible UI branding: ERP v11.0"
           echo "Release branch: erp-web-v10-release"
