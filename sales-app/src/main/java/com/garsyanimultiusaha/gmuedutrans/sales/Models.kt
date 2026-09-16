@@ -22,6 +22,8 @@ data class SalesLead(
     val whatsapp: String,
     val city: String,
     val programName: String,
+    val programId: String = "",
+    val packageId: String = "",
     val tripDate: String,
     val pax: Int,
     val source: String,
@@ -64,6 +66,27 @@ data class SalesProgram(
     val marketingStartPrice: Double?,
     val marketingPriceNote: String,
     val packages: List<SalesPackage>
+)
+
+data class SalesQuotation(
+    val id: String,
+    val quotationNo: String,
+    val bookingRequestId: String,
+    val institutionName: String,
+    val programName: String,
+    val pax: Int,
+    val status: String,
+    val total: Double,
+    val validUntil: String,
+    val createdAt: String
+)
+
+data class QuotationDraftResult(
+    val id: String,
+    val quotationNo: String,
+    val total: Double,
+    val unitPrice: Double,
+    val validUntil: String
 )
 
 data class SalesKitTemplate(
@@ -152,6 +175,7 @@ data class SalesDashboard(
     val bookings: List<SalesBooking> = emptyList(),
     val programs: List<ProgramBreakdown> = emptyList(),
     val catalog: List<SalesProgram> = emptyList(),
+    val quotations: List<SalesQuotation> = emptyList(),
     val funnel: FunnelRequirement = FunnelRequirement(400, 40.0, 10, 40, 67, 268, 25.0, 60.0, 25.0),
     val forecast: SalesForecast = SalesForecast(0, 400, 400, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, ForecastStatus.PIPELINE_INSUFFICIENT, "Pipeline belum cukup untuk menutup target."),
     val followUpsDue: List<SalesLead> = emptyList(),
