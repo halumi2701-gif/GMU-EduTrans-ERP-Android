@@ -198,7 +198,7 @@ class SalesApi {
         val packages = JSONArray(
             request(
                 "GET",
-                "/rest/v1/program_packages?select=id,program_id,name,description,price_per_pax,min_pax,facilities,price_note&is_active=eq.true&status=eq.ACTIVE&order=sort_order.asc,name.asc",
+                "/rest/v1/program_packages?select=id,program_id,name,description,price_per_pax,min_pax,facilities&is_active=eq.true&status=eq.ACTIVE&order=sort_order.asc,name.asc",
                 null,
                 accessToken
             )
@@ -220,7 +220,7 @@ class SalesApi {
                     pricePerPax = x.optDouble("price_per_pax", 0.0),
                     minPax = x.optInt("min_pax", 1),
                     facilities = facilities,
-                    priceNote = x.optString("price_note", "")
+                    priceNote = ""
                 )
             )
         }
