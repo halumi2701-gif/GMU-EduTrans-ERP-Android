@@ -139,6 +139,7 @@ Website: $GMU_WEB""".trimIndent()
 
 @Composable
 fun QuotationKitTab(vm: SalesViewModel) {
+    val context = LocalContext.current
     var selectedLead by remember { mutableStateOf<SalesLead?>(null) }
     val eligibleStages = setOf("QUALIFIED", "QUOTATION", "NEGOTIATION", "WAITING_DP")
     val eligibleLeads = vm.dashboard.leads.filter { it.stage in eligibleStages && it.pax > 0 }
@@ -154,9 +155,9 @@ fun QuotationKitTab(vm: SalesViewModel) {
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFFEAF6E8))
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Quotation dari Lead", fontWeight = FontWeight.Black)
+                    Text("Quotation → WhatsApp → DP", fontWeight = FontWeight.Black)
                     Text(
-                        "Draft dibuat dari harga publik master aktif. Sales tidak dapat memberi diskon dari layar ini. Setelah draft dibuat, lead otomatis masuk tahap QUOTATION dan follow-up dijadwalkan.",
+                        "Buat draft dari harga publik resmi, kirim ke WhatsApp PIC, lalu tandai Terkirim. Sistem memindahkan lead ke WAITING DP dan membuat follow-up +3 hari. Setelah Finance memverifikasi pembayaran, lead otomatis menjadi WON/handover.",
                         fontSize = 11.sp,
                         lineHeight = 17.sp
                     )
@@ -164,9 +165,7 @@ fun QuotationKitTab(vm: SalesViewModel) {
             }
         }
 
-        item {
-            Text("Lead Siap Quotation", fontWeight = FontWeight.Black, fontSize = 17.sp)
-        }
+        item { Text("Lead Siap Quotation", fontWeight = FontWeight.Black, fontSize = 17.sp) }
         if (eligibleLeads.isEmpty()) {
             item { QuotationEmpty("Belum ada lead QUALIFIED/HOT yang siap dibuatkan quotation.") }
         } else {
@@ -187,9 +186,7 @@ fun QuotationKitTab(vm: SalesViewModel) {
                             onClick = { selectedLead = lead },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !vm.actionBusy
-                        ) {
-                            Text("Buat Draft Quotation")
-                        }
+                        ) { Text("Buat Draft Quotation") }
                     }
                 }
             }
@@ -203,6 +200,12 @@ fun QuotationKitTab(vm: SalesViewModel) {
             item { QuotationEmpty("Belum ada quotation yang dibuat dari portfolio Sales ini.") }
         } else {
             items(vm.dashboard.quotations, key = { "quote-${it.id}" }) { q ->
+                val lead = vm.dashboard.leads.firstOrNull { it.id == q.bookingRequestId }
+                val booking = lead?.convertedBookingId?.takeIf { it.isNotBlank() }?.let { bookingId ->
+                    vm.dashboard.bookings.firstOrNull { it.id == bookingId }
+                }
+                val shareText = quotationShareText(q, lead)
+
                 Card(shape = RoundedCornerShape(20.dp)) {
                     Column(Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -214,6 +217,58 @@ fun QuotationKitTab(vm: SalesViewModel) {
                         Spacer(Modifier.height(7.dp))
                         Text(quotationRupiah(q.total), fontWeight = FontWeight.Black, fontSize = 18.sp, color = androidx.compose.ui.graphics.Color(0xFF168400))
                         if (q.validUntil.isNotBlank()) Text("Berlaku sampai ${q.validUntil}", fontSize = 9.sp, color = androidx.compose.ui.graphics.Color.Gray)
+
+                        if (q.status == "SENT" && booking == null) {
+                            Spacer(Modifier.height(8.dp))
+                            Surface(shape = RoundedCornerShape(12.dp), color = androidx.compose.ui.graphics.Color(0xFFFFF7DB)) {
+                                Text("WAITING DP • follow-up otomatis +3 hari", Modifier.padding(10.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        booking?.let { b ->
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (b.paymentState == "DP_TERVERIFIKASI") androidx.compose.ui.graphics.Color(0xFFEAF6E8) else androidx.compose.ui.graphics.Color(0xFFFFF7DB)
+                            ) {
+                                Column(Modifier.padding(10.dp)) {
+                                    Text(paymentStateLabel(b.paymentState), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                    if (b.paymentState == "DP_TERVERIFIKASI") {
+                                        Text("Lead otomatis WON dan siap handover ke Admin/Manager Ops.", fontSize = 9.sp, color = androidx.compose.ui.graphics.Color.Gray)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (q.status in setOf("DRAFT", "SENT")) {
+                            Spacer(Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = { openQuotationWhatsApp(context, lead?.whatsapp.orEmpty(), shareText) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !vm.actionBusy
+                            ) {
+                                Icon(Icons.Default.Send, null)
+                                Spacer(Modifier.width(7.dp))
+                                Text(if (q.status == "SENT") "Kirim Ulang via WhatsApp" else "Kirim via WhatsApp")
+                            }
+                            Spacer(Modifier.height(7.dp))
+                            Button(
+                                onClick = { vm.markQuotationSent(q) },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = q.status == "DRAFT" && !vm.actionBusy
+                            ) {
+                                Text(if (q.status == "DRAFT") "Tandai Sudah Terkirim" else "Sudah Terkirim")
+                            }
+                            if (q.status == "DRAFT") {
+                                Text(
+                                    "Buka WhatsApp dulu. Setelah pesan benar-benar dikirim ke PIC, tekan Tandai Sudah Terkirim.",
+                                    fontSize = 9.sp,
+                                    color = androidx.compose.ui.graphics.Color.Gray,
+                                    lineHeight = 14.sp,
+                                    modifier = Modifier.padding(top = 6.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -256,10 +311,7 @@ private fun QuotationDraftDialog(
         }
     }
     var selected by remember(lead.id, choices) {
-        mutableStateOf(
-            choices.firstOrNull { it.pack.id == lead.packageId }
-                ?: choices.firstOrNull()
-        )
+        mutableStateOf(choices.firstOrNull { it.pack.id == lead.packageId } ?: choices.firstOrNull())
     }
     var expanded by remember { mutableStateOf(false) }
     var notes by remember(lead.id) { mutableStateOf("") }
@@ -278,11 +330,7 @@ private fun QuotationDraftDialog(
                     Text("Pilih paket resmi", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     Box {
                         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                selected?.let { "${it.program.name} — ${it.pack.name}" } ?: "Pilih paket",
-                                modifier = Modifier.weight(1f),
-                                maxLines = 2
-                            )
+                            Text(selected?.let { "${it.program.name} — ${it.pack.name}" } ?: "Pilih paket", modifier = Modifier.weight(1f), maxLines = 2)
                         }
                         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                             choices.forEach { choice ->
@@ -293,19 +341,12 @@ private fun QuotationDraftDialog(
                                             Text("${quotationRupiah(choice.pack.pricePerPax)} / pax • min ${choice.pack.minPax}", fontSize = 9.sp)
                                         }
                                     },
-                                    onClick = {
-                                        selected = choice
-                                        expanded = false
-                                    }
+                                    onClick = { selected = choice; expanded = false }
                                 )
                             }
                         }
                     }
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = androidx.compose.ui.graphics.Color(0xFFEAF6E8),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Surface(shape = RoundedCornerShape(14.dp), color = androidx.compose.ui.graphics.Color(0xFFEAF6E8), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Text("Harga publik", fontSize = 9.sp, color = androidx.compose.ui.graphics.Color.Gray)
                             Text("${quotationRupiah(selected?.pack?.pricePerPax ?: 0.0)} × ${lead.pax} pax", fontWeight = FontWeight.Bold)
@@ -323,10 +364,7 @@ private fun QuotationDraftDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = { selected?.let { onCreate(it.pack.id, notes.ifBlank { null }) } },
-                enabled = selected != null && !busy
-            ) {
+            Button(onClick = { selected?.let { onCreate(it.pack.id, notes.ifBlank { null }) } }, enabled = selected != null && !busy) {
                 Text(if (busy) "Memproses…" else "Buat Draft")
             }
         },
@@ -347,14 +385,54 @@ private fun buildCatalogSummary(catalog: List<SalesProgram>): String {
         append("GMU EduTrans — Program Aktif\n\n")
         catalog.forEach { program ->
             append("• ").append(program.name)
-            program.marketingStartPrice?.takeIf { it > 0 }?.let {
-                append(" — mulai ").append(quotationRupiah(it)).append("/peserta")
-            }
+            program.marketingStartPrice?.takeIf { it > 0 }?.let { append(" — mulai ").append(quotationRupiah(it)).append("/peserta") }
             append("\n")
         }
         append("\nHarga dan ketersediaan mengikuti master aktif. Hubungi GMU EduTrans untuk quotation resmi.\n")
         append(GMU_WEB)
     }
+}
+
+private fun quotationShareText(q: SalesQuotation, lead: SalesLead?): String = buildString {
+    append("Halo")
+    lead?.picName?.takeIf { it.isNotBlank() }?.let { append(" Bapak/Ibu ").append(it) }
+    append(",\n\n")
+    append("Berikut penawaran resmi GMU EduTrans untuk ").append(q.institutionName).append(".\n\n")
+    append("No. Quotation: ").append(q.quotationNo).append("\n")
+    append("Program: ").append(q.programName).append("\n")
+    append("Peserta: ").append(q.pax).append(" pax\n")
+    append("Total: ").append(quotationRupiah(q.total)).append("\n")
+    if (q.validUntil.isNotBlank()) append("Berlaku sampai: ").append(q.validUntil).append("\n")
+    append("\nSilakan konfirmasi bila penawaran sudah sesuai. Setelah DP/pembayaran diverifikasi Finance GMU EduTrans, booking akan diteruskan ke tim operasional.\n\n")
+    append("GMU EduTrans — PT Garsyani Multi Usaha\n")
+    append(GMU_WEB)
+}
+
+private fun paymentStateLabel(state: String): String = when (state) {
+    "DP_TERVERIFIKASI" -> "DP TERVERIFIKASI"
+    "MENUNGGU_VERIFIKASI" -> "PEMBAYARAN MENUNGGU VERIFIKASI FINANCE"
+    else -> "BELUM ADA PEMBAYARAN TERVERIFIKASI"
+}
+
+private fun normalizeWhatsApp(raw: String): String {
+    val digits = raw.filter(Char::isDigit)
+    return when {
+        digits.startsWith("62") -> digits
+        digits.startsWith("0") -> "62${digits.drop(1)}"
+        digits.startsWith("8") -> "62$digits"
+        else -> digits
+    }
+}
+
+private fun openQuotationWhatsApp(context: Context, whatsapp: String, text: String) {
+    val number = normalizeWhatsApp(whatsapp)
+    if (number.isBlank()) {
+        shareKitText(context, text)
+        return
+    }
+    val url = "https://wa.me/$number?text=${Uri.encode(text)}"
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        .onFailure { shareKitText(context, text) }
 }
 
 private fun shareKitText(context: Context, text: String) {
@@ -366,9 +444,7 @@ private fun shareKitText(context: Context, text: String) {
 }
 
 private fun openKitUrl(context: Context, url: String) {
-    runCatching {
-        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-    }
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 }
 
 private fun quotationRupiah(value: Double): String = NumberFormat
