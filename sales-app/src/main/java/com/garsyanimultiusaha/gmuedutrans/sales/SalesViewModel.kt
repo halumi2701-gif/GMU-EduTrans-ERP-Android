@@ -39,11 +39,17 @@ class SalesViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val session = api.signIn(email, password)
-                dashboard = api.loadDashboard(session)
                 currentPage = SalesPage.DASHBOARD
                 state = SalesAppState.LoggedIn(session)
-            } catch (e: Exception) {
-                state = SalesAppState.Error(e.message ?: "Login gagal")
+
+                try {
+                    dashboard = api.loadDashboard(session)
+                } catch (dataError: Exception) {
+                    dashboard = SalesDashboard()
+                    notice = "Login berhasil, tetapi sebagian data dashboard belum dapat dimuat: ${dataError.message ?: "server data error"}. Tekan refresh untuk mencoba lagi."
+                }
+            } catch (authError: Exception) {
+                state = SalesAppState.Error(authError.message ?: "Login gagal")
             } finally {
                 actionBusy = false
             }
