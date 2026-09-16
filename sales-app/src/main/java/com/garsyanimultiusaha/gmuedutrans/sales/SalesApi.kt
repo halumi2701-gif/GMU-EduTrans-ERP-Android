@@ -41,7 +41,13 @@ class SalesApi {
         val portfolio = getPortfolioSummaryBlocking(session.accessToken, period)
         val programs = getProgramBreakdownBlocking(session.accessToken, period)
         val leads = getLeadsBlocking(session.accessToken, session.userId)
-        val bookings = getBookingsBlocking(session.accessToken, session.userId)
+        val rawBookings = getBookingsBlocking(session.accessToken, session.userId)
+        val paymentStates = getBookingPaymentStatesBlocking(session.accessToken)
+        val bookings = rawBookings.map { booking ->
+            val payment = paymentStates[booking.id]
+            if (payment == null) booking
+            else booking.copy(paymentState = payment.first, paymentVerifiedAt = payment.second)
+        }
         val catalog = getCatalogBlocking(session.accessToken)
         val quotations = getMyQuotationsBlocking(session.accessToken)
         SalesForecastEngine.build(portfolio, leads, bookings, programs).copy(
@@ -105,6 +111,18 @@ class SalesApi {
             unitPrice = x.optDouble("unit_price", 0.0),
             validUntil = x.optString("valid_until", "")
         )
+    }
+
+    suspend fun markQuotationSent(session: SalesSession, quotationId: String): String = withContext(Dispatchers.IO) {
+        val arr = JSONArray(
+            request(
+                "POST",
+                "/rest/v1/rpc/gmu_sales_mark_quotation_sent",
+                JSONObject().put("p_quotation_id", quotationId).toString(),
+                session.accessToken
+            )
+        )
+        if (arr.length() == 0) "Quotation" else arr.getJSONObject(0).optString("quotation_no", "Quotation")
     }
 
     suspend fun updateLead(
@@ -357,6 +375,26 @@ class SalesApi {
                         pax = x.optInt("pax", 0),
                         status = x.optString("status", "Lead")
                     )
+                )
+            }
+        }
+    }
+
+    private fun getBookingPaymentStatesBlocking(accessToken: String): Map<String, Pair<String, String>> {
+        val arr = JSONArray(
+            request(
+                "POST",
+                "/rest/v1/rpc/gmu_sales_booking_payment_states",
+                "{}",
+                accessToken
+            )
+        )
+        return buildMap {
+            for (i in 0 until arr.length()) {
+                val x = arr.getJSONObject(i)
+                put(
+                    x.optString("booking_id"),
+                    x.optString("payment_state", "BELUM_ADA_PEMBAYARAN") to x.optString("verified_at", "")
                 )
             }
         }
