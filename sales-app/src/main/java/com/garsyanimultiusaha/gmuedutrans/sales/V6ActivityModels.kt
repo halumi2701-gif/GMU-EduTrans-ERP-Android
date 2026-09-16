@@ -39,8 +39,24 @@ data class V6DailyReport(
     val submittedAt: String
 )
 
+data class V6PriceRequest(
+    val id: String,
+    val bookingRequestId: String,
+    val institutionName: String,
+    val packageName: String,
+    val pax: Int,
+    val publicPricePerPax: Double,
+    val requestedPricePerPax: Double,
+    val reason: String,
+    val status: String,
+    val decisionNote: String,
+    val createdAt: String,
+    val decidedAt: String
+)
+
 data class V6FieldWorkspace(
     val attendance: V6Attendance? = null,
     val visits: List<V6VisitRecord> = emptyList(),
-    val reports: List<V6DailyReport> = emptyList()
+    val reports: List<V6DailyReport> = emptyList(),
+    val priceRequests: List<V6PriceRequest> = emptyList()
 )
