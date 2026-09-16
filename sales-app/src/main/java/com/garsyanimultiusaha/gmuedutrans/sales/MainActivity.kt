@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val vm: SalesViewModel = viewModel()
-            SalesApp(vm)
+            SalesAppV2(vm)
         }
     }
 }
