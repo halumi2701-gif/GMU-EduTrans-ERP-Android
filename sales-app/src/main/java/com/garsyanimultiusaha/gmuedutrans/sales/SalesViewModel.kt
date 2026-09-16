@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 class SalesViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SalesApi()
     private val v6Api = SalesV6Api()
+    private val v61Api = SalesV61Api()
     private val restoreApi = SalesSessionRestoreApi()
 
     var state by mutableStateOf<SalesAppState>(SalesAppState.Splash)
@@ -181,12 +182,16 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?) {
+        updateLead(lead, stage, nextFollowUpAt, null)
+    }
+
+    fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?, lostReason: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
         actionBusy = true
         viewModelScope.launch {
             try {
-                api.updateLead(session, lead.id, stage, nextFollowUpAt)
+                v61Api.updateLead(session, lead.id, stage, nextFollowUpAt, lostReason)
                 dashboard = api.loadDashboard(session)
                 notice = "${lead.institutionName} diperbarui ke $stage dan aktivitas tercatat."
             } catch (e: Exception) {
