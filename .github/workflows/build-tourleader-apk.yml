@@ -1,0 +1,53 @@
+name: Build GMU Tour Leader APK
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "tourleader/**"
+      - "settings.gradle.kts"
+      - ".github/workflows/build-tourleader-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Use exact GMU EduTrans logo
+        run: |
+          mkdir -p tourleader/src/main/res/drawable
+          curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo" \
+            -o tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
+          file tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
+
+      - name: Build Tour Leader debug APK
+        run: gradle --no-daemon :tourleader:assembleDebug
+
+      - name: Verify APK
+        run: |
+          test -f tourleader/build/outputs/apk/debug/tourleader-debug.apk
+          ls -lh tourleader/build/outputs/apk/debug/tourleader-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GMU-Tour-Leader-v1-APK
+          path: tourleader/build/outputs/apk/debug/tourleader-debug.apk
+          if-no-files-found: error
+          retention-days: 14

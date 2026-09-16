@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "GMUEduTransERP"
 include(":app")
+include(":tourleader")
