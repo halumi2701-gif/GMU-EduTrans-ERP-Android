@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v21.4-company-control-center';
+  const VERSION = 'v22.5-sales-funnel-forecast';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
@@ -9,7 +9,7 @@
   const TARGET_CASCADE_VERSION = 'v21.2-target-cascade-workforce-autopilot-layer';
   const COMPENSATION_VERSION = 'v21.3-compensation-capacity-autopilot-layer';
   const COMPANY_CONTROL_VERSION = 'v21.4-company-control-center-layer';
-  const PORTFOLIO_TARGET_VERSION = 'v22.1-sales-portfolio-target-automatic';
+  const PORTFOLIO_TARGET_VERSION = 'v22.5-sales-funnel-forecast';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
@@ -25,6 +25,7 @@
     'sales-target-engine-v103.js',
     'station-target-v216.js',
     'sales-target-v217.js',
+    'sales-funnel-forecast-v225.js',
     'station-operating-policy-v218.js',
     'train-package-policy-v221.js',
     'company-system-center-v104.js',
@@ -121,10 +122,10 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans ERP aktif. Target Sales 200 paid pax lintas seluruh program dihitung otomatis dari booking berbayar, pricing Stasiun tetap terpisah, skema final Paket Kereta + tiket tambahan, dan Customer Account CRM aktif. Aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans ERP aktif. Target Sales 400 paid pax lintas seluruh program memakai Sales Funnel & Forecast otomatis: lead, conversion, quotation, sekolah closing, pipeline coverage, pace bulanan, komisi, dan indikator risiko target. Pricing program tetap terpisah dan aksi sensitif tetap melalui approval manusia.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
-      console.error('GMU EduTrans v21.4 loader', error);
+      console.error('GMU EduTrans ERP loader', error);
       notice(`ERP utama tetap aktif. Modul tambahan gagal dimuat: ${state.failedModule}.`, true);
     }
   }
