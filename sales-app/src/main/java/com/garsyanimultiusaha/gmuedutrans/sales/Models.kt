@@ -42,7 +42,9 @@ data class SalesBooking(
     val programName: String,
     val tripDate: String,
     val pax: Int,
-    val status: String
+    val status: String,
+    val paymentState: String = "BELUM_ADA_PEMBAYARAN",
+    val paymentVerifiedAt: String = ""
 )
 
 data class SalesPackage(
