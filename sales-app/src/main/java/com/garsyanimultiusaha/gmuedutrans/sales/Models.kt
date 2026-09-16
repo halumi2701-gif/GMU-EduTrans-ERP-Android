@@ -74,13 +74,23 @@ data class SalesQuotation(
     val id: String,
     val quotationNo: String,
     val bookingRequestId: String,
+    val bookingCode: String = "",
+    val accessToken: String = "",
     val institutionName: String,
+    val picName: String = "",
+    val whatsapp: String = "",
     val programName: String,
     val pax: Int,
     val status: String,
     val total: Double,
     val validUntil: String,
-    val createdAt: String
+    val createdAt: String,
+    val customerDecision: String = "",
+    val decisionStatus: String = "",
+    val invoiceNo: String = "",
+    val invoiceStatus: String = "",
+    val invoiceTotal: Double = 0.0,
+    val dpPercent: Double? = null
 )
 
 data class QuotationDraftResult(
