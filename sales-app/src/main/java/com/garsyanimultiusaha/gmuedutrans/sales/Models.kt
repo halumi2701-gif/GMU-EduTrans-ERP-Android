@@ -43,6 +43,50 @@ data class SalesBooking(
     val status: String
 )
 
+data class SalesPackage(
+    val id: String,
+    val programId: String,
+    val name: String,
+    val description: String,
+    val pricePerPax: Double,
+    val minPax: Int,
+    val facilities: List<String>,
+    val priceNote: String
+)
+
+data class SalesProgram(
+    val id: String,
+    val slug: String,
+    val name: String,
+    val category: String,
+    val description: String,
+    val minPax: Int,
+    val marketingStartPrice: Double?,
+    val marketingPriceNote: String,
+    val packages: List<SalesPackage>
+)
+
+data class SalesKitTemplate(
+    val id: String,
+    val category: String,
+    val title: String,
+    val body: String
+)
+
+data class NewLeadInput(
+    val customerType: String = "Sekolah",
+    val institutionName: String,
+    val picName: String,
+    val whatsapp: String,
+    val city: String,
+    val programId: String?,
+    val customProgram: String,
+    val tripDate: String,
+    val pax: Int,
+    val budgetPerPax: Double?,
+    val notes: String
+)
+
 data class SalesPortfolioSummary(
     val targetName: String = "Target Sales GMU EduTrans",
     val paidBookings: Int = 0,
@@ -107,6 +151,7 @@ data class SalesDashboard(
     val leads: List<SalesLead> = emptyList(),
     val bookings: List<SalesBooking> = emptyList(),
     val programs: List<ProgramBreakdown> = emptyList(),
+    val catalog: List<SalesProgram> = emptyList(),
     val funnel: FunnelRequirement = FunnelRequirement(400, 40.0, 10, 40, 67, 268, 25.0, 60.0, 25.0),
     val forecast: SalesForecast = SalesForecast(0, 400, 400, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, ForecastStatus.PIPELINE_INSUFFICIENT, "Pipeline belum cukup untuk menutup target."),
     val followUpsDue: List<SalesLead> = emptyList(),
@@ -121,4 +166,4 @@ sealed interface SalesAppState {
     data class Error(val message: String) : SalesAppState
 }
 
-enum class SalesPage { DASHBOARD, LEADS, FOLLOW_UP, FUNNEL, BOOKINGS, EARNINGS, PROFILE }
+enum class SalesPage { DASHBOARD, LEADS, FOLLOW_UP, MARKETING_KIT, FUNNEL, BOOKINGS, EARNINGS, PROFILE }
