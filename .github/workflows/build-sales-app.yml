@@ -1,0 +1,56 @@
+name: Build GMU EduTrans Sales APK
+
+on:
+  push:
+    branches: [ "sales-app-v1" ]
+    paths:
+      - "sales-app/**"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/build-sales-app.yml"
+  workflow_dispatch:
+
+jobs:
+  build-sales:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Use exact GMU EduTrans logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f sales-app/src/main/res/drawable/sales_logo.xml
+          curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo" \
+            -o sales-app/src/main/res/drawable/sales_logo.jpg
+          file sales-app/src/main/res/drawable/sales_logo.jpg
+
+      - name: Build Sales debug APK
+        run: gradle --no-daemon :sales-app:assembleDebug
+
+      - name: Verify Sales APK
+        run: |
+          test -f sales-app/build/outputs/apk/debug/sales-app-debug.apk
+          ls -lh sales-app/build/outputs/apk/debug/sales-app-debug.apk
+
+      - name: Upload Sales APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GMU-EduTrans-Sales-v1-debug
+          path: sales-app/build/outputs/apk/debug/sales-app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
