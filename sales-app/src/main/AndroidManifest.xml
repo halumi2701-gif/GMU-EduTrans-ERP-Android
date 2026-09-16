@@ -4,6 +4,8 @@
 
     <application
         android:allowBackup="true"
+        android:icon="@drawable/sales_logo"
+        android:roundIcon="@drawable/sales_logo"
         android:label="GMU EduTrans Sales"
         android:theme="@style/Theme.GMUEduTransSales">
         <activity
