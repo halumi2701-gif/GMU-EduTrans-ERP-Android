@@ -92,6 +92,7 @@ sealed interface AppState {
 
 enum class AppPage {
     DASHBOARD,
+    SALES_FORECAST,
     BOOKINGS,
     BOOKING_REQUESTS,
     QUOTATIONS,
@@ -179,6 +180,7 @@ object ManagerEduTransPolicy {
 
     val operationalPages: Set<AppPage> = setOf(
         AppPage.DASHBOARD,
+        AppPage.SALES_FORECAST,
         AppPage.BOOKINGS,
         AppPage.BOOKING_REQUESTS,
         AppPage.QUOTATIONS,
@@ -225,7 +227,7 @@ object RoleAccess {
             AppPage.AUDIT, AppPage.PROFILE
         )
         role == "Sales" -> setOf(
-            AppPage.DASHBOARD, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS,
+            AppPage.DASHBOARD, AppPage.SALES_FORECAST, AppPage.BOOKINGS, AppPage.BOOKING_REQUESTS,
             AppPage.QUOTATIONS, AppPage.CUSTOMERS, AppPage.PROFILE
         )
         role == "Finance" -> setOf(
