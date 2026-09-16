@@ -42,7 +42,34 @@ class SalesApi {
         val programs = getProgramBreakdownBlocking(session.accessToken, period)
         val leads = getLeadsBlocking(session.accessToken, session.userId)
         val bookings = getBookingsBlocking(session.accessToken, session.userId)
-        SalesForecastEngine.build(portfolio, leads, bookings, programs)
+        val catalog = getCatalogBlocking(session.accessToken)
+        SalesForecastEngine.build(portfolio, leads, bookings, programs).copy(catalog = catalog)
+    }
+
+    suspend fun createLead(session: SalesSession, input: NewLeadInput): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("p_customer_type", input.customerType)
+            .put("p_institution_name", input.institutionName.trim())
+            .put("p_pic_name", input.picName.trim())
+            .put("p_whatsapp", input.whatsapp.trim())
+            .put("p_trip_date", input.tripDate)
+            .put("p_pax", input.pax)
+            .put("p_city", input.city.trim().ifBlank { JSONObject.NULL })
+            .put("p_program_id", input.programId ?: JSONObject.NULL)
+            .put("p_custom_program", input.customProgram.trim().ifBlank { JSONObject.NULL })
+            .put("p_budget_per_pax", input.budgetPerPax ?: JSONObject.NULL)
+            .put("p_notes", input.notes.trim().ifBlank { JSONObject.NULL })
+            .toString()
+
+        val arr = JSONArray(
+            request(
+                "POST",
+                "/rest/v1/rpc/gmu_sales_create_lead",
+                payload,
+                session.accessToken
+            )
+        )
+        if (arr.length() == 0) "Lead baru" else arr.getJSONObject(0).optString("booking_code", "Lead baru")
     }
 
     suspend fun updateLead(
@@ -78,6 +105,20 @@ class SalesApi {
             session.accessToken,
             preferReturn = true
         )
+        logActivityBlocking(session, leadId, stage, nextFollowUpAt)
+    }
+
+    private fun logActivityBlocking(session: SalesSession, leadId: String, stage: String, nextFollowUpAt: String?) {
+        val payload = JSONObject()
+            .put("booking_request_id", leadId)
+            .put("sales_id", session.userId)
+            .put("channel", "LAINNYA")
+            .put("activity_type", "STATUS_UPDATE")
+            .put("outcome", "Tahap lead diperbarui ke $stage")
+            .put("lead_source", "Sales App")
+            .put("created_by", session.userId)
+        if (!nextFollowUpAt.isNullOrBlank()) payload.put("next_follow_up_at", nextFollowUpAt)
+        request("POST", "/rest/v1/crm_activities", payload.toString(), session.accessToken)
     }
 
     private fun getProfileBlocking(accessToken: String, userId: String): SalesProfile {
@@ -141,6 +182,65 @@ class SalesApi {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
                 add(ProgramBreakdown(x.optString("program_name", "Program GMU"), x.optInt("paid_bookings", 0), x.optInt("paid_pax", 0)))
+            }
+        }
+    }
+
+    private fun getCatalogBlocking(accessToken: String): List<SalesProgram> {
+        val programs = JSONArray(
+            request(
+                "GET",
+                "/rest/v1/programs?select=id,slug,name,category,short_description,min_pax,marketing_start_price,marketing_price_note&is_active=eq.true&order=sort_order.asc,name.asc",
+                null,
+                accessToken
+            )
+        )
+        val packages = JSONArray(
+            request(
+                "GET",
+                "/rest/v1/program_packages?select=id,program_id,name,description,price_per_pax,min_pax,facilities,price_note&is_active=eq.true&status=eq.ACTIVE&order=sort_order.asc,name.asc",
+                null,
+                accessToken
+            )
+        )
+        val packageMap = mutableMapOf<String, MutableList<SalesPackage>>()
+        for (i in 0 until packages.length()) {
+            val x = packages.getJSONObject(i)
+            val facilitiesJson = x.optJSONArray("facilities")
+            val facilities = buildList {
+                if (facilitiesJson != null) for (j in 0 until facilitiesJson.length()) add(facilitiesJson.optString(j))
+            }
+            val programId = x.optString("program_id")
+            packageMap.getOrPut(programId) { mutableListOf() }.add(
+                SalesPackage(
+                    id = x.optString("id"),
+                    programId = programId,
+                    name = x.optString("name", "Paket"),
+                    description = x.optString("description", ""),
+                    pricePerPax = x.optDouble("price_per_pax", 0.0),
+                    minPax = x.optInt("min_pax", 1),
+                    facilities = facilities,
+                    priceNote = x.optString("price_note", "")
+                )
+            )
+        }
+        return buildList {
+            for (i in 0 until programs.length()) {
+                val x = programs.getJSONObject(i)
+                val id = x.optString("id")
+                add(
+                    SalesProgram(
+                        id = id,
+                        slug = x.optString("slug", ""),
+                        name = x.optString("name", "Program GMU EduTrans"),
+                        category = x.optString("category", "Edukasi"),
+                        description = x.optString("short_description", ""),
+                        minPax = x.optInt("min_pax", 1),
+                        marketingStartPrice = if (x.isNull("marketing_start_price")) null else x.optDouble("marketing_start_price"),
+                        marketingPriceNote = x.optString("marketing_price_note", ""),
+                        packages = packageMap[id].orEmpty()
+                    )
+                )
             }
         }
     }
