@@ -46,7 +46,7 @@ fun ErpPageHost(
         AppPage.AUDIT -> AuditScreen(vm)
 
         // System
-        AppPage.USERS -> UsersScreen(vm, session, onNotice)
+        AppPage.USERS -> UsersAndSalesApplicationsScreen(vm, session, onNotice)
         AppPage.PROFILE -> MoreProfileScreen(vm, session)
     }
 }
