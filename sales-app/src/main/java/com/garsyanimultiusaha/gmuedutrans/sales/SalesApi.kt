@@ -43,7 +43,11 @@ class SalesApi {
         val leads = getLeadsBlocking(session.accessToken, session.userId)
         val bookings = getBookingsBlocking(session.accessToken, session.userId)
         val catalog = getCatalogBlocking(session.accessToken)
-        SalesForecastEngine.build(portfolio, leads, bookings, programs).copy(catalog = catalog)
+        val quotations = getMyQuotationsBlocking(session.accessToken)
+        SalesForecastEngine.build(portfolio, leads, bookings, programs).copy(
+            catalog = catalog,
+            quotations = quotations
+        )
     }
 
     suspend fun createLead(session: SalesSession, input: NewLeadInput): String = withContext(Dispatchers.IO) {
@@ -70,6 +74,37 @@ class SalesApi {
             )
         )
         if (arr.length() == 0) "Lead baru" else arr.getJSONObject(0).optString("booking_code", "Lead baru")
+    }
+
+    suspend fun createQuotationDraft(
+        session: SalesSession,
+        leadId: String,
+        packageId: String,
+        notes: String?
+    ): QuotationDraftResult = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("p_booking_request_id", leadId)
+            .put("p_package_id", packageId)
+            .put("p_valid_days", 7)
+            .put("p_notes", notes?.trim()?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .toString()
+        val arr = JSONArray(
+            request(
+                "POST",
+                "/rest/v1/rpc/gmu_sales_create_quotation_draft",
+                payload,
+                session.accessToken
+            )
+        )
+        if (arr.length() == 0) throw IllegalStateException("Server tidak mengembalikan draft quotation.")
+        val x = arr.getJSONObject(0)
+        QuotationDraftResult(
+            id = x.optString("id"),
+            quotationNo = x.optString("quotation_no", "Quotation"),
+            total = x.optDouble("total", 0.0),
+            unitPrice = x.optDouble("unit_price", 0.0),
+            validUntil = x.optString("valid_until", "")
+        )
     }
 
     suspend fun updateLead(
@@ -250,7 +285,7 @@ class SalesApi {
         val requests = JSONArray(
             request(
                 "GET",
-                "/rest/v1/booking_requests?select=id,booking_code,status,institution_name,pic_name,whatsapp,city,custom_program,trip_date,pax,source,created_at,updated_at,converted_booking_id,assigned_sales&assigned_sales=eq.$uid&order=updated_at.desc",
+                "/rest/v1/booking_requests?select=id,booking_code,status,institution_name,pic_name,whatsapp,city,program_id,package_id,custom_program,trip_date,pax,source,created_at,updated_at,converted_booking_id,assigned_sales&assigned_sales=eq.$uid&order=updated_at.desc",
                 null,
                 accessToken
             )
@@ -282,6 +317,8 @@ class SalesApi {
                         whatsapp = x.optString("whatsapp", ""),
                         city = x.optString("city", ""),
                         programName = x.optString("custom_program", "").ifBlank { "Program GMU EduTrans" },
+                        programId = x.optString("program_id", ""),
+                        packageId = x.optString("package_id", ""),
                         tripDate = x.optString("trip_date", ""),
                         pax = x.optInt("pax", 0),
                         source = x.optString("source", ""),
@@ -319,6 +356,36 @@ class SalesApi {
                         tripDate = x.optString("trip_date", ""),
                         pax = x.optInt("pax", 0),
                         status = x.optString("status", "Lead")
+                    )
+                )
+            }
+        }
+    }
+
+    private fun getMyQuotationsBlocking(accessToken: String): List<SalesQuotation> {
+        val arr = JSONArray(
+            request(
+                "POST",
+                "/rest/v1/rpc/gmu_sales_my_quotations",
+                "{}",
+                accessToken
+            )
+        )
+        return buildList {
+            for (i in 0 until arr.length()) {
+                val x = arr.getJSONObject(i)
+                add(
+                    SalesQuotation(
+                        id = x.optString("id"),
+                        quotationNo = x.optString("quotation_no", "-"),
+                        bookingRequestId = x.optString("booking_request_id", ""),
+                        institutionName = x.optString("institution_name", "-"),
+                        programName = x.optString("program_name", "Program GMU EduTrans"),
+                        pax = x.optInt("pax", 0),
+                        status = x.optString("status", "DRAFT"),
+                        total = x.optDouble("total", 0.0),
+                        validUntil = x.optString("valid_until", ""),
+                        createdAt = x.optString("created_at", "")
                     )
                 )
             }
