@@ -13,6 +13,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SalesApi()
     private val v6Api = SalesV6Api()
     private val v61Api = SalesV61Api()
+    private val quotationE2EApi = SalesQuotationE2EApi()
     private val restoreApi = SalesSessionRestoreApi()
 
     var state by mutableStateOf<SalesAppState>(SalesAppState.Splash)
@@ -44,7 +45,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                     SalesSessionStore.save(getApplication(), session.refreshToken)
                     currentPage = SalesPage.DASHBOARD
                     state = SalesAppState.LoggedIn(session)
-                    runCatching { dashboard = api.loadDashboard(session) }
+                    runCatching { dashboard = loadDashboardE2E(session) }
                         .onFailure { notice = "Session dipulihkan, tetapi dashboard belum dapat dimuat: ${it.message ?: "server data error"}." }
                     runCatching { fieldWorkspace = v6Api.loadWorkspace(session) }
                 }
@@ -67,7 +68,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 currentPage = SalesPage.DASHBOARD
                 state = SalesAppState.LoggedIn(session)
                 try {
-                    dashboard = api.loadDashboard(session)
+                    dashboard = loadDashboardE2E(session)
                 } catch (dataError: Exception) {
                     dashboard = SalesDashboard()
                     notice = "Login berhasil, tetapi sebagian data dashboard belum dapat dimuat: ${dataError.message ?: "server data error"}. Tekan refresh untuk mencoba lagi."
@@ -99,7 +100,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         notice = null
         viewModelScope.launch {
             try {
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 fieldWorkspace = v6Api.loadWorkspace(session)
             } catch (e: Exception) {
                 notice = e.message ?: "Data Sales gagal dimuat."
@@ -132,7 +133,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val bookingCode = api.createLead(session, input)
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 currentPage = SalesPage.LEADS
                 notice = "$bookingCode berhasil dibuat dan masuk CRM Sales."
             } catch (e: Exception) {
@@ -151,7 +152,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val draft = api.createQuotationDraft(session, lead.id, packageId, notes)
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 currentPage = SalesPage.FUNNEL
                 notice = "${draft.quotationNo} dibuat untuk ${lead.institutionName}. Total ${rupiahNotice(draft.total)} dan berlaku sampai ${draft.validUntil}."
             } catch (e: Exception) {
@@ -170,9 +171,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val quotationNo = api.markQuotationSent(session, quotation.id)
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 currentPage = SalesPage.FUNNEL
-                notice = "$quotationNo ditandai terkirim. Lead masuk WAITING DP dan follow-up otomatis dijadwalkan +3 hari."
+                notice = "$quotationNo ditandai terkirim. Menunggu keputusan customer; follow-up otomatis dijadwalkan +2 hari."
             } catch (e: Exception) {
                 notice = e.message ?: "Quotation gagal ditandai terkirim."
             } finally {
@@ -192,7 +193,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 v61Api.updateLead(session, lead.id, stage, nextFollowUpAt, lostReason)
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 notice = "${lead.institutionName} diperbarui ke $stage dan aktivitas tercatat."
             } catch (e: Exception) {
                 notice = e.message ?: "Lead gagal diperbarui."
@@ -260,7 +261,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 v6Api.visitCheckOut(session, visit.id, stage, outcome, notes, nextFollowUpAt)
-                dashboard = api.loadDashboard(session)
+                dashboard = loadDashboardE2E(session)
                 fieldWorkspace = v6Api.loadWorkspace(session)
                 notice = "Kunjungan ${visit.institutionName} selesai dan CRM diperbarui ke $stage."
             } catch (e: Exception) {
@@ -315,6 +316,13 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         fieldWorkspace = V6FieldWorkspace()
         currentPage = SalesPage.DASHBOARD
         if (session != null) viewModelScope.launch { api.signOut(session.accessToken) }
+    }
+
+    private suspend fun loadDashboardE2E(session: SalesSession): SalesDashboard {
+        val baseDashboard = api.loadDashboard(session)
+        val enrichedQuotations = runCatching { quotationE2EApi.loadMyQuotations(session) }
+            .getOrElse { baseDashboard.quotations }
+        return baseDashboard.copy(quotations = enrichedQuotations)
     }
 
     private fun rupiahNotice(value: Double): String = java.text.NumberFormat
