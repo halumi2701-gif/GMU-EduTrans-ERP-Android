@@ -20,6 +20,7 @@ fun ErpPageHost(
         AppPage.DASHBOARD -> DashboardScreen(vm, session)
 
         // Sales & Booking
+        AppPage.SALES_FORECAST -> SalesForecastScreen(vm, session)
         AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice)
         AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice)
         AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice)
