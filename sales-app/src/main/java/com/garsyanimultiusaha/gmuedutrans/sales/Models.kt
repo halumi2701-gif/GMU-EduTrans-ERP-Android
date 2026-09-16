@@ -166,4 +166,4 @@ sealed interface SalesAppState {
     data class Error(val message: String) : SalesAppState
 }
 
-enum class SalesPage { DASHBOARD, LEADS, FOLLOW_UP, MARKETING_KIT, FUNNEL, BOOKINGS, EARNINGS, PROFILE }
+enum class SalesPage { DASHBOARD, LEADS, FOLLOW_UP, FUNNEL, BOOKINGS, EARNINGS, PROFILE }
