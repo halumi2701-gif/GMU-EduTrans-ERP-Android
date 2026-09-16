@@ -94,6 +94,25 @@ class SalesViewModel : ViewModel() {
         }
     }
 
+    fun createQuotationDraft(lead: SalesLead, packageId: String, notes: String?) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        actionBusy = true
+        notice = null
+        viewModelScope.launch {
+            try {
+                val draft = api.createQuotationDraft(session, lead.id, packageId, notes)
+                dashboard = api.loadDashboard(session)
+                currentPage = SalesPage.FUNNEL
+                notice = "${draft.quotationNo} dibuat untuk ${lead.institutionName}. Total ${rupiahNotice(draft.total)} dan berlaku sampai ${draft.validUntil}."
+            } catch (e: Exception) {
+                notice = e.message ?: "Draft quotation gagal dibuat."
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
     fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
@@ -122,4 +141,9 @@ class SalesViewModel : ViewModel() {
         currentPage = SalesPage.DASHBOARD
         if (session != null) viewModelScope.launch { api.signOut(session.accessToken) }
     }
+
+    private fun rupiahNotice(value: Double): String = java.text.NumberFormat
+        .getCurrencyInstance(java.util.Locale("id", "ID"))
+        .format(value)
+        .replace(",00", "")
 }
