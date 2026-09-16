@@ -119,6 +119,25 @@ class SalesViewModel : ViewModel() {
         }
     }
 
+    fun markQuotationSent(quotation: SalesQuotation) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        actionBusy = true
+        notice = null
+        viewModelScope.launch {
+            try {
+                val quotationNo = api.markQuotationSent(session, quotation.id)
+                dashboard = api.loadDashboard(session)
+                currentPage = SalesPage.FUNNEL
+                notice = "$quotationNo ditandai terkirim. Lead masuk WAITING DP dan follow-up otomatis dijadwalkan +3 hari."
+            } catch (e: Exception) {
+                notice = e.message ?: "Quotation gagal ditandai terkirim."
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
     fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
