@@ -75,6 +75,25 @@ class SalesViewModel : ViewModel() {
         }
     }
 
+    fun createLead(input: NewLeadInput) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        actionBusy = true
+        notice = null
+        viewModelScope.launch {
+            try {
+                val bookingCode = api.createLead(session, input)
+                dashboard = api.loadDashboard(session)
+                currentPage = SalesPage.LEADS
+                notice = "$bookingCode berhasil dibuat dan masuk CRM Sales."
+            } catch (e: Exception) {
+                notice = e.message ?: "Lead baru gagal dibuat."
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
     fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
@@ -83,7 +102,7 @@ class SalesViewModel : ViewModel() {
             try {
                 api.updateLead(session, lead.id, stage, nextFollowUpAt)
                 dashboard = api.loadDashboard(session)
-                notice = "${lead.institutionName} diperbarui ke $stage."
+                notice = "${lead.institutionName} diperbarui ke $stage dan aktivitas tercatat."
             } catch (e: Exception) {
                 notice = e.message ?: "Lead gagal diperbarui."
             } finally {
