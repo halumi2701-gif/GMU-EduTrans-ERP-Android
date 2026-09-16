@@ -32,20 +32,22 @@ private val KitSurface = androidx.compose.ui.graphics.Color(0xFFF6F8F4)
 @Composable
 fun MarketingKitScreen(vm: SalesViewModel) {
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Program", "Script", "Funnel")
+    val tabs = listOf("Program", "Materi", "Script", "Quotation", "Funnel")
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
             Text("Marketing & Sales Kit", fontWeight = FontWeight.Black, fontSize = 19.sp)
-            Text("Materi kerja resmi Sales GMU EduTrans. Harga selalu mengikuti master aktif.", fontSize = 11.sp, color = androidx.compose.ui.graphics.Color.Gray)
+            Text("Program, materi, script, quotation, dan funnel Sales dalam satu workspace.", fontSize = 11.sp, color = androidx.compose.ui.graphics.Color.Gray)
         }
-        TabRow(selectedTabIndex = tab) {
+        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
             tabs.forEachIndexed { index, label ->
-                Tab(selected = tab == index, onClick = { tab = index }, text = { Text(label) })
+                Tab(selected = tab == index, onClick = { tab = index }, text = { Text(label, fontSize = 10.sp) })
             }
         }
         when (tab) {
             0 -> ProgramCatalogTab(vm)
-            1 -> ScriptKitTab()
+            1 -> MaterialsKitTab(vm)
+            2 -> ScriptKitTab()
+            3 -> QuotationKitTab(vm)
             else -> FunnelKitTab(vm.dashboard)
         }
     }
@@ -64,12 +66,12 @@ private fun ProgramCatalogTab(vm: SalesViewModel) {
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = KitGold.copy(alpha = .12f))) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Cara pakai", fontWeight = FontWeight.Black)
-                    Text("Pilih program → cek paket aktif → bagikan ke calon sekolah. Jangan menjanjikan diskon di luar harga/approval resmi.", fontSize = 12.sp, lineHeight = 18.sp)
+                    Text("Pilih program → cek paket aktif → bagikan ke calon sekolah. Harga mengikuti master aktif dan diskon tetap melalui approval.", fontSize = 12.sp, lineHeight = 18.sp)
                 }
             }
         }
         if (catalog.isEmpty()) {
-            item { KitEmpty("Belum ada katalog yang dapat dimuat. Tekan refresh setelah login ulang bila diperlukan.") }
+            item { KitEmpty("Belum ada katalog aktif yang dapat dimuat. Tekan refresh setelah login ulang bila diperlukan.") }
         } else {
             items(catalog, key = { it.id }) { program ->
                 ProgramCard(program = program, onShare = { shareText(context, programShareText(program)) })
@@ -316,8 +318,8 @@ private fun programShareText(program: SalesProgram): String {
         if (program.description.isNotBlank()) append(program.description).append("\n\n")
         append(price).append("\n")
         append("Minimum dasar ${program.minPax} peserta\n")
-        if (activePackages.isNotBlank()) append("\nPilihan paket aktif:\n").append(activePackages).append("\n")
-        append("\nUntuk jadwal, kebutuhan sekolah, dan quotation resmi, silakan hubungi tim GMU EduTrans.")
+        if (activePackages.isNotBlank()) append("\nPaket aktif:\n").append(activePackages).append("\n")
+        append("\nHarga/ketersediaan mengikuti master aktif. Hubungi GMU EduTrans untuk quotation resmi.")
     }
 }
 
@@ -325,15 +327,11 @@ private fun shareText(context: Context, text: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)
-        setPackage("com.whatsapp")
     }
-    runCatching { context.startActivity(intent) }.onFailure {
-        val fallback = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-        }
-        context.startActivity(Intent.createChooser(fallback, "Bagikan materi GMU EduTrans"))
-    }
+    context.startActivity(Intent.createChooser(intent, "Bagikan GMU EduTrans"))
 }
 
-private fun rupiahKit(value: Double): String = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(value).replace(",00", "")
+private fun rupiahKit(value: Double): String = NumberFormat
+    .getCurrencyInstance(Locale("id", "ID"))
+    .format(value)
+    .replace(",00", "")
