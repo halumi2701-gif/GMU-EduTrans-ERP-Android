@@ -64,8 +64,10 @@ fun SalesAppV2(vm: SalesViewModel) {
 
 @Composable
 private fun V2Brand(modifier: Modifier = Modifier) {
+    // Use the raster logo directly. Compose painterResource does not support
+    // arbitrary XML LayerDrawable/layer-list resources and could crash at startup.
     Image(
-        painter = painterResource(R.drawable.gmu_edutrans_logo),
+        painter = painterResource(R.drawable.sales_logo),
         contentDescription = "GMU EduTrans",
         modifier = modifier.widthIn(max = 235.dp).heightIn(max = 145.dp)
     )
