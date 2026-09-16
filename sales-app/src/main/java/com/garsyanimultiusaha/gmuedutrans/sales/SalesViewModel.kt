@@ -1,16 +1,18 @@
 package com.garsyanimultiusaha.gmuedutrans.sales
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class SalesViewModel : ViewModel() {
+class SalesViewModel(application: Application) : AndroidViewModel(application) {
     private val api = SalesApi()
     private val v6Api = SalesV6Api()
+    private val restoreApi = SalesSessionRestoreApi()
 
     var state by mutableStateOf<SalesAppState>(SalesAppState.Splash)
         private set
@@ -29,8 +31,26 @@ class SalesViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            delay(850)
-            state = SalesAppState.LoggedOut
+            delay(500)
+            val saved = SalesSessionStore.read(getApplication())
+            if (saved.isBlank()) {
+                state = SalesAppState.LoggedOut
+                return@launch
+            }
+            state = SalesAppState.Loading
+            runCatching { restoreApi.refresh(saved) }
+                .onSuccess { session ->
+                    SalesSessionStore.save(getApplication(), session.refreshToken)
+                    currentPage = SalesPage.DASHBOARD
+                    state = SalesAppState.LoggedIn(session)
+                    runCatching { dashboard = api.loadDashboard(session) }
+                        .onFailure { notice = "Session dipulihkan, tetapi dashboard belum dapat dimuat: ${it.message ?: "server data error"}." }
+                    runCatching { fieldWorkspace = v6Api.loadWorkspace(session) }
+                }
+                .onFailure {
+                    SalesSessionStore.clear(getApplication())
+                    state = SalesAppState.LoggedOut
+                }
         }
     }
 
@@ -42,9 +62,9 @@ class SalesViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val session = api.signIn(email, password)
+                SalesSessionStore.save(getApplication(), session.refreshToken)
                 currentPage = SalesPage.DASHBOARD
                 state = SalesAppState.LoggedIn(session)
-
                 try {
                     dashboard = api.loadDashboard(session)
                 } catch (dataError: Exception) {
@@ -54,6 +74,7 @@ class SalesViewModel : ViewModel() {
                 runCatching { fieldWorkspace = v6Api.loadWorkspace(session) }
                     .onFailure { if (notice == null) notice = "Workspace lapangan belum termuat: ${it.message ?: "server data error"}." }
             } catch (authError: Exception) {
+                SalesSessionStore.clear(getApplication())
                 state = SalesAppState.Error(authError.message ?: "Login gagal")
             } finally {
                 actionBusy = false
@@ -227,13 +248,7 @@ class SalesViewModel : ViewModel() {
         }
     }
 
-    fun visitCheckOut(
-        visit: V6VisitRecord,
-        stage: String,
-        outcome: String?,
-        notes: String?,
-        nextFollowUpAt: String?
-    ) {
+    fun visitCheckOut(visit: V6VisitRecord, stage: String, outcome: String?, notes: String?, nextFollowUpAt: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
         actionBusy = true
@@ -268,12 +283,28 @@ class SalesViewModel : ViewModel() {
         }
     }
 
-    fun consumeNotice() {
-        notice = null
+    fun requestSpecialPrice(lead: SalesLead, packageId: String, requestedPrice: Double, reason: String) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        actionBusy = true
+        viewModelScope.launch {
+            try {
+                v6Api.requestSpecialPrice(session, lead.id, packageId, requestedPrice, reason)
+                fieldWorkspace = v6Api.loadWorkspace(session)
+                notice = "Permintaan harga khusus ${lead.institutionName} sudah dikirim ke approval Manager/Director."
+            } catch (e: Exception) {
+                notice = e.message ?: "Permintaan harga khusus gagal dikirim."
+            } finally {
+                actionBusy = false
+            }
+        }
     }
+
+    fun consumeNotice() { notice = null }
 
     fun logout() {
         val session = (state as? SalesAppState.LoggedIn)?.session
+        SalesSessionStore.clear(getApplication())
         state = SalesAppState.LoggedOut
         dashboard = SalesDashboard()
         fieldWorkspace = V6FieldWorkspace()
