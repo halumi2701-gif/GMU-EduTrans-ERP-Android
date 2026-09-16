@@ -213,7 +213,31 @@ private fun FinalClosing(vm:SalesViewModel,onPage:(FinalPage)->Unit) {
         item{FinalHeader("Closing Center","Quotation → Approval → WAITING DP → WON → Handover")}
         item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){FinalMetric("Draft",vm.dashboard.quotations.count{it.status=="DRAFT"}.toString(),Modifier.weight(1f));FinalMetric("Sent",vm.dashboard.quotations.count{it.status=="SENT"}.toString(),Modifier.weight(1f));FinalMetric("Waiting DP",waitDp.size.toString(),Modifier.weight(1f))}}
         item{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){OutlinedButton(onClick={onPage(FinalPage.SALES_KIT)},modifier=Modifier.weight(1f)){Text("Buat Quotation")};OutlinedButton(onClick={onPage(FinalPage.APPROVALS)},modifier=Modifier.weight(1f)){Text("Approval Harga")}}}
-        items(vm.dashboard.quotations,key={it.id}){q->val l=leads[q.bookingRequestId];Card(shape=RoundedCornerShape(19.dp)){Column(Modifier.padding(15.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(q.quotationNo,fontWeight=FontWeight.Black);FinalPill(q.status)};Text(q.institutionName,fontWeight=FontWeight.Bold,fontSize=11.sp);Text("${q.programName} • ${q.pax} pax",fontSize=9.sp,color=Color.Gray);Text(finalRupiah(q.total),color=FinalGreen,fontWeight=FontWeight.Black,fontSize=17.sp);if(q.status=="DRAFT"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){OutlinedButton(onClick={if(l!=null){{finalOpenWa(context,l.whatsapp,"Halo ${l.picName.ifBlank{"Bapak/Ibu"}}, berikut penawaran GMU EduTrans ${q.quotationNo} untuk ${q.programName}, ${q.pax} peserta, total ${finalRupiah(q.total)}. Berlaku sampai ${q.validUntil}.")}}else{{}}},enabled=l?.whatsapp?.isNotBlank()==true,modifier=Modifier.weight(1f)){Text("Kirim WA")};Button(onClick={vm.markQuotationSent(q)},enabled=!vm.actionBusy,modifier=Modifier.weight(1f)){Text("Tandai SENT")}}}}}}
+        items(vm.dashboard.quotations,key={it.id}){ q ->
+            val l=leads[q.bookingRequestId]
+            Card(shape=RoundedCornerShape(19.dp)){
+                Column(Modifier.padding(15.dp)){
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(q.quotationNo,fontWeight=FontWeight.Black);FinalPill(q.status)}
+                    Text(q.institutionName,fontWeight=FontWeight.Bold,fontSize=11.sp)
+                    Text("${q.programName} • ${q.pax} pax",fontSize=9.sp,color=Color.Gray)
+                    Text(finalRupiah(q.total),color=FinalGreen,fontWeight=FontWeight.Black,fontSize=17.sp)
+                    if(q.status=="DRAFT"){
+                        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                            OutlinedButton(
+                                onClick={
+                                    if(l!=null){
+                                        finalOpenWa(context,l.whatsapp,"Halo ${l.picName.ifBlank{"Bapak/Ibu"}}, berikut penawaran GMU EduTrans ${q.quotationNo} untuk ${q.programName}, ${q.pax} peserta, total ${finalRupiah(q.total)}. Berlaku sampai ${q.validUntil}.")
+                                    }
+                                },
+                                enabled=l?.whatsapp?.isNotBlank()==true,
+                                modifier=Modifier.weight(1f)
+                            ){Text("Kirim WA")}
+                            Button(onClick={vm.markQuotationSent(q)},enabled=!vm.actionBusy,modifier=Modifier.weight(1f)){Text("Tandai SENT")}
+                        }
+                    }
+                }
+            }
+        }
         item{FinalHeader("Menunggu DP","Sales hanya melihat status; verifikasi tetap Finance/Manager")}
         if(waitDp.isEmpty())item{FinalInfo("Tidak ada lead WAITING DP.")}
         else items(waitDp,key={"dp-${it.id}"}){l->Card(shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=FinalSoftGold)){Column(Modifier.padding(14.dp)){FinalLeadSummary(l);Spacer(Modifier.height(7.dp));Button(onClick={finalOpenWa(context,l.whatsapp,"Halo ${l.picName.ifBlank{"Bapak/Ibu"}}, izin mengingatkan proses DP untuk rencana kegiatan ${l.institutionName}. Setelah pembayaran terverifikasi, booking akan kami teruskan ke tim operasional GMU EduTrans.")},enabled=l.whatsapp.isNotBlank(),modifier=Modifier.fillMaxWidth()){Text("Reminder DP")}}}}
