@@ -27,6 +27,7 @@ data class WorkspaceDestination(
 object ErpNavigation {
     val destinations: List<WorkspaceDestination> = listOf(
         WorkspaceDestination(AppPage.DASHBOARD, "Dashboard", "Ringkasan kerja dan item yang perlu tindakan", WorkspaceGroup.SYSTEM, MainTab.HOME),
+        WorkspaceDestination(AppPage.SALES_FORECAST, "Sales Funnel & Forecast", "Target 400 pax, conversion, pipeline dan proyeksi akhir bulan", WorkspaceGroup.SALES, MainTab.BOOKING),
         WorkspaceDestination(AppPage.BOOKINGS, "Booking", "Pipeline, order, pax dan status perjalanan", WorkspaceGroup.SALES, MainTab.BOOKING),
         WorkspaceDestination(AppPage.BOOKING_REQUESTS, "Pengajuan Website", "Permintaan booking yang masuk dari kanal online", WorkspaceGroup.SALES),
         WorkspaceDestination(AppPage.QUOTATIONS, "Quotation & Pricing", "Penawaran, kalkulasi harga dan persetujuan", WorkspaceGroup.SALES),
