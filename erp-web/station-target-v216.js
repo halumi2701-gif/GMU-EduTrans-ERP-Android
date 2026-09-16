@@ -35,7 +35,7 @@
       <div class="head">
         <div>
           <h3>Kebijakan Harga • Edukasi Profesi & Lingkungan Stasiun</h3>
-          <p>Program Stasiun memiliki pricing sendiri. Target Sales 200 paid pax sekarang dihitung lintas seluruh program GMU EduTrans.</p>
+          <p>Program Stasiun memiliki pricing sendiri. Target Sales 400 paid pax sekarang dihitung lintas seluruh program GMU EduTrans.</p>
         </div>
         <span class="badge info">PRICING POLICY</span>
       </div>
@@ -43,7 +43,7 @@
         <div class="gmu-target-card"><small>Reguler</small><b>${money(policy.priceTiers[0]?.pricePerPax || 55_000)}</b><span>Minimum ${integer(policy.priceTiers[0]?.minimumPax || 20)} pax.</span></div>
         <div class="gmu-target-card"><small>Volume</small><b>${money(policy.priceTiers[1]?.pricePerPax || 46_000)}</b><span>Minimum ${integer(policy.priceTiers[1]?.minimumPax || 30)} pax.</span></div>
         <div class="gmu-target-card"><small>Margin guardrail</small><b>≥ ${Number(policy.minimumMarginPct || 35).toLocaleString('id-ID')}%</b><span>Quotation di bawah guardrail wajib approval Manager/Owner.</span></div>
-        <div class="gmu-target-card"><small>Target Sales</small><b>Lintas Program</b><span>Tidak lagi mengunci 200 pax khusus Stasiun.</span></div>
+        <div class="gmu-target-card"><small>Target Sales</small><b>Lintas Program</b><span>Tidak mengunci 400 pax khusus Stasiun.</span></div>
       </div>
       <div class="gmu-target-note" style="margin-top:10px"><b>Tier aktif:</b> ${tierText()}</div>`;
   }
