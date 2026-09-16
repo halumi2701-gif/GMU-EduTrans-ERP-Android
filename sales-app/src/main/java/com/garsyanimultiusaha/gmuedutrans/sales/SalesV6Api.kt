@@ -17,7 +17,8 @@ class SalesV6Api {
         V6FieldWorkspace(
             attendance = getAttendance(session),
             visits = getVisits(session),
-            reports = getReports(session)
+            reports = getReports(session),
+            priceRequests = getPriceRequests(session)
         )
     }
 
@@ -95,9 +96,26 @@ class SalesV6Api {
         )
     }
 
-    private fun getAttendance(session: SalesSession): V6Attendance? {
-        return parseAttendance(request("POST", "/rest/v1/rpc/gmu_sales_attendance_today", "{}", session.accessToken))
+    suspend fun requestSpecialPrice(
+        session: SalesSession,
+        leadId: String,
+        packageId: String,
+        requestedPricePerPax: Double,
+        reason: String
+    ): String = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("p_booking_request_id", leadId)
+            .put("p_package_id", packageId)
+            .put("p_requested_price_per_pax", requestedPricePerPax)
+            .put("p_reason", reason.trim())
+            .toString()
+        val arr = JSONArray(request("POST", "/rest/v1/rpc/gmu_sales_request_special_price", body, session.accessToken))
+        if (arr.length() == 0) throw IllegalStateException("Permintaan harga khusus gagal dibuat.")
+        arr.getJSONObject(0).optString("id")
     }
+
+    private fun getAttendance(session: SalesSession): V6Attendance? =
+        parseAttendance(request("POST", "/rest/v1/rpc/gmu_sales_attendance_today", "{}", session.accessToken))
 
     private fun getVisits(session: SalesSession): List<V6VisitRecord> {
         val body = JSONObject().put("p_limit", 40).toString()
@@ -105,20 +123,13 @@ class SalesV6Api {
         return buildList {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
-                add(
-                    V6VisitRecord(
-                        id = x.optString("id"),
-                        bookingRequestId = x.optString("booking_request_id"),
-                        institutionName = x.optString("institution_name", "-"),
-                        picName = x.optString("pic_name", ""),
-                        visitStatus = x.optString("visit_status", ""),
-                        checkInAt = x.optString("check_in_at", ""),
-                        checkOutAt = x.optString("check_out_at", ""),
-                        outcome = x.optString("outcome", ""),
-                        notes = x.optString("notes", ""),
-                        nextFollowUpAt = x.optString("next_follow_up_at", "")
-                    )
-                )
+                add(V6VisitRecord(
+                    id = x.optString("id"), bookingRequestId = x.optString("booking_request_id"),
+                    institutionName = x.optString("institution_name", "-"), picName = x.optString("pic_name", ""),
+                    visitStatus = x.optString("visit_status", ""), checkInAt = x.optString("check_in_at", ""),
+                    checkOutAt = x.optString("check_out_at", ""), outcome = x.optString("outcome", ""),
+                    notes = x.optString("notes", ""), nextFollowUpAt = x.optString("next_follow_up_at", "")
+                ))
             }
         }
     }
@@ -129,25 +140,34 @@ class SalesV6Api {
         return buildList {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
-                add(
-                    V6DailyReport(
-                        id = x.optString("id"),
-                        reportDate = x.optString("report_date", ""),
-                        attendanceStatus = x.optString("attendance_status", ""),
-                        checkIn = x.optString("check_in", ""),
-                        checkOut = x.optString("check_out", ""),
-                        newLeads = x.optInt("new_leads"),
-                        visitsCompleted = x.optInt("visits_completed"),
-                        followupActivities = x.optInt("followup_activities"),
-                        quotationsCreated = x.optInt("quotations_created"),
-                        quotationsSent = x.optInt("quotations_sent"),
-                        wonLeads = x.optInt("won_leads"),
-                        obstacles = x.optString("obstacles", ""),
-                        tomorrowPlan = x.optString("tomorrow_plan", ""),
-                        notes = x.optString("notes", ""),
-                        submittedAt = x.optString("submitted_at", "")
-                    )
-                )
+                add(V6DailyReport(
+                    id = x.optString("id"), reportDate = x.optString("report_date", ""),
+                    attendanceStatus = x.optString("attendance_status", ""), checkIn = x.optString("check_in", ""),
+                    checkOut = x.optString("check_out", ""), newLeads = x.optInt("new_leads"),
+                    visitsCompleted = x.optInt("visits_completed"), followupActivities = x.optInt("followup_activities"),
+                    quotationsCreated = x.optInt("quotations_created"), quotationsSent = x.optInt("quotations_sent"),
+                    wonLeads = x.optInt("won_leads"), obstacles = x.optString("obstacles", ""),
+                    tomorrowPlan = x.optString("tomorrow_plan", ""), notes = x.optString("notes", ""),
+                    submittedAt = x.optString("submitted_at", "")
+                ))
+            }
+        }
+    }
+
+    private fun getPriceRequests(session: SalesSession): List<V6PriceRequest> {
+        val body = JSONObject().put("p_limit", 40).toString()
+        val arr = JSONArray(request("POST", "/rest/v1/rpc/gmu_sales_my_price_requests", body, session.accessToken))
+        return buildList {
+            for (i in 0 until arr.length()) {
+                val x = arr.getJSONObject(i)
+                add(V6PriceRequest(
+                    id = x.optString("id"), bookingRequestId = x.optString("booking_request_id"),
+                    institutionName = x.optString("institution_name", "-"), packageName = x.optString("package_name", "-"),
+                    pax = x.optInt("pax"), publicPricePerPax = x.optDouble("public_price_per_pax"),
+                    requestedPricePerPax = x.optDouble("requested_price_per_pax"), reason = x.optString("reason", ""),
+                    status = x.optString("status", "PENDING"), decisionNote = x.optString("decision_note", ""),
+                    createdAt = x.optString("created_at", ""), decidedAt = x.optString("decided_at", "")
+                ))
             }
         }
     }
@@ -157,11 +177,8 @@ class SalesV6Api {
         if (arr.length() == 0) return null
         val x = arr.getJSONObject(0)
         return V6Attendance(
-            attendanceDate = x.optString("attendance_date", ""),
-            status = x.optString("status", "Belum Absen"),
-            checkIn = x.optString("check_in", ""),
-            checkOut = x.optString("check_out", ""),
-            notes = x.optString("notes", "")
+            attendanceDate = x.optString("attendance_date", ""), status = x.optString("status", "Belum Absen"),
+            checkIn = x.optString("check_in", ""), checkOut = x.optString("check_out", ""), notes = x.optString("notes", "")
         )
     }
 
