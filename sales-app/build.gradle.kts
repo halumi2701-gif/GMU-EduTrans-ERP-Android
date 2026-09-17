@@ -11,8 +11,8 @@ android {
         applicationId = "com.garsyanimultiusaha.gmuedutrans.sales"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "6.4.0"
+        versionCode = 11
+        versionName = "6.5.0"
 
         buildConfigField("String", "SUPABASE_URL", "\"https://gtgnwasijweewmaubvyg.supabase.co\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW\"")
