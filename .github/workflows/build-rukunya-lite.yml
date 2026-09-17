@@ -35,8 +35,11 @@ jobs:
           set -euo pipefail
           mkdir -p rukunya-lite/app/src/main/assets
           mkdir -p rukunya-lite/app/src/main/res/drawable
-          echo "Payload bytes: $(wc -c < rukunya-lite/payload.tar.gz.b64)"
-          tr -cd 'A-Za-z0-9+/=' < rukunya-lite/payload.tar.gz.b64 | base64 -d > /tmp/rukunya-payload.tar.gz
+          cat rukunya-lite/payload-parts/part*.txt > /tmp/rukunya-payload.b64
+          PAYLOAD_SIZE="$(wc -c < /tmp/rukunya-payload.b64 | tr -d ' ')"
+          echo "Payload bytes: $PAYLOAD_SIZE"
+          test "$PAYLOAD_SIZE" -eq 41304
+          base64 -d /tmp/rukunya-payload.b64 > /tmp/rukunya-payload.tar.gz
           gzip -t /tmp/rukunya-payload.tar.gz
           tar -xzf /tmp/rukunya-payload.tar.gz -C rukunya-lite/app/src/main/assets
           cp rukunya-lite/app/src/main/assets/logo.png rukunya-lite/app/src/main/res/drawable/rukunya_logo.png
