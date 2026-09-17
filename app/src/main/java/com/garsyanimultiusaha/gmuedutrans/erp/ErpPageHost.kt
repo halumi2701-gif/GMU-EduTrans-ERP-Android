@@ -21,7 +21,13 @@ fun ErpPageHost(
 
         // Sales & Booking
         AppPage.SALES_FORECAST -> SalesForecastScreen(vm, session)
-        AppPage.BOOKINGS -> BookingScreen(vm, session, onNotice)
+        AppPage.BOOKINGS -> {
+            if (session.profile.role == "Sales") {
+                SalesCommercialBookingV226Screen(vm, session, onNotice)
+            } else {
+                BookingScreen(vm, session, onNotice)
+            }
+        }
         AppPage.BOOKING_REQUESTS -> BookingRequestScreen(vm, session, onNotice)
         AppPage.QUOTATIONS -> QuotationPricingScreen(vm, session, onNotice)
         AppPage.PACKAGE_MASTER -> PackageMasterHubScreen(vm, session, onNotice)
