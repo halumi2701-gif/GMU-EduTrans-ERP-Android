@@ -59,10 +59,14 @@ jobs:
 
       - name: Use exact GMU EduTrans logo
         run: |
+          set -euo pipefail
           rm -f app/src/main/res/drawable/ic_launcher_gmu.xml
+          mkdir -p app/src/main/res/drawable tourleader/src/main/res/drawable
           curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo" \
             -o app/src/main/res/drawable/ic_launcher_gmu.jpg
+          cp app/src/main/res/drawable/ic_launcher_gmu.jpg tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
           file app/src/main/res/drawable/ic_launcher_gmu.jpg
+          file tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
 
       - name: Reject WebView usage
         run: |
