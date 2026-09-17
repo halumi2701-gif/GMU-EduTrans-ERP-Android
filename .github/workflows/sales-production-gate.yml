@@ -91,6 +91,34 @@ jobs:
             -d '{"action":"sales_application_list"}' >/tmp/applications.json
           jq -e '.applications | type == "array"' /tmp/applications.json >/dev/null
 
+      - name: Verify v22.6 PUBLIC B2B pricing contract
+        shell: bash
+        env:
+          OWNER_TOKEN: ${{ steps.owner_auth.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          curl -fsS "$SUPABASE_URL/rest/v1/v_sales_commercial_catalog_v226?select=package_code&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            -H "Accept: application/json" >/tmp/commercial-catalog.json
+          jq -e 'type == "array" and length >= 1' /tmp/commercial-catalog.json >/dev/null || {
+            echo "::error::v22.6 commercial catalog is unavailable"
+            cat /tmp/commercial-catalog.json
+            exit 1
+          }
+
+          curl -fsS "$SUPABASE_URL/rest/v1/rpc/resolve_sales_price_v226" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"p_package_code":"STATION-PROF-2026","p_booking_pax":20,"p_channel":"DIRECT_PUBLIC","p_partner_id":null,"p_session_type":"PRIVATE","p_pricing_pax":20}' >/tmp/commercial-price.json
+          jq -e '.eligible == true and .status == "SAFE" and .customer_price_per_pax == 65000 and .sales_commission_per_pax == 5000' /tmp/commercial-price.json >/dev/null || {
+            echo "::error::v22.6 PUBLIC pricing contract does not match Sales v6.5 expectations"
+            cat /tmp/commercial-price.json
+            exit 1
+          }
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
@@ -121,21 +149,21 @@ jobs:
           test -f "$UNSIGNED"
           echo "$SALES_KEYSTORE_B64" | base64 --decode > /tmp/gmu-sales-release.jks
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
+          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
           "$BT/apksigner" sign \
             --ks /tmp/gmu-sales-release.jks \
             --ks-pass "pass:$SALES_KEYSTORE_PASSWORD" \
             --ks-key-alias "$SALES_KEY_ALIAS" \
             --key-pass "pass:$SALES_KEY_PASSWORD" \
-            --out /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk \
-            /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
-          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk
-          rm -f /tmp/gmu-sales-release.jks /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
+            --out /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk \
+            /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
+          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk
+          rm -f /tmp/gmu-sales-release.jks /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
 
       - name: Upload Production Final candidate
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-Sales-v6.4.0-PRODUCTION
-          path: /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk
+          name: GMU-EduTrans-Sales-v6.5.0-PRODUCTION
+          path: /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk
           if-no-files-found: error
           retention-days: 30

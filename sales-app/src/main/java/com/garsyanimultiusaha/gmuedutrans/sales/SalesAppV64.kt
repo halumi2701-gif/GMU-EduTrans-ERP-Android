@@ -6,8 +6,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PriceCheck
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,11 +104,13 @@ private class SalesE2EHealthApi {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalesAppV64(vm: SalesViewModel) {
     val api = remember { SalesE2EHealthApi() }
     var health by remember { mutableStateOf<SalesE2EHealth?>(null) }
     var healthError by remember { mutableStateOf<String?>(null) }
+    var showCommercial by remember { mutableStateOf(false) }
     val loggedIn = vm.state as? SalesAppState.LoggedIn
 
     LaunchedEffect(loggedIn?.session?.accessToken) {
@@ -110,6 +118,7 @@ fun SalesAppV64(vm: SalesViewModel) {
         if (session == null) {
             health = null
             healthError = null
+            showCommercial = false
         } else {
             runCatching { api.check(session) }
                 .onSuccess {
@@ -127,6 +136,17 @@ fun SalesAppV64(vm: SalesViewModel) {
         SalesAppV63(vm)
 
         if (loggedIn != null) {
+            ExtendedFloatingActionButton(
+                onClick = { showCommercial = true },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 88.dp),
+                containerColor = Color(0xFFD5A300),
+                contentColor = Color(0xFF07580F),
+                icon = { Icon(Icons.Default.PriceCheck, contentDescription = null) },
+                text = { Text("PUBLIC / B2B", fontWeight = FontWeight.Black) }
+            )
+
             when {
                 healthError != null -> E2EStatusBanner(
                     title = "Koneksi E2E belum terverifikasi",
@@ -139,6 +159,22 @@ fun SalesAppV64(vm: SalesViewModel) {
                     danger = true
                 )
             }
+        }
+    }
+
+    if (showCommercial && loggedIn != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showCommercial = false },
+            containerColor = Color(0xFFF7F9F6)
+        ) {
+            SalesCommercialV65Sheet(
+                session = loggedIn.session,
+                onDismiss = { showCommercial = false },
+                onCreated = {
+                    vm.refresh()
+                    showCommercial = false
+                }
+            )
         }
     }
 }
