@@ -133,7 +133,7 @@ data class SalesPortfolioSummary(
     val outstandingPaidPax: Int = 800,
     val achievementPct: Double = 0.0,
     val salesRetainer: Double = 600_000.0,
-    val salesFeePerPaidPax: Double = 2_500.0,
+    val salesFeePerPaidPax: Double = 5_000.0,
     val variableSalesFee: Double = 0.0,
     val targetBonusEarned: Double = 0.0,
     val modeledSalesIncome: Double = 600_000.0,
