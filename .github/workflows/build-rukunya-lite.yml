@@ -1,0 +1,76 @@
+name: Build RUKUNYA Lite v1.5 APK
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "rukunya-lite/**"
+      - ".github/workflows/build-rukunya-lite.yml"
+  workflow_dispatch:
+
+jobs:
+  build-rukunya:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Reconstruct offline RUKUNYA assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rukunya-lite/app/src/main/assets
+          mkdir -p rukunya-lite/app/src/main/res/drawable
+          base64 -d rukunya-lite/payload.tar.gz.b64 > /tmp/rukunya-payload.tar.gz
+          tar -xzf /tmp/rukunya-payload.tar.gz -C rukunya-lite/app/src/main/assets
+          cp rukunya-lite/app/src/main/assets/logo.png rukunya-lite/app/src/main/res/drawable/rukunya_logo.png
+          test -s rukunya-lite/app/src/main/assets/index.html
+          test -s rukunya-lite/app/src/main/assets/logo.png
+          test -s rukunya-lite/app/src/main/assets/icons/warga.svg
+          grep -q "RUKUNYA" rukunya-lite/app/src/main/assets/index.html
+          echo "RUKUNYA assets reconstructed"
+          find rukunya-lite/app/src/main/assets -maxdepth 2 -type f -print
+
+      - name: Build installable debug APK
+        working-directory: rukunya-lite
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify and rename APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="rukunya-lite/app/build/outputs/apk/debug/app-debug.apk"
+          OUT="RUKUNYA-Lite-v1.5.apk"
+          test -s "$SRC"
+          cp "$SRC" "$OUT"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BT/apksigner" verify --verbose "$OUT"
+          "$BT/aapt" dump badging "$OUT" | tee /tmp/rukunya-badging.txt
+          grep -q "package: name='id.zenstars.rukunya'" /tmp/rukunya-badging.txt
+          grep -q "application-label:'RUKUNYA Lite'" /tmp/rukunya-badging.txt
+          ls -lh "$OUT"
+          sha256sum "$OUT" | tee RUKUNYA-Lite-v1.5.sha256
+
+      - name: Upload RUKUNYA APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUKUNYA-Lite-v1.5
+          path: |
+            RUKUNYA-Lite-v1.5.apk
+            RUKUNYA-Lite-v1.5.sha256
+          if-no-files-found: error
+          retention-days: 30
