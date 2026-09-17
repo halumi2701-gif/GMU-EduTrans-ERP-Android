@@ -65,7 +65,18 @@ jobs:
           OWNER_TOKEN: ${{ steps.owner_auth.outputs.token }}
         run: |
           set -euo pipefail
-          # Portfolio RPC must exist and return JSON to an authenticated account.
+
+          curl -fsS "$SUPABASE_URL/rest/v1/rpc/gmu_sales_e2e_health" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}' >/tmp/e2e-health.json
+          jq -e '.[0].healthy == true' /tmp/e2e-health.json >/dev/null || {
+            echo "::error::Sales E2E backend health is not fully green"
+            cat /tmp/e2e-health.json
+            exit 1
+          }
+
           curl -fsS "$SUPABASE_URL/rest/v1/rpc/gmu_sales_portfolio_summary" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $OWNER_TOKEN" \
@@ -73,8 +84,6 @@ jobs:
             -d '{"p_period_month":"2026-09-01"}' >/tmp/portfolio.json
           jq -e 'type == "array" or type == "object"' /tmp/portfolio.json >/dev/null
 
-          # Owner provisioning endpoint must be reachable with an authenticated Owner token.
-          # Listing is read-only and therefore safe for CI.
           curl -fsS "$SUPABASE_URL/functions/v1/create-staff-user" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $OWNER_TOKEN" \
@@ -112,21 +121,21 @@ jobs:
           test -f "$UNSIGNED"
           echo "$SALES_KEYSTORE_B64" | base64 --decode > /tmp/gmu-sales-release.jks
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
+          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
           "$BT/apksigner" sign \
             --ks /tmp/gmu-sales-release.jks \
             --ks-pass "pass:$SALES_KEYSTORE_PASSWORD" \
             --ks-key-alias "$SALES_KEY_ALIAS" \
             --key-pass "pass:$SALES_KEY_PASSWORD" \
-            --out /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk \
-            /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
-          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk
-          rm -f /tmp/gmu-sales-release.jks /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
+            --out /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk \
+            /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
+          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk
+          rm -f /tmp/gmu-sales-release.jks /tmp/GMU-EduTrans-Sales-v6.4.0-aligned.apk
 
       - name: Upload Production Final candidate
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-Sales-v6.3.0-PRODUCTION
-          path: /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk
+          name: GMU-EduTrans-Sales-v6.4.0-PRODUCTION
+          path: /tmp/GMU-EduTrans-Sales-v6.4.0-PRODUCTION.apk
           if-no-files-found: error
           retention-days: 30
