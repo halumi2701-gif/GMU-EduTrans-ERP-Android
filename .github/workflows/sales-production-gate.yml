@@ -1,0 +1,132 @@
+name: GMU EduTrans Sales Production Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "sales-app-v1" ]
+    paths:
+      - "sales-app/**"
+      - "app/src/main/**"
+      - "supabase/**"
+      - ".github/workflows/sales-production-gate.yml"
+
+jobs:
+  production-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_URL: https://gtgnwasijweewmaubvyg.supabase.co
+      SUPABASE_ANON_KEY: ${{ secrets.SALES_ACCEPTANCE_ANON_KEY }}
+      OWNER_EMAIL: ${{ secrets.SALES_ACCEPTANCE_OWNER_EMAIL }}
+      OWNER_PASSWORD: ${{ secrets.SALES_ACCEPTANCE_OWNER_PASSWORD }}
+      SALES_KEYSTORE_B64: ${{ secrets.SALES_KEYSTORE_B64 }}
+      SALES_KEYSTORE_PASSWORD: ${{ secrets.SALES_KEYSTORE_PASSWORD }}
+      SALES_KEY_ALIAS: ${{ secrets.SALES_KEY_ALIAS }}
+      SALES_KEY_PASSWORD: ${{ secrets.SALES_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject incomplete production prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for v in SUPABASE_ANON_KEY OWNER_EMAIL OWNER_PASSWORD SALES_KEYSTORE_B64 SALES_KEYSTORE_PASSWORD SALES_KEY_ALIAS SALES_KEY_PASSWORD; do
+            if [[ -z "${!v:-}" ]]; then
+              echo "::error::$v is not configured"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            echo "Production Final is blocked until acceptance credentials and GMU signing secrets are configured."
+            exit 1
+          fi
+
+      - name: Authenticate Owner acceptance account
+        id: owner_auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY=$(jq -nc --arg email "$OWNER_EMAIL" --arg password "$OWNER_PASSWORD" '{email:$email,password:$password}')
+          RESP=$(curl -fsS "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          TOKEN=$(echo "$RESP" | jq -r '.access_token // empty')
+          [[ -n "$TOKEN" ]] || { echo "::error::Owner acceptance login failed"; exit 1; }
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Verify production Sales backend health
+        shell: bash
+        env:
+          OWNER_TOKEN: ${{ steps.owner_auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          # Portfolio RPC must exist and return JSON to an authenticated account.
+          curl -fsS "$SUPABASE_URL/rest/v1/rpc/gmu_sales_portfolio_summary" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"p_period_month":"2026-09-01"}' >/tmp/portfolio.json
+          jq -e 'type == "array" or type == "object"' /tmp/portfolio.json >/dev/null
+
+          # Owner provisioning endpoint must be reachable with an authenticated Owner token.
+          # Listing is read-only and therefore safe for CI.
+          curl -fsS "$SUPABASE_URL/functions/v1/create-staff-user" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $OWNER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"sales_application_list"}' >/tmp/applications.json
+          jq -e '.applications | type == "array"' /tmp/applications.json >/dev/null
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Use exact GMU EduTrans logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f sales-app/src/main/res/drawable/sales_logo.xml
+          curl -fsSL "$SUPABASE_URL/functions/v1/gmu-logo" -o sales-app/src/main/res/drawable/sales_logo.jpg
+          file sales-app/src/main/res/drawable/sales_logo.jpg
+
+      - name: Build release APK
+        run: gradle --no-daemon :sales-app:assembleRelease
+
+      - name: Sign and verify official GMU release
+        shell: bash
+        run: |
+          set -euo pipefail
+          UNSIGNED="sales-app/build/outputs/apk/release/sales-app-release-unsigned.apk"
+          test -f "$UNSIGNED"
+          echo "$SALES_KEYSTORE_B64" | base64 --decode > /tmp/gmu-sales-release.jks
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
+          "$BT/apksigner" sign \
+            --ks /tmp/gmu-sales-release.jks \
+            --ks-pass "pass:$SALES_KEYSTORE_PASSWORD" \
+            --ks-key-alias "$SALES_KEY_ALIAS" \
+            --key-pass "pass:$SALES_KEY_PASSWORD" \
+            --out /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk \
+            /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
+          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk
+          rm -f /tmp/gmu-sales-release.jks /tmp/GMU-EduTrans-Sales-v6.3.0-aligned.apk
+
+      - name: Upload Production Final candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: GMU-EduTrans-Sales-v6.3.0-PRODUCTION
+          path: /tmp/GMU-EduTrans-Sales-v6.3.0-PRODUCTION.apk
+          if-no-files-found: error
+          retention-days: 30
