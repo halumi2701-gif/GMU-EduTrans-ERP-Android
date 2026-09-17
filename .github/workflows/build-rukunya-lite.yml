@@ -35,7 +35,8 @@ jobs:
           set -euo pipefail
           mkdir -p rukunya-lite/app/src/main/assets
           mkdir -p rukunya-lite/app/src/main/res/drawable
-          cat rukunya-lite/payload-parts/part*.txt | tr -d '\r\n\t ' > /tmp/rukunya-payload.b64
+          head -c 7000 rukunya-lite/payload.tar.gz.b64 > /tmp/rukunya-payload.b64
+          cat rukunya-lite/payload-parts/part02.txt rukunya-lite/payload-parts/part03.txt rukunya-lite/payload-parts/part04.txt rukunya-lite/payload-parts/part05.txt rukunya-lite/payload-parts/part06.txt | tr -d '\r\n\t ' >> /tmp/rukunya-payload.b64
           PAYLOAD_SIZE="$(wc -c < /tmp/rukunya-payload.b64 | tr -d ' ')"
           echo "Payload bytes: $PAYLOAD_SIZE"
           test "$PAYLOAD_SIZE" -eq 41304
