@@ -1,0 +1,77 @@
+name: Build RUKUNYA Lite v1.5 APK
+
+on:
+  push:
+    branches: [ "rukunya-v15-apk-final" ]
+    paths:
+      - "rukunya-app/**"
+      - ".github/workflows/rukunya-v15-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Restore exact RUKUNYA logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rukunya-app/app/src/main/res/drawable
+          mkdir -p rukunya-app/app/src/main/assets
+          base64 -d rukunya-app/app/src/main/rukunya_logo.b64 > rukunya-app/app/src/main/res/drawable/rukunya_logo.png
+          cp rukunya-app/app/src/main/res/drawable/rukunya_logo.png rukunya-app/app/src/main/assets/rukunya_logo.png
+          file rukunya-app/app/src/main/res/drawable/rukunya_logo.png
+
+      - name: Validate bundled app
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "RUKUNYA" rukunya-app/app/src/main/assets/index.html
+          grep -q "Data Warga" rukunya-app/app/src/main/assets/index.html
+          grep -q "Iuran" rukunya-app/app/src/main/assets/index.html
+          grep -q "Pengumuman" rukunya-app/app/src/main/assets/index.html
+          grep -q "Laporan" rukunya-app/app/src/main/assets/index.html
+          test -s rukunya-app/app/src/main/res/drawable/rukunya_logo.png
+
+      - name: Build installable debug APK
+        working-directory: rukunya-app
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Prepare final filename
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f rukunya-app/app/build/outputs/apk/debug/app-debug.apk
+          cp rukunya-app/app/build/outputs/apk/debug/app-debug.apk RUKUNYA-Lite-v1.5.apk
+          ls -lh RUKUNYA-Lite-v1.5.apk
+
+      - name: Upload final APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUKUNYA-Lite-v1.5
+          path: RUKUNYA-Lite-v1.5.apk
+          if-no-files-found: error
+          retention-days: 30
