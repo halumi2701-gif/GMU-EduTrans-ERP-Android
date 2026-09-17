@@ -50,7 +50,7 @@ jobs:
       - name: Upload Sales APK
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-Sales-v1-debug
+          name: GMU-EduTrans-Sales-v6.4.0-debug
           path: sales-app/build/outputs/apk/debug/sales-app-debug.apk
           if-no-files-found: error
           retention-days: 14
