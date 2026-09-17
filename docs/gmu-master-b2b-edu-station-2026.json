@@ -1,0 +1,121 @@
+{
+  "program_code": "EDU-STATION-PROF",
+  "program_name": "Edukasi Lingkungan & Profesi Stasiun",
+  "channel": "B2B",
+  "status": "FINAL_MASTER",
+  "currency": "IDR",
+  "minimum_b2b_pax": 40,
+  "school_selling_price_per_pax": 49500,
+  "school_cashback_per_pax": 2500,
+  "sales_commission_per_pax": 5000,
+  "monthly_fixed_costs": {
+    "manager": 1500000,
+    "sales_fixed": 600000,
+    "admin_finance_part_time": 500000,
+    "total": 2600000
+  },
+  "baseline_monthly_pax_for_costing": 200,
+  "allocated_fixed_cost_per_pax": 13000,
+  "margin_guard": {
+    "minimum_percent": 25,
+    "healthy_from_percent": 30,
+    "safe_from_percent": 25,
+    "below_minimum_status": "REVIEW"
+  },
+  "b2b_tiers": [
+    {
+      "min_pax": 40,
+      "max_pax": 59,
+      "net_price_per_pax": 45000,
+      "school_selling_price_per_pax": 49500,
+      "partner_gross_spread_per_pax": 4500,
+      "school_cashback_per_pax": 2500,
+      "partner_net_margin_per_pax": 2000
+    },
+    {
+      "min_pax": 60,
+      "max_pax": 79,
+      "net_price_per_pax": 44500,
+      "school_selling_price_per_pax": 49500,
+      "partner_gross_spread_per_pax": 5000,
+      "school_cashback_per_pax": 2500,
+      "partner_net_margin_per_pax": 2500
+    },
+    {
+      "min_pax": 80,
+      "max_pax": 99,
+      "net_price_per_pax": 44000,
+      "school_selling_price_per_pax": 49500,
+      "partner_gross_spread_per_pax": 5500,
+      "school_cashback_per_pax": 2500,
+      "partner_net_margin_per_pax": 3000
+    },
+    {
+      "min_pax": 100,
+      "max_pax": null,
+      "net_price_per_pax": 43500,
+      "school_selling_price_per_pax": 49500,
+      "partner_gross_spread_per_pax": 6000,
+      "school_cashback_per_pax": 2500,
+      "partner_net_margin_per_pax": 3500
+    }
+  ],
+  "event_hpp": {
+    "station_head": 50000,
+    "speakers_total": 120000,
+    "speakers_count": 6,
+    "speaker_fee_each": 20000,
+    "documentation": 55000,
+    "crew_meal": 50000,
+    "tl_mc_tiers": [
+      {"min_pax": 20, "max_pax": 40, "fee": 110000},
+      {"min_pax": 41, "max_pax": 60, "fee": 135000},
+      {"min_pax": 61, "max_pax": 80, "fee": 160000},
+      {"min_pax": 81, "max_pax": 100, "fee": 185000},
+      {"min_pax": 101, "max_pax": 120, "fee": 210000}
+    ],
+    "operations_tiers": [
+      {"min_pax": 20, "max_pax": 40, "fee": 100000},
+      {"min_pax": 41, "max_pax": 60, "fee": 125000},
+      {"min_pax": 61, "max_pax": 80, "fee": 150000},
+      {"min_pax": 81, "max_pax": 100, "fee": 175000},
+      {"min_pax": 101, "max_pax": 120, "fee": 200000}
+    ]
+  },
+  "variable_hpp_per_pax": {
+    "sales_commission": 5000,
+    "snack": 2500,
+    "certificate": 500,
+    "worksheet": 500,
+    "total": 8500
+  },
+  "cashback_accounting_rule": "School cashback is funded from partner gross spread and is not counted again as GMU HPP.",
+  "partner_targets": [
+    "IGRA",
+    "KKRA",
+    "IGTKI-PGRI",
+    "HIMPAUDI",
+    "PKG PAUD",
+    "K3S",
+    "MKKS",
+    "PGRI",
+    "LP Ma'arif NU",
+    "Muhammadiyah",
+    "Aisyiyah",
+    "Persis",
+    "Yayasan Pendidikan",
+    "Organisasi Pendidikan Lain"
+  ],
+  "partner_status_flow": [
+    "PROSPECT",
+    "CONTACTED",
+    "MEETING",
+    "PROPOSAL_SENT",
+    "NEGOTIATION",
+    "MOU",
+    "ACTIVE_PARTNER",
+    "BOOKING",
+    "REPEAT"
+  ],
+  "cashback_statuses": ["PENDING", "CONFIRMED", "PAID"]
+}
