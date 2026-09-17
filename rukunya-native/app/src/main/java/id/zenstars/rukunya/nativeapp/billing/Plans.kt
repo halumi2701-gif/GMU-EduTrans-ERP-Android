@@ -41,7 +41,7 @@ data class PlanSpec(
 enum class Plan { FREE, BASIC, PLUS, PRO }
 
 object Plans {
-    val free = PlanSpec(
+    val free: PlanSpec = PlanSpec(
         plan = Plan.FREE,
         title = "FREE",
         priceLabel = "Rp0",
@@ -58,7 +58,7 @@ object Plans {
         )
     )
 
-    val basic = PlanSpec(
+    val basic: PlanSpec = PlanSpec(
         plan = Plan.BASIC,
         title = "Basic",
         priceLabel = "Rp29.000/bulan",
@@ -75,7 +75,7 @@ object Plans {
         )
     )
 
-    val plus = PlanSpec(
+    val plus: PlanSpec = PlanSpec(
         plan = Plan.PLUS,
         title = "Plus",
         priceLabel = "Rp59.000/bulan",
@@ -89,7 +89,7 @@ object Plans {
         )
     )
 
-    val pro = PlanSpec(
+    val pro: PlanSpec = PlanSpec(
         plan = Plan.PRO,
         title = "Pro",
         priceLabel = "Rp99.000/bulan",
@@ -104,7 +104,7 @@ object Plans {
         )
     )
 
-    val all = listOf(free, basic, plus, pro)
+    val all: List<PlanSpec> = listOf(free, basic, plus, pro)
 
     fun get(plan: Plan): PlanSpec = when (plan) {
         Plan.FREE -> free
@@ -116,7 +116,7 @@ object Plans {
 
 class PlanStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("rukunya_plan", Context.MODE_PRIVATE)
-    private val _plan = MutableStateFlow(
+    private val _plan: MutableStateFlow<Plan> = MutableStateFlow(
         runCatching { Plan.valueOf(prefs.getString("active_plan", Plan.FREE.name) ?: Plan.FREE.name) }
             .getOrDefault(Plan.FREE)
     )
