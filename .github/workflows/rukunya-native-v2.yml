@@ -1,0 +1,64 @@
+name: Build RUKUNYA Native v2
+
+on:
+  push:
+    branches: [ "rukunya-native-v2" ]
+    paths:
+      - "rukunya-native/**"
+      - ".github/workflows/rukunya-native-v2.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Verify Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=${ANDROID_HOME:-}"
+          which sdkmanager
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build native APK
+        working-directory: rukunya-native
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Validate native APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f rukunya-native/app/build/outputs/apk/debug/app-debug.apk
+          cp rukunya-native/app/build/outputs/apk/debug/app-debug.apk RUKUNYA-Native-v2.apk
+          unzip -l RUKUNYA-Native-v2.apk | grep -q "classes.dex"
+          if unzip -l RUKUNYA-Native-v2.apk | grep -q "assets/index.html"; then
+            echo "Unexpected WebView HTML payload found"
+            exit 1
+          fi
+          ls -lh RUKUNYA-Native-v2.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RUKUNYA-Native-v2
+          path: RUKUNYA-Native-v2.apk
+          if-no-files-found: error
+          retention-days: 30
