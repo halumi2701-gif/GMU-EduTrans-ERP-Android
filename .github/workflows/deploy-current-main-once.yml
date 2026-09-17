@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - ".github/workflows/deploy-current-main-once.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -53,9 +54,11 @@ jobs:
           test -f supabase/migrations/20260915185000_gmu_v224_legacy_program_slug_normalization.sql
           test -f supabase/migrations/20260915189000_gmu_v224_pricing_master_preflight.sql
           test -f supabase/migrations/20260915190000_gmu_v224_master_program_pricing_engine.sql
+          test -f supabase/migrations/20260917193000_gmu_v226_sales_public_b2b_unified_pricing.sql
           grep -Fq 'ALL_PROGRAMS' supabase/migrations/20260915181000_gmu_v221_portfolio_target_train_packages.sql
           grep -Fq 'gmu_sales_portfolio_summary' supabase/migrations/20260915182000_gmu_v222_sales_portfolio_safe_rpc.sql
           grep -Fq '25%' docs/GMU_V224_MASTER_PROGRAM_PRICING_ENGINE.md
+          grep -Fq 'STATION-PROF-2026' supabase/migrations/20260917193000_gmu_v226_sales_public_b2b_unified_pricing.sql
           grep -Fq 'train-package-policy-v221.js' erp-web/unified-v10-loader.js
 
       - name: Validate production credentials
@@ -173,6 +176,6 @@ jobs:
           echo "GMU EduTrans current main deployed and verified."
           echo "Production: $ERP_LIVE_URL"
           echo "Deployment: $DEPLOYMENT_URL"
-          echo "Database: all pending migrations through v22.4 applied."
+          echo "Database: all pending migrations through v22.6 applied."
+          echo "Sales pricing: PUBLIC + B2B unified from master pricing engine."
           echo "Sales target: 200 paid pax/month across all programs."
-          echo "Customer Account CRM and Train package policy included in production bundle."
