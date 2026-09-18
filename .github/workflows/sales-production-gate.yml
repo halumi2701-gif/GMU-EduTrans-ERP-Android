@@ -93,25 +93,25 @@ jobs:
           test -f "$UNSIGNED"
           echo "$SALES_KEYSTORE_B64" | base64 --decode > /tmp/gmu-sales-release.p12
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
+          "$BT/zipalign" -f 4 "$UNSIGNED" /tmp/GMU-EduTrans-Sales-v6.5.1-aligned.apk
           "$BT/apksigner" sign \
             --ks /tmp/gmu-sales-release.p12 \
             --ks-type PKCS12 \
             --ks-pass "pass:$SALES_KEYSTORE_PASSWORD" \
             --ks-key-alias "$SALES_KEY_ALIAS" \
             --key-pass "pass:$SALES_KEY_PASSWORD" \
-            --out /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk \
-            /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
-          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk
-          sha256sum /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk > /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.sha256
-          rm -f /tmp/gmu-sales-release.p12 /tmp/GMU-EduTrans-Sales-v6.5.0-aligned.apk
+            --out /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.apk \
+            /tmp/GMU-EduTrans-Sales-v6.5.1-aligned.apk
+          "$BT/apksigner" verify --verbose --print-certs /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.apk
+          sha256sum /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.apk > /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.sha256
+          rm -f /tmp/gmu-sales-release.p12 /tmp/GMU-EduTrans-Sales-v6.5.1-aligned.apk
 
       - name: Upload Production Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-Sales-v6.5.0-PRODUCTION
+          name: GMU-EduTrans-Sales-v6.5.1-PRODUCTION
           path: |
-            /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.apk
-            /tmp/GMU-EduTrans-Sales-v6.5.0-PRODUCTION.sha256
+            /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.apk
+            /tmp/GMU-EduTrans-Sales-v6.5.1-PRODUCTION.sha256
           if-no-files-found: error
           retention-days: 30
