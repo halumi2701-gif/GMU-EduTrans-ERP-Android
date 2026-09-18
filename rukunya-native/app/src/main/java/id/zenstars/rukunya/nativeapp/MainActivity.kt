@@ -80,6 +80,7 @@ private enum class Screen(val title: String) {
     HOME("Beranda"),
     WARGA("Warga"),
     IURAN("Iuran"),
+    SERVICES("Layanan"),
     REPORT("Laporan"),
     MORE("Lainnya"),
     CASH("Kas"),
@@ -102,7 +103,7 @@ private fun RukunyaApp(vm: RukunyaViewModel) {
         vm.events.collect { snackbar.showSnackbar(it) }
     }
 
-    val primaryScreens = listOf(Screen.HOME, Screen.WARGA, Screen.IURAN, Screen.REPORT, Screen.MORE)
+    val primaryScreens = listOf(Screen.HOME, Screen.WARGA, Screen.SERVICES, Screen.REPORT, Screen.MORE)
 
     Scaffold(
         containerColor = Canvas,
@@ -121,7 +122,7 @@ private fun RukunyaApp(vm: RukunyaViewModel) {
                                 Text(
                                     when (screen) {
                                         Screen.WARGA -> "Keluarga dan penduduk"
-                                        Screen.IURAN -> "Tagihan dan pembayaran"
+                                        Screen.SERVICES -> "Surat, iuran, kas dan informasi"
                                         Screen.REPORT -> "Rekap lingkungan"
                                         Screen.MORE -> "Pengaturan dan layanan lain"
                                         else -> ""
@@ -163,7 +164,7 @@ private fun RukunyaApp(vm: RukunyaViewModel) {
                         listOf(
                             Triple(Screen.HOME, Icons.Default.Home, "Beranda"),
                             Triple(Screen.WARGA, Icons.Default.Groups, "Warga"),
-                            Triple(Screen.IURAN, Icons.Default.ReceiptLong, "Iuran"),
+                            Triple(Screen.SERVICES, Icons.Default.GridView, "Layanan"),
                             Triple(Screen.REPORT, Icons.Default.Assessment, "Laporan"),
                             Triple(Screen.MORE, Icons.Default.GridView, "Lainnya")
                         ).forEach { (target, icon, label) ->
@@ -191,6 +192,7 @@ private fun RukunyaApp(vm: RukunyaViewModel) {
                 Screen.HOME -> HomeScreen(vm) { screenName = it.name }
                 Screen.WARGA -> WargaScreen(vm) { screenName = Screen.PLANS.name }
                 Screen.IURAN -> IuranScreen(vm) { screenName = Screen.PLANS.name }
+                Screen.SERVICES -> ServicesScreen(vm) { screenName = it.name }
                 Screen.REPORT -> ReportScreen(vm) { screenName = Screen.PLANS.name }
                 Screen.MORE -> MoreScreen(vm) { screenName = it.name }
                 Screen.CASH -> CashScreen(vm)
@@ -616,6 +618,76 @@ private fun WargaScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
     }
 }
 
+@Composable
+private fun ServicesScreen(vm: RukunyaViewModel, navigate: (Screen) -> Unit) {
+    val contributions by vm.contributions.collectAsStateWithLifecycle()
+    val cash by vm.cash.collectAsStateWithLifecycle()
+    val letters by vm.letters.collectAsStateWithLifecycle()
+    val announcements by vm.announcements.collectAsStateWithLifecycle()
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp, 12.dp, 16.dp, 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Layanan Warga", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+            Text("Semua kebutuhan administrasi dalam satu tempat", color = Muted, fontSize = 10.sp)
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ServiceHubCard(Icons.Default.ReceiptLong, "Iuran Warga", contributions.size.toString() + " transaksi", Modifier.weight(1f)) { navigate(Screen.IURAN) }
+                ServiceHubCard(Icons.Default.AccountBalanceWallet, "Kas RT/RW", cash.size.toString() + " transaksi", Modifier.weight(1f)) { navigate(Screen.CASH) }
+            }
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ServiceHubCard(Icons.Default.Description, "Surat Menyurat", letters.size.toString() + " surat", Modifier.weight(1f)) { navigate(Screen.LETTERS) }
+                ServiceHubCard(Icons.Default.Campaign, "Pengumuman", announcements.size.toString() + " info", Modifier.weight(1f)) { navigate(Screen.INFO) }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = GreenSoft), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.SupportAgent, contentDescription = null, tint = Green)
+                    Spacer(Modifier.width(11.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Pusat layanan RT/RW", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("Iuran, kas, surat, dan informasi warga tersedia dari satu halaman.", color = Muted, fontSize = 9.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServiceHubCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(17.dp)
+    ) {
+        Column(Modifier.padding(15.dp)) {
+            Box(Modifier.size(42.dp).background(GreenSoft, RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = Green, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(subtitle, color = Muted, fontSize = 9.sp)
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Buka", color = Green, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Green, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
 @Composable
 private fun IuranScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
     val households by vm.households.collectAsStateWithLifecycle()
