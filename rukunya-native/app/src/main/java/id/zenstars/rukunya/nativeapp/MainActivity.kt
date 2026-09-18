@@ -97,54 +97,90 @@ private fun RukunyaApp(vm: RukunyaViewModel) {
     val screen = runCatching { Screen.valueOf(screenName) }.getOrDefault(Screen.HOME)
     val plan by vm.activePlan.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(vm) {
         vm.events.collect { snackbar.showSnackbar(it) }
     }
 
+    val primaryScreens = listOf(Screen.HOME, Screen.WARGA, Screen.IURAN, Screen.REPORT, Screen.MORE)
+
     Scaffold(
         containerColor = Canvas,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(if (screen == Screen.HOME) "RUKUNYA" else screen.title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                        Text(if (screen == Screen.HOME) "Urus Warga Jadi Mudah." else "${Plans.get(plan).title} • Native Android", fontSize = 10.sp, color = Muted)
+            if (screen != Screen.HOME) {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        scrolledContainerColor = Color.White
+                    ),
+                    title = {
+                        Column {
+                            Text(screen.title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                            if (screen in primaryScreens) {
+                                Text(
+                                    when (screen) {
+                                        Screen.WARGA -> "Keluarga dan penduduk"
+                                        Screen.IURAN -> "Tagihan dan pembayaran"
+                                        Screen.REPORT -> "Rekap lingkungan"
+                                        Screen.MORE -> "Pengaturan dan layanan lain"
+                                        else -> ""
+                                    },
+                                    fontSize = 10.sp,
+                                    color = Muted
+                                )
+                            }
+                        }
+                    },
+                    navigationIcon = {
+                        if (screen !in primaryScreens) {
+                            IconButton(onClick = { screenName = Screen.HOME.name }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
+                            }
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = { screenName = Screen.PLANS.name }) {
+                            Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(Plans.get(plan).title, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
-                },
-                navigationIcon = {
-                    if (screen !in listOf(Screen.HOME, Screen.WARGA, Screen.IURAN, Screen.REPORT, Screen.MORE)) {
-                        IconButton(onClick = { screenName = Screen.HOME.name }) { Icon(Icons.Default.ArrowBack, contentDescription = "Kembali") }
-                    }
-                },
-                actions = {
-                    AssistChip(
-                        onClick = { screenName = Screen.PLANS.name },
-                        label = { Text(Plans.get(plan).title, fontSize = 10.sp) },
-                        leadingIcon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-            )
+                )
+            }
         },
         bottomBar = {
-            if (screen in listOf(Screen.HOME, Screen.WARGA, Screen.IURAN, Screen.REPORT, Screen.MORE)) {
-                NavigationBar(containerColor = Color.White) {
-                    listOf(
-                        Triple(Screen.HOME, Icons.Default.Home, "Beranda"),
-                        Triple(Screen.WARGA, Icons.Default.Groups, "Warga"),
-                        Triple(Screen.IURAN, Icons.Default.ReceiptLong, "Iuran"),
-                        Triple(Screen.REPORT, Icons.Default.Assessment, "Laporan"),
-                        Triple(Screen.MORE, Icons.Default.GridView, "Lainnya")
-                    ).forEach { (target, icon, label) ->
-                        NavigationBarItem(
-                            selected = screen == target,
-                            onClick = { screenName = target.name },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label, fontSize = 9.sp) }
-                        )
+            if (screen in primaryScreens) {
+                Surface(
+                    color = Color.White,
+                    shadowElevation = 10.dp
+                ) {
+                    NavigationBar(
+                        containerColor = Color.White,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.height(70.dp)
+                    ) {
+                        listOf(
+                            Triple(Screen.HOME, Icons.Default.Home, "Beranda"),
+                            Triple(Screen.WARGA, Icons.Default.Groups, "Warga"),
+                            Triple(Screen.IURAN, Icons.Default.ReceiptLong, "Iuran"),
+                            Triple(Screen.REPORT, Icons.Default.Assessment, "Laporan"),
+                            Triple(Screen.MORE, Icons.Default.GridView, "Lainnya")
+                        ).forEach { (target, icon, label) ->
+                            NavigationBarItem(
+                                selected = screen == target,
+                                onClick = { screenName = target.name },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = Green,
+                                    selectedTextColor = Green,
+                                    indicatorColor = GreenSoft,
+                                    unselectedIconColor = Color(0xFF8A948F),
+                                    unselectedTextColor = Color(0xFF8A948F)
+                                ),
+                                icon = { Icon(icon, contentDescription = label, modifier = Modifier.size(22.dp)) },
+                                label = { Text(label, fontSize = 9.sp, fontWeight = if (screen == target) FontWeight.Bold else FontWeight.Medium) }
+                            )
+                        }
                     }
                 }
             }
@@ -180,101 +216,334 @@ private fun HomeScreen(vm: RukunyaViewModel, navigate: (Screen) -> Unit) {
     val spec = Plans.get(plan)
 
     val saldo = cash.sumOf { if (it.type == "IN") it.amount else -it.amount }
-    val paidKk = contributions.filter { it.period == vm.currentPeriod() }.map { it.householdId }.distinct().size
+    val currentRows = contributions.filter { it.period == vm.currentPeriod() }
+    val paidKk = currentRows.map { it.householdId }.distinct().size
+    val unpaid = (households.size - paidKk).coerceAtLeast(0)
     val pct = if (households.isEmpty()) 0 else (paidKk * 100 / households.size)
+    val pendingLetters = letters.count { it.status != "Selesai" }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Halo, Pengurus 👋", fontWeight = FontWeight.Bold, fontSize = 21.sp)
-                    Text("Ringkasan lingkungan hari ini", color = Muted, fontSize = 12.sp)
-                }
-                PlanBadge(spec)
-            }
-        }
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = Green), shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("Saldo Kas", color = Color(0xFFD6EAE2), fontSize = 11.sp)
-                    Text(rupiah(saldo), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.height(14.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuickAction("Kas", Icons.Default.AccountBalanceWallet) { navigate(Screen.CASH) }
-                        QuickAction("Surat", Icons.Default.Description) { navigate(Screen.LETTERS) }
-                        QuickAction("Paket", Icons.Default.WorkspacePremium) { navigate(Screen.PLANS) }
-                    }
-                }
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallMetric("Warga", residents.toString(), Modifier.weight(1f))
-                SmallMetric("KK", households.size.toString(), Modifier.weight(1f))
-                SmallMetric("Iuran", "$pct%", Modifier.weight(1f))
-            }
-        }
-        item {
-            Text("Layanan", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            Text("Akses cepat administrasi lingkungan", color = Muted, fontSize = 10.sp)
-        }
-        item {
-            val services = listOf(
-                Triple("Warga", Icons.Default.Groups, Screen.WARGA),
-                Triple("Iuran", Icons.Default.ReceiptLong, Screen.IURAN),
-                Triple("Kas", Icons.Default.AccountBalanceWallet, Screen.CASH),
-                Triple("Surat", Icons.Default.Description, Screen.LETTERS),
-                Triple("Info", Icons.Default.Campaign, Screen.INFO),
-                Triple("Laporan", Icons.Default.Assessment, Screen.REPORT),
-                Triple("Lainnya", Icons.Default.GridView, Screen.MORE)
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                services.chunked(4).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { (label, icon, target) ->
-                            ServiceTile(label, icon, Modifier.weight(1f)) { navigate(target) }
-                        }
-                        repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
-            }
-        }
-        item {
-            SectionTitle("Perlu diperhatikan", "Status yang butuh tindak lanjut")
-            Card(shape = RoundedCornerShape(16.dp)) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Green)
+                    .padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 28.dp)
+            ) {
                 Column {
-                    StatusRow(Icons.Default.Payments, "${(households.size - paidKk).coerceAtLeast(0)} KK belum lunas", "Iuran bulan ini") { navigate(Screen.IURAN) }
-                    HorizontalDivider()
-                    StatusRow(Icons.Default.Description, "${letters.count { it.status != "Selesai" }} surat aktif", "Permohonan berjalan") { navigate(Screen.LETTERS) }
-                    if (spec.has(Feature.CLOUD_SYNC)) {
-                        HorizontalDivider()
-                        StatusRow(Icons.Default.CloudOff, "Cloud belum terhubung", "Hubungkan untuk sinkronisasi") { navigate(Screen.CLOUD) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = Color.White)
+                        }
+                        Spacer(Modifier.width(11.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("RUKUNYA", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                            Text("Urus Warga Jadi Mudah.", color = Color(0xFFD7EDE4), fontSize = 10.sp)
+                        }
+                        IconButton(onClick = { navigate(Screen.INFO) }) {
+                            Icon(Icons.Default.NotificationsNone, contentDescription = "Informasi", tint = Color.White)
+                        }
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+                    Text("Selamat datang, Pengurus", color = Color(0xFFD7EDE4), fontSize = 11.sp)
+                    Text("Apa yang perlu dibereskan hari ini?", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+
+                    Spacer(Modifier.height(15.dp))
+                    Surface(
+                        onClick = { navigate(Screen.WARGA) },
+                        color = Color.White,
+                        shape = RoundedCornerShape(15.dp),
+                        shadowElevation = 0.dp
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Muted, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(9.dp))
+                            Text("Cari warga atau nomor KK", color = Muted, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFF9BA49F))
+                        }
                     }
                 }
             }
         }
+
         item {
-            SectionTitle("Aktivitas terbaru", "Kas dan informasi lingkungan")
-            Card(shape = RoundedCornerShape(16.dp)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    cash.take(3).forEach { item ->
-                        Row(Modifier.fillMaxWidth()) {
-                            Text(item.note.ifBlank { item.category }, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 11.sp)
-                            Text((if (item.type == "IN") "+" else "-") + rupiah(item.amount), color = if (item.type == "IN") Green else Color(0xFFB42318), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .offset(y = (-14).dp)
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Keuangan lingkungan", color = Muted, fontSize = 10.sp)
+                                Text(rupiah(saldo), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                            }
+                            Surface(
+                                color = GreenSoft,
+                                shape = RoundedCornerShape(12.dp),
+                                onClick = { navigate(Screen.CASH) }
+                            ) {
+                                Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Green, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(5.dp))
+                                    Text("Lihat Kas", color = Green, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Iuran ${vm.currentPeriod()}", fontSize = 10.sp, color = Muted)
+                                    Text("$paidKk/${households.size} KK", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                LinearProgressIndicator(
+                                    progress = { pct / 100f },
+                                    modifier = Modifier.fillMaxWidth().height(7.dp),
+                                    color = Green,
+                                    trackColor = Color(0xFFE8EEEB)
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text("$pct%", color = Green, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
-                    if (cash.isEmpty()) Text("Belum ada transaksi kas.", color = Muted, fontSize = 11.sp)
-                    if (announcements.isNotEmpty()) {
-                        HorizontalDivider()
-                        Text(announcements.first().title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                        Text(announcements.first().body, color = Muted, fontSize = 10.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Text("Aksi cepat", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Yang paling sering dipakai pengurus", fontSize = 10.sp, color = Muted)
+                Spacer(Modifier.height(10.dp))
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    HomeAction(Icons.Default.ReceiptLong, "Catat Iuran") { navigate(Screen.IURAN) }
+                    HomeAction(Icons.Default.SwapVert, "Kas") { navigate(Screen.CASH) }
+                    HomeAction(Icons.Default.Description, "Buat Surat") { navigate(Screen.LETTERS) }
+                    HomeAction(Icons.Default.Campaign, "Umumkan") { navigate(Screen.INFO) }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Hari ini", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("Hal yang perlu ditindaklanjuti", fontSize = 10.sp, color = Muted)
+                    }
+                    TextButton(onClick = { navigate(Screen.REPORT) }) { Text("Ringkasan", fontSize = 10.sp) }
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column {
+                        HomeAttentionRow(
+                            icon = Icons.Default.Payments,
+                            title = if (unpaid == 0) "Iuran bulan ini tertib" else "$unpaid KK belum lunas",
+                            subtitle = if (unpaid == 0) "Semua pembayaran sudah tercatat" else "Ketuk untuk lihat daftar pembayaran",
+                            accent = if (unpaid == 0) Green else Color(0xFFB7791F)
+                        ) { navigate(Screen.IURAN) }
+                        HorizontalDivider(color = Color(0xFFF0F2F1))
+                        HomeAttentionRow(
+                            icon = Icons.Default.Description,
+                            title = if (pendingLetters == 0) "Tidak ada surat tertunda" else "$pendingLetters surat masih aktif",
+                            subtitle = if (pendingLetters == 0) "Semua permohonan telah selesai" else "Periksa status permohonan warga",
+                            accent = Green
+                        ) { navigate(Screen.LETTERS) }
+                    }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Text("Layanan lainnya", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Administrasi lingkungan dalam satu tempat", fontSize = 10.sp, color = Muted)
+                Spacer(Modifier.height(9.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HomeServiceCard(Icons.Default.Groups, "Warga", "${households.size} KK", Modifier.weight(1f)) { navigate(Screen.WARGA) }
+                    HomeServiceCard(Icons.Default.Assessment, "Laporan", "Rekap", Modifier.weight(1f)) { navigate(Screen.REPORT) }
+                    HomeServiceCard(Icons.Default.GridView, "Lainnya", spec.title, Modifier.weight(1f)) { navigate(Screen.MORE) }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Text("Aktivitas terbaru", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Jejak transaksi dan informasi terakhir", fontSize = 10.sp, color = Muted)
+                Spacer(Modifier.height(9.dp))
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 5.dp)) {
+                        val latestCash = cash.take(3)
+                        latestCash.forEachIndexed { index, item ->
+                            ActivityFeedRow(
+                                icon = if (item.type == "IN") Icons.Default.SouthWest else Icons.Default.NorthEast,
+                                title = item.note.ifBlank { item.category },
+                                subtitle = item.category,
+                                trailing = (if (item.type == "IN") "+" else "-") + rupiah(item.amount),
+                                positive = item.type == "IN"
+                            )
+                            if (index < latestCash.lastIndex || announcements.isNotEmpty()) HorizontalDivider(color = Color(0xFFF0F2F1))
+                        }
+                        announcements.firstOrNull()?.let {
+                            ActivityFeedRow(
+                                icon = Icons.Default.Campaign,
+                                title = it.title,
+                                subtitle = "Pengumuman",
+                                trailing = "",
+                                positive = true
+                            )
+                        }
+                        if (latestCash.isEmpty() && announcements.isEmpty()) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.History, contentDescription = null, tint = Color(0xFFA7B0AB))
+                                Spacer(Modifier.width(10.dp))
+                                Text("Belum ada aktivitas. Mulai dari aksi cepat di atas.", color = Muted, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+                Surface(
+                    color = if (plan == Plan.FREE) Color(0xFFFFF7DE) else GreenSoft,
+                    shape = RoundedCornerShape(15.dp),
+                    onClick = { navigate(Screen.PLANS) }
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = if (plan == Plan.FREE) Color(0xFF9B6A00) else Green)
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Paket ${spec.title}", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text(
+                                if (plan == Plan.FREE) "Buka fitur tambahan saat lingkungan membutuhkannya." else spec.description,
+                                color = Muted,
+                                fontSize = 9.sp
+                            )
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Muted)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.width(72.dp).clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE6EBE8))
+        ) {
+            Box(Modifier.size(54.dp), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = label, tint = Green, modifier = Modifier.size(25.dp))
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+@Composable
+private fun HomeAttentionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(38.dp).background(accent.copy(alpha = 0.10f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            Text(subtitle, color = Muted, fontSize = 9.sp)
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFADB5B1), modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun HomeServiceCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(15.dp)
+    ) {
+        Column(Modifier.padding(13.dp)) {
+            Box(
+                Modifier.size(34.dp).background(GreenSoft, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = Green, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            Text(subtitle, color = Muted, fontSize = 9.sp, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun ActivityFeedRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    trailing: String,
+    positive: Boolean
+) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(36.dp).background(Color(0xFFF3F6F4), RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = if (positive) Green else Color(0xFFB42318), modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, fontSize = 9.sp, color = Muted, maxLines = 1)
+        }
+        if (trailing.isNotBlank()) {
+            Text(trailing, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (positive) Green else Color(0xFFB42318))
         }
     }
 }
