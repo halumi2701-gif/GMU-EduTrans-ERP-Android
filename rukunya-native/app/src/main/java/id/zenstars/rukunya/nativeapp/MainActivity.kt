@@ -774,37 +774,65 @@ private fun CashScreen(vm: RukunyaViewModel) {
     val cash by vm.cash.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
     val saldo = cash.sumOf { if (it.type == "IN") it.amount else -it.amount }
+    val income = cash.filter { it.type == "IN" }.sumOf { it.amount }
+    val expense = cash.filter { it.type != "IN" }.sumOf { it.amount }
 
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 92.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(contentPadding = PaddingValues(16.dp,10.dp,16.dp,92.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = Green), shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Saldo berjalan", color = Color(0xFFD6EAE2), fontSize = 10.sp)
-                        Text(rupiah(saldo), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+                Card(colors=CardDefaults.cardColors(containerColor=GreenSoft),shape=RoundedCornerShape(17.dp)){
+                    Row(Modifier.fillMaxWidth().padding(15.dp),verticalAlignment=Alignment.CenterVertically){
+                        Column(Modifier.weight(1f)){Text("Saldo Saat Ini",color=Green,fontSize=10.sp,fontWeight=FontWeight.SemiBold);Text(rupiah(saldo),fontSize=25.sp,fontWeight=FontWeight.ExtraBold)}
+                        Icon(Icons.Default.AccountBalanceWallet,null,tint=Green,modifier=Modifier.size(30.dp))
                     }
                 }
             }
-            if (cash.isEmpty()) item { EmptyState("Kas masih kosong", "Tambahkan pemasukan atau pengeluaran.") }
-            items(cash, key = { it.id }) { item ->
-                Card(shape = RoundedCornerShape(13.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (item.type == "IN") Icons.Default.SouthWest else Icons.Default.NorthEast, contentDescription = null, tint = if (item.type == "IN") Green else Color(0xFFB42318))
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(item.note.ifBlank { item.category }, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                            Text(item.category + " • " + formatDate(item.date), color = Muted, fontSize = 9.sp)
-                        }
-                        Text((if (item.type == "IN") "+" else "-") + rupiah(item.amount), color = if (item.type == "IN") Green else Color(0xFFB42318), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            item {
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                    CashAction(Icons.Default.SouthWest,"Pemasukan",Green,Modifier.weight(1f)){showAdd=true}
+                    CashAction(Icons.Default.NorthEast,"Pengeluaran",Color(0xFFB42318),Modifier.weight(1f)){showAdd=true}
+                    CashAction(Icons.Default.History,"Riwayat",Color(0xFF5C6BC0),Modifier.weight(1f)){}
+                }
+            }
+            item { Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Transaksi Terbaru",fontWeight=FontWeight.ExtraBold,fontSize=14.sp,modifier=Modifier.weight(1f));Text(cash.size.toString()+" transaksi",color=Muted,fontSize=9.sp)} }
+            if(cash.isEmpty()) item { EmptyState("Kas masih kosong","Tambahkan pemasukan atau pengeluaran.") }
+            items(cash.take(12),key={it.id}){item->
+                Row(Modifier.fillMaxWidth().padding(vertical=7.dp),verticalAlignment=Alignment.CenterVertically){
+                    Box(Modifier.size(38.dp).background(if(item.type=="IN") GreenSoft else Color(0xFFFFEEEE),RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){
+                        Icon(if(item.type=="IN") Icons.Default.SouthWest else Icons.Default.NorthEast,null,tint=if(item.type=="IN") Green else Color(0xFFB42318),modifier=Modifier.size(18.dp))
                     }
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)){Text(item.note.ifBlank{item.category},fontWeight=FontWeight.Bold,fontSize=10.sp);Text(item.category+" • "+formatDate(item.date),color=Muted,fontSize=8.sp)}
+                    Text((if(item.type=="IN") "+" else "-")+rupiah(item.amount),color=if(item.type=="IN") Green else Color(0xFFB42318),fontWeight=FontWeight.ExtraBold,fontSize=10.sp)
+                }
+            }
+            item { Text("Rekap Bulanan",fontWeight=FontWeight.ExtraBold,fontSize=14.sp) }
+            item {
+                Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
+                    CashSummary("Pemasukan",income,GreenSoft,Green,Modifier.weight(1f))
+                    CashSummary("Pengeluaran",expense,Color(0xFFFFEEEE),Color(0xFFB42318),Modifier.weight(1f))
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp), containerColor = Green, contentColor = Color.White) { Icon(Icons.Default.Add, null) }
+        FloatingActionButton(onClick={showAdd=true},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),containerColor=Green,contentColor=Color.White){Icon(Icons.Default.Add,null)}
     }
-    if (showAdd) AddCashDialog(onDismiss = { showAdd = false }) { type, amount, category, note -> vm.addCash(type, amount, category, note); showAdd = false }
+    if(showAdd) AddCashDialog(onDismiss={showAdd=false}){type,amount,category,note->vm.addCash(type,amount,category,note);showAdd=false}
 }
 
+@Composable
+private fun CashAction(icon:ImageVector,label:String,color:Color,modifier:Modifier=Modifier,onClick:()->Unit){
+    Card(modifier=modifier.clickable(onClick=onClick),colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(14.dp)){
+        Column(Modifier.padding(vertical=12.dp),horizontalAlignment=Alignment.CenterHorizontally){
+            Box(Modifier.size(34.dp).background(color.copy(alpha=0.10f),RoundedCornerShape(11.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=color,modifier=Modifier.size(18.dp))}
+            Spacer(Modifier.height(6.dp));Text(label,fontSize=8.sp,fontWeight=FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun CashSummary(label:String,amount:Long,bg:Color,fg:Color,modifier:Modifier=Modifier){
+    Card(modifier=modifier,colors=CardDefaults.cardColors(containerColor=bg),shape=RoundedCornerShape(14.dp)){Column(Modifier.padding(13.dp)){Text(label,color=Muted,fontSize=8.sp);Text(rupiah(amount),color=fg,fontWeight=FontWeight.ExtraBold,fontSize=14.sp)}}
+}
 @Composable
 private fun InfoScreen(vm: RukunyaViewModel) {
     val announcements by vm.announcements.collectAsStateWithLifecycle()
@@ -870,81 +898,49 @@ private fun LetterScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
 }
 
 @Composable
-private fun ReportScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+private fun ReportScreen(vm:RukunyaViewModel,upgrade:()->Unit){
+    val context=LocalContext.current
     val households by vm.households.collectAsStateWithLifecycle()
     val residents by vm.residentCount.collectAsStateWithLifecycle()
     val cash by vm.cash.collectAsStateWithLifecycle()
     val contributions by vm.contributions.collectAsStateWithLifecycle()
     val letters by vm.letters.collectAsStateWithLifecycle()
-    val spec = vm.currentPlanSpec()
-    val saldo = cash.sumOf { if (it.type == "IN") it.amount else -it.amount }
-    val monthIncome = contributions.filter { it.period == vm.currentPeriod() }.sumOf { it.amount }
-
-    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
-        if (uri != null) {
-            val csv = buildString {
-                appendLine("RUKUNYA Native v2 - Laporan ${vm.currentPeriod()}")
-                appendLine("Metrik,Nilai")
-                appendLine("Warga,$residents")
-                appendLine("KK,${households.size}")
-                appendLine("Saldo Kas,$saldo")
-                appendLine("Iuran Bulan Ini,$monthIncome")
-                appendLine("Jumlah Surat,${letters.size}")
-                appendLine()
-                appendLine("Kas,Tipe,Nominal,Kategori,Keterangan")
-                cash.forEach { appendLine("${formatDate(it.date)},${it.type},${it.amount},\"${it.category}\",\"${it.note}\"") }
-            }
-            context.contentResolver.openOutputStream(uri)?.use { it.write(csv.toByteArray()) }
-        }
+    val spec=vm.currentPlanSpec()
+    val saldo=cash.sumOf{if(it.type=="IN") it.amount else -it.amount}
+    val monthIncome=contributions.filter{it.period==vm.currentPeriod()}.sumOf{it.amount}
+    val csvLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")){uri->
+        if(uri!=null){val csv="Metrik,Nilai\nWarga,"+residents+"\nKK,"+households.size+"\nSaldo Kas,"+saldo+"\nIuran Bulan Ini,"+monthIncome+"\nJumlah Surat,"+letters.size;context.contentResolver.openOutputStream(uri)?.use{it.write(csv.toByteArray())}}
     }
-    val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
-        if (uri != null) writeSimpleReportPdf(context, uri, residents, households.size, saldo, monthIncome, letters.size)
-    }
-
-    LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val pdfLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")){uri->if(uri!=null)writeSimpleReportPdf(context,uri,residents,households.size,saldo,monthIncome,letters.size)}
+    LazyColumn(contentPadding=PaddingValues(16.dp,12.dp,16.dp,28.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+        item { Text("Laporan",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("Pilih jenis laporan yang ingin dilihat atau diekspor",color=Muted,fontSize=10.sp) }
+        item { ReportModule(Icons.Default.AccountBalanceWallet,"Laporan Kas","Rekap pemasukan dan pengeluaran",rupiah(saldo)){} }
+        item { ReportModule(Icons.Default.ReceiptLong,"Laporan Iuran","Status pembayaran iuran warga",rupiah(monthIncome)){} }
+        item { ReportModule(Icons.Default.Groups,"Laporan Data Warga","Rekap data KK dan warga",residents.toString()+" warga"){} }
+        item { ReportModule(Icons.Default.Description,"Laporan Surat","Rekap surat yang dibuat",letters.size.toString()+" surat"){} }
         item {
-            Text("Laporan ${vm.currentPeriod()}", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-            Text("Ringkasan administrasi lingkungan", color = Muted, fontSize = 11.sp)
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReportRow("Total warga", residents.toString())
-                ReportRow("Total KK", households.size.toString())
-                ReportRow("Saldo kas", rupiah(saldo))
-                ReportRow("Iuran bulan ini", rupiah(monthIncome))
-                ReportRow("Surat tercatat", letters.size.toString())
-            }
-        }
-        item {
-            if (spec.has(Feature.ADVANCED_REPORT)) {
-                Card(shape = RoundedCornerShape(15.dp)) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text("Export Laporan", fontWeight = FontWeight.Bold)
-                        Text("Simpan rekap untuk arsip atau dibagikan ke pengurus.", color = Muted, fontSize = 10.sp)
-                        Spacer(Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { csvLauncher.launch("RUKUNYA-${vm.currentPeriod()}.csv") }, Modifier.weight(1f)) { Icon(Icons.Default.TableView, null); Spacer(Modifier.width(5.dp)); Text("CSV") }
-                            Button(onClick = { pdfLauncher.launch("RUKUNYA-${vm.currentPeriod()}.pdf") }, Modifier.weight(1f)) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(5.dp)); Text("PDF") }
-                        }
+            if(spec.has(Feature.ADVANCED_REPORT)){
+                Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(15.dp)){
+                    Column(Modifier.padding(14.dp)){
+                        Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(38.dp).background(GreenSoft,RoundedCornerShape(11.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Download,null,tint=Green)};Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Export Data",fontWeight=FontWeight.Bold,fontSize=11.sp);Text("Unduh dalam format PDF/CSV",color=Muted,fontSize=9.sp)}}
+                        Spacer(Modifier.height(10.dp));Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={csvLauncher.launch("RUKUNYA-"+vm.currentPeriod()+".csv")},modifier=Modifier.weight(1f)){Text("CSV")};Button(onClick={pdfLauncher.launch("RUKUNYA-"+vm.currentPeriod()+".pdf")},modifier=Modifier.weight(1f)){Text("PDF")}}
                     }
                 }
-            } else {
-                UpgradeBanner("Laporan & export lengkap", "Basic membuka export CSV/PDF dan histori penuh.", upgrade)
-            }
-        }
-        if (spec.has(Feature.RW_DASHBOARD)) item {
-            Card(colors = CardDefaults.cardColors(containerColor = GreenSoft), shape = RoundedCornerShape(15.dp)) {
-                Column(Modifier.padding(14.dp)) {
-                    Text("Dashboard RW • Pro", color = Green, fontWeight = FontWeight.ExtraBold)
-                    Text("Siap untuk konsolidasi beberapa RT saat struktur wilayah diaktifkan.", fontSize = 10.sp, color = Muted)
-                }
-            }
+            } else UpgradeBanner("Export Data","Basic membuka export CSV/PDF dan histori penuh.",upgrade)
         }
     }
 }
 
+@Composable
+private fun ReportModule(icon:ImageVector,title:String,subtitle:String,value:String,onClick:()->Unit){
+    Card(modifier=Modifier.fillMaxWidth().clickable(onClick=onClick),colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(15.dp)){
+        Row(Modifier.fillMaxWidth().padding(14.dp),verticalAlignment=Alignment.CenterVertically){
+            Box(Modifier.size(40.dp).background(GreenSoft,RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Green,modifier=Modifier.size(20.dp))}
+            Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text(title,fontWeight=FontWeight.Bold,fontSize=11.sp);Text(subtitle,color=Muted,fontSize=9.sp)}
+            Text(value,color=Green,fontWeight=FontWeight.Bold,fontSize=9.sp);Spacer(Modifier.width(5.dp));Icon(Icons.Default.ChevronRight,null,tint=Muted,modifier=Modifier.size(18.dp))
+        }
+    }
+}
 @Composable
 private fun MoreScreen(vm: RukunyaViewModel, navigate: (Screen) -> Unit) {
     val context = LocalContext.current
