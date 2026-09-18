@@ -461,6 +461,12 @@ internal fun SalesCommercialV65Sheet(
             }
         }
 
+        SalesPublicDetailV651Section(
+            accessToken = session.accessToken,
+            packageCode = selectedPackage?.packageCode.orEmpty(),
+            visible = channel == "DIRECT_PUBLIC"
+        )
+
         if (channel == "B2B_MOU") {
             V65Picker(
                 label = "Partner B2B dengan MoU/PKS aktif",
