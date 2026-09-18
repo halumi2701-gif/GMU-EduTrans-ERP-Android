@@ -557,67 +557,77 @@ private fun WargaScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
     val spec = Plans.get(plan)
     var showAdd by remember { mutableStateOf(false) }
     var addMemberTo by remember { mutableStateOf<HouseholdWithResidents?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf("Semua") }
+
+    val filtered = households.filter { item ->
+        val q = query.trim().lowercase()
+        val matchesQuery = q.isBlank() || item.household.headName.lowercase().contains(q) || item.household.kkNumber.lowercase().contains(q) || item.household.address.lowercase().contains(q)
+        val matchesFilter = when (filter) {
+            "RT 01" -> item.household.rt.contains("01")
+            "RT 02" -> item.household.rt.contains("02")
+            else -> true
+        }
+        matchesQuery && matchesFilter
+    }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 92.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Data Warga & KK", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                        Text(if (spec.maxHouseholds == null) "KK tanpa batas" else "${households.size}/${spec.maxHouseholds} KK pada paket FREE", color = Muted, fontSize = 11.sp)
+                Text("Data Warga & KK", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                Text("Total " + households.size + " KK • " + households.sumOf { it.residents.size } + " anggota", color = Muted, fontSize = 10.sp)
+            }
+            item {
+                OutlinedTextField(
+                    value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    shape = RoundedCornerShape(14.dp), leadingIcon = { Icon(Icons.Default.Search, null) },
+                    placeholder = { Text("Cari nama, No. KK, atau alamat...", fontSize = 11.sp) }
+                )
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    listOf("Semua", "RT 01", "RT 02").forEach { label ->
+                        FilterChip(
+                            selected = filter == label, onClick = { filter = label },
+                            label = { Text(label, fontSize = 9.sp) },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Green, selectedLabelColor = Color.White)
+                        )
                     }
-                    if (spec.maxHouseholds != null) TextButton(onClick = upgrade) { Text("Upgrade") }
+                    Spacer(Modifier.weight(1f))
+                    if (spec.maxHouseholds != null) TextButton(onClick = upgrade) { Text("Upgrade", fontSize = 9.sp) }
                 }
             }
-            if (households.isEmpty()) item { EmptyState("Belum ada data keluarga", "Tambahkan KK pertama untuk memulai.") }
-            items(households, key = { it.household.id }) { item ->
-                Card(shape = RoundedCornerShape(14.dp)) {
+            if (filtered.isEmpty()) item { EmptyState("Data tidak ditemukan", if (query.isBlank()) "Tambahkan KK pertama untuk memulai." else "Coba kata kunci lain.") }
+            items(filtered, key = { it.household.id }) { item ->
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(15.dp)) {
                     Column(Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(42.dp).background(GreenSoft, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Home, contentDescription = null, tint = Green)
+                            Box(Modifier.size(44.dp).background(GreenSoft, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Groups, contentDescription = null, tint = Green)
                             }
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(11.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(item.household.headName, fontWeight = FontWeight.Bold)
-                                Text("KK ${item.household.kkNumber} • ${item.residents.size} anggota", color = Muted, fontSize = 10.sp)
-                                Text(item.household.address.ifBlank { "Alamat belum diisi" }, color = Muted, fontSize = 10.sp)
+                                Text("Keluarga " + item.household.headName, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("KK: " + item.household.kkNumber, color = Muted, fontSize = 9.sp)
+                                Text(item.household.rt + " • " + item.household.address.ifBlank { "Alamat belum diisi" }, color = Muted, fontSize = 9.sp)
+                                Text(item.residents.size.toString() + " anggota", color = Green, fontWeight = FontWeight.SemiBold, fontSize = 9.sp)
                             }
-                            IconButton(onClick = { addMemberTo = item }) { Icon(Icons.Default.PersonAdd, contentDescription = "Tambah anggota") }
-                        }
-                        if (item.residents.isNotEmpty()) {
-                            Spacer(Modifier.height(10.dp)); HorizontalDivider(); Spacer(Modifier.height(6.dp))
-                            item.residents.take(4).forEach { resident ->
-                                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                    Text(resident.name, Modifier.weight(1f), fontSize = 11.sp)
-                                    Text(resident.relation, color = Muted, fontSize = 9.sp)
-                                }
-                            }
+                            IconButton(onClick = { addMemberTo = item }) { Icon(Icons.Default.PersonAdd, contentDescription = "Tambah anggota", tint = Green) }
                         }
                     }
                 }
             }
         }
         FloatingActionButton(
-            onClick = {
-                if (spec.maxHouseholds != null && households.size >= spec.maxHouseholds!!) upgrade() else showAdd = true
-            },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-            containerColor = Green,
-            contentColor = Color.White
+            onClick = { if (spec.maxHouseholds != null && households.size >= spec.maxHouseholds!!) upgrade() else showAdd = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp), containerColor = Green, contentColor = Color.White
         ) { Icon(Icons.Default.Add, contentDescription = "Tambah KK") }
     }
-
-    if (showAdd) AddHouseholdDialog(onDismiss = { showAdd = false }) { kk, head, address, rt, phone ->
-        vm.addHousehold(kk, head, address, rt, phone); showAdd = false
-    }
+    if (showAdd) AddHouseholdDialog(onDismiss = { showAdd = false }) { kk, head, address, rt, phone -> vm.addHousehold(kk, head, address, rt, phone); showAdd = false }
     addMemberTo?.let { household ->
-        AddResidentDialog(household.household.headName, onDismiss = { addMemberTo = null }) { name, nik, relation ->
-            vm.addResident(household.household.id, name, nik, relation); addMemberTo = null
-        }
+        AddResidentDialog(household.household.headName, onDismiss = { addMemberTo = null }) { name, nik, relation -> vm.addResident(household.household.id, name, nik, relation); addMemberTo = null }
     }
 }
-
 @Composable
 private fun ServicesScreen(vm: RukunyaViewModel, navigate: (Screen) -> Unit) {
     val contributions by vm.contributions.collectAsStateWithLifecycle()
@@ -694,43 +704,71 @@ private fun IuranScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
     val contributions by vm.contributions.collectAsStateWithLifecycle()
     val spec = vm.currentPlanSpec()
     var showAdd by remember { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var statusFilter by rememberSaveable { mutableStateOf("Semua") }
     val monthRows = contributions.filter { it.period == vm.currentPeriod() }
-    val householdName = households.associate { it.household.id to it.household.headName }
+    val paidIds = monthRows.map { it.householdId }.toSet()
+    val paidCount = paidIds.size
+    val unpaidCount = (households.size - paidCount).coerceAtLeast(0)
+    val pct = if (households.isEmpty()) 0 else paidCount * 100 / households.size
+    val visible = households.filter { h ->
+        val q = query.trim().lowercase()
+        val paid = h.household.id in paidIds
+        val matchesQ = q.isBlank() || h.household.headName.lowercase().contains(q) || h.household.kkNumber.lowercase().contains(q)
+        val matchesStatus = when(statusFilter) { "Lunas" -> paid; "Belum Bayar" -> !paid; else -> true }
+        matchesQ && matchesStatus
+    }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 92.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { Text("Iuran Warga", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp); Text("Periode " + vm.currentPeriod(), color = Muted, fontSize = 10.sp) }
             item {
-                Text("Iuran Bulanan", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
-                Text("Periode ${vm.currentPeriod()} • ${monthRows.map { it.householdId }.distinct().size}/${households.size} KK lunas", color = Muted, fontSize = 11.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IuranMetric("Sudah Bayar", paidCount.toString(), GreenSoft, Green, Modifier.weight(1f))
+                    IuranMetric("Belum Bayar", unpaidCount.toString(), Color(0xFFFFEEEE), Color(0xFFB42318), Modifier.weight(1f))
+                    IuranMetric("Persentase", pct.toString() + "%", GreenSoft, Green, Modifier.weight(1f))
+                }
             }
-            if (!spec.has(Feature.CUSTOM_IURAN)) item {
-                UpgradeBanner("Jenis iuran tambahan", "Basic membuka iuran keamanan, kebersihan, kegiatan, dan kategori khusus.", upgrade)
+            item { OutlinedTextField(value=query,onValueChange={query=it},modifier=Modifier.fillMaxWidth(),singleLine=true,shape=RoundedCornerShape(14.dp),leadingIcon={Icon(Icons.Default.Search,null)},placeholder={Text("Cari nama atau No. KK...",fontSize=11.sp)}) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Semua","Lunas","Belum Bayar").forEach { label ->
+                        FilterChip(selected=statusFilter==label,onClick={statusFilter=label},label={Text(label,fontSize=9.sp)},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Green,selectedLabelColor=Color.White))
+                    }
+                }
             }
-            if (monthRows.isEmpty()) item { EmptyState("Belum ada pembayaran", "Catat pembayaran iuran warga bulan ini.") }
-            items(monthRows, key = { it.id }) { item ->
-                Card(shape = RoundedCornerShape(14.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Green)
+            if (!spec.has(Feature.CUSTOM_IURAN)) item { UpgradeBanner("Jenis iuran tambahan", "Basic membuka kategori iuran khusus.", upgrade) }
+            items(visible, key = { it.household.id }) { h ->
+                val row = monthRows.firstOrNull { it.householdId == h.household.id }
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(14.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(40.dp).background(GreenSoft,RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Person,null,tint=Green)}
                         Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(householdName[item.householdId] ?: "KK", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text(item.category, color = Muted, fontSize = 10.sp)
+                        Column(Modifier.weight(1f)){
+                            Text(h.household.headName,fontWeight=FontWeight.Bold,fontSize=11.sp)
+                            Text(h.household.rt + " • KK " + h.household.kkNumber,color=Muted,fontSize=9.sp)
                         }
-                        Text(rupiah(item.amount), fontWeight = FontWeight.Bold, color = Green, fontSize = 12.sp)
+                        if(row!=null){
+                            Column(horizontalAlignment=Alignment.End){
+                                Surface(color=GreenSoft,shape=RoundedCornerShape(9.dp)){Text("✓ Lunas",color=Green,fontWeight=FontWeight.Bold,fontSize=9.sp,modifier=Modifier.padding(horizontal=8.dp,vertical=5.dp))}
+                                Text(rupiah(row.amount),color=Green,fontSize=9.sp,fontWeight=FontWeight.Bold)
+                            }
+                        } else { Surface(color=Color(0xFFFFECEB),shape=RoundedCornerShape(9.dp)){Text("Belum Bayar",color=Color(0xFFB42318),fontWeight=FontWeight.Bold,fontSize=9.sp,modifier=Modifier.padding(horizontal=8.dp,vertical=5.dp))} }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp), containerColor = Green, contentColor = Color.White) {
-            Icon(Icons.Default.Add, contentDescription = "Catat iuran")
-        }
+        FloatingActionButton(onClick={showAdd=true},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),containerColor=Green,contentColor=Color.White){Icon(Icons.Default.Add,"Catat iuran")}
     }
-
-    if (showAdd) AddContributionDialog(households, spec.has(Feature.CUSTOM_IURAN), onDismiss = { showAdd = false }, onUpgrade = upgrade) { id, amount, category ->
-        vm.addContribution(id, amount, category); showAdd = false
-    }
+    if(showAdd) AddContributionDialog(households,spec.has(Feature.CUSTOM_IURAN),onDismiss={showAdd=false},onUpgrade=upgrade){id,amount,category->vm.addContribution(id,amount,category);showAdd=false}
 }
 
+@Composable
+private fun IuranMetric(label:String,value:String,bg:Color,fg:Color,modifier:Modifier=Modifier){
+    Card(modifier=modifier,colors=CardDefaults.cardColors(containerColor=bg),shape=RoundedCornerShape(14.dp)){
+        Column(Modifier.padding(12.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(value,color=fg,fontWeight=FontWeight.ExtraBold,fontSize=18.sp);Text(label,color=Muted,fontSize=8.sp,maxLines=1)}
+    }
+}
 @Composable
 private fun CashScreen(vm: RukunyaViewModel) {
     val cash by vm.cash.collectAsStateWithLifecycle()
