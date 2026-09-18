@@ -69,19 +69,19 @@ jobs:
           if [[ -n "${SALES_KEYSTORE_B64:-}" && -n "${SALES_KEYSTORE_PASSWORD:-}" && -n "${SALES_KEY_ALIAS:-}" && -n "${SALES_KEY_PASSWORD:-}" ]]; then
             echo "$SALES_KEYSTORE_B64" | base64 --decode > /tmp/gmu-sales-release.jks
             BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-            "$BT/zipalign" -f 4 "$UNSIGNED" release-out/GMU-EduTrans-Sales-v6.5.0-aligned.apk
+            "$BT/zipalign" -f 4 "$UNSIGNED" release-out/GMU-EduTrans-Sales-v6.5.1-aligned.apk
             "$BT/apksigner" sign \
               --ks /tmp/gmu-sales-release.jks \
               --ks-pass "pass:$SALES_KEYSTORE_PASSWORD" \
               --ks-key-alias "$SALES_KEY_ALIAS" \
               --key-pass "pass:$SALES_KEY_PASSWORD" \
-              --out release-out/GMU-EduTrans-Sales-v6.5.0-release.apk \
-              release-out/GMU-EduTrans-Sales-v6.5.0-aligned.apk
-            "$BT/apksigner" verify --verbose --print-certs release-out/GMU-EduTrans-Sales-v6.5.0-release.apk
-            rm -f release-out/GMU-EduTrans-Sales-v6.5.0-aligned.apk /tmp/gmu-sales-release.jks
+              --out release-out/GMU-EduTrans-Sales-v6.5.1-release.apk \
+              release-out/GMU-EduTrans-Sales-v6.5.1-aligned.apk
+            "$BT/apksigner" verify --verbose --print-certs release-out/GMU-EduTrans-Sales-v6.5.1-release.apk
+            rm -f release-out/GMU-EduTrans-Sales-v6.5.1-aligned.apk /tmp/gmu-sales-release.jks
             echo "signed=true" >> "$GITHUB_OUTPUT"
           else
-            cp "$UNSIGNED" release-out/GMU-EduTrans-Sales-v6.5.0-unsigned.apk
+            cp "$UNSIGNED" release-out/GMU-EduTrans-Sales-v6.5.1-unsigned.apk
             echo "Signing secrets are not configured; publishing unsigned release candidate only."
             echo "signed=false" >> "$GITHUB_OUTPUT"
           fi
@@ -90,7 +90,7 @@ jobs:
       - name: Upload Sales release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: GMU-EduTrans-Sales-v6.5.0-release-candidate
+          name: GMU-EduTrans-Sales-v6.5.1-release-candidate
           path: release-out/*.apk
           if-no-files-found: error
           retention-days: 14
