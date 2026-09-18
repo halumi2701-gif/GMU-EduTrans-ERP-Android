@@ -834,29 +834,29 @@ private fun CashSummary(label:String,amount:Long,bg:Color,fg:Color,modifier:Modi
     Card(modifier=modifier,colors=CardDefaults.cardColors(containerColor=bg),shape=RoundedCornerShape(14.dp)){Column(Modifier.padding(13.dp)){Text(label,color=Muted,fontSize=8.sp);Text(rupiah(amount),color=fg,fontWeight=FontWeight.ExtraBold,fontSize=14.sp)}}
 }
 @Composable
-private fun InfoScreen(vm: RukunyaViewModel) {
+private fun InfoScreen(vm:RukunyaViewModel){
     val announcements by vm.announcements.collectAsStateWithLifecycle()
-    var showAdd by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 92.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { Text("Pengumuman & Informasi", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp) }
-            if (announcements.isEmpty()) item { EmptyState("Belum ada pengumuman", "Terbitkan informasi untuk warga.") }
-            items(announcements, key = { it.id }) { item ->
-                Card(shape = RoundedCornerShape(14.dp)) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(item.title, fontWeight = FontWeight.Bold)
-                        Text(formatDate(item.createdAt), color = Muted, fontSize = 9.sp)
-                        Spacer(Modifier.height(6.dp))
-                        Text(item.body, fontSize = 11.sp, color = Color(0xFF46524C))
+    var showAdd by remember{mutableStateOf(false)}
+    Box(Modifier.fillMaxSize()){
+        LazyColumn(contentPadding=PaddingValues(16.dp,10.dp,16.dp,92.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+            item{Text("Pengumuman & Agenda",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("Informasi terbaru untuk warga",color=Muted,fontSize=10.sp)}
+            if(announcements.isNotEmpty()) item{
+                Card(colors=CardDefaults.cardColors(containerColor=Green),shape=RoundedCornerShape(17.dp)){
+                    Column(Modifier.padding(16.dp)){
+                        Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Campaign,null,tint=Color.White);Spacer(Modifier.width(8.dp));Text("Informasi Terbaru",color=Color.White,fontWeight=FontWeight.Bold,fontSize=11.sp)}
+                        Spacer(Modifier.height(10.dp));Text(announcements.first().title,color=Color.White,fontWeight=FontWeight.ExtraBold,fontSize=15.sp);Text(announcements.first().body,color=Color(0xFFD6EAE2),fontSize=10.sp,maxLines=3,overflow=TextOverflow.Ellipsis)
                     }
                 }
             }
+            if(announcements.isEmpty()) item{EmptyState("Belum ada pengumuman","Terbitkan informasi untuk warga.")}
+            items(announcements.drop(if(announcements.isNotEmpty())1 else 0),key={it.id}){item->
+                Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(14.dp)){Column(Modifier.padding(14.dp)){Text(item.title,fontWeight=FontWeight.Bold);Text(formatDate(item.createdAt),color=Muted,fontSize=9.sp);Spacer(Modifier.height(6.dp));Text(item.body,fontSize=11.sp,color=Color(0xFF46524C))}}
+            }
         }
-        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp), containerColor = Green, contentColor = Color.White) { Icon(Icons.Default.Add, null) }
+        FloatingActionButton(onClick={showAdd=true},modifier=Modifier.align(Alignment.BottomEnd).padding(20.dp),containerColor=Green,contentColor=Color.White){Icon(Icons.Default.Add,null)}
     }
-    if (showAdd) TwoFieldDialog("Buat Pengumuman", "Judul", "Isi pengumuman", onDismiss = { showAdd = false }) { a, b -> vm.addAnnouncement(a, b); showAdd = false }
+    if(showAdd)TwoFieldDialog("Buat Pengumuman","Judul","Isi pengumuman",onDismiss={showAdd=false}){a,b->vm.addAnnouncement(a,b);showAdd=false}
 }
-
 @Composable
 private fun LetterScreen(vm: RukunyaViewModel, upgrade: () -> Unit) {
     val letters by vm.letters.collectAsStateWithLifecycle()
@@ -942,69 +942,40 @@ private fun ReportModule(icon:ImageVector,title:String,subtitle:String,value:Str
     }
 }
 @Composable
-private fun MoreScreen(vm: RukunyaViewModel, navigate: (Screen) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val spec = vm.currentPlanSpec()
+private fun MoreScreen(vm:RukunyaViewModel,navigate:(Screen)->Unit){
+    val context=LocalContext.current
+    val scope=rememberCoroutineScope()
+    val spec=vm.currentPlanSpec()
     val plan by vm.activePlan.collectAsStateWithLifecycle()
+    val backupLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")){uri->if(uri!=null)scope.launch{val json=vm.exportBackupJson();context.contentResolver.openOutputStream(uri)?.use{it.write(json.toByteArray())}}}
+    val restoreLauncher=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)scope.launch{runCatching{val raw=context.contentResolver.openInputStream(uri)?.bufferedReader()?.use{it.readText()}?:error("File kosong");vm.importBackupJson(raw)}}}
 
-    val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri != null) scope.launch {
-            val json = vm.exportBackupJson()
-            context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
-        }
-    }
-    val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) scope.launch {
-            runCatching {
-                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("File kosong")
-                vm.importBackupJson(raw)
-            }
-        }
-    }
-
-    LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = Green), shape = RoundedCornerShape(18.dp)) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.WorkspacePremium, null, tint = Color.White)
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Paket ${Plans.get(plan).title}", color = Color.White, fontWeight = FontWeight.ExtraBold)
-                        Text(Plans.get(plan).description, color = Color(0xFFD6EAE2), fontSize = 10.sp)
-                    }
-                    TextButton(onClick = { navigate(Screen.PLANS) }) { Text("Lihat Paket", color = Color.White) }
+    LazyColumn(contentPadding=PaddingValues(16.dp,10.dp,16.dp,24.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+        item{
+            Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(17.dp)){
+                Row(Modifier.fillMaxWidth().padding(15.dp),verticalAlignment=Alignment.CenterVertically){
+                    Box(Modifier.size(48.dp).background(GreenSoft,RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.Person,null,tint=Green,modifier=Modifier.size(25.dp))}
+                    Spacer(Modifier.width(11.dp));Column(Modifier.weight(1f)){Text("Pengurus RT/RW",fontWeight=FontWeight.ExtraBold,fontSize=13.sp);Text("Administrator lingkungan",color=Muted,fontSize=9.sp)}
+                    OutlinedButton(onClick={navigate(Screen.ADMINS)},contentPadding=PaddingValues(horizontal=10.dp,vertical=5.dp)){Text("Kelola Profil",fontSize=8.sp)}
                 }
             }
         }
-        item { MenuRow(Icons.Default.AccountBalanceWallet, "Kas", "Pemasukan dan pengeluaran") { navigate(Screen.CASH) } }
-        item { MenuRow(Icons.Default.Description, "Surat", "Permohonan dan status surat") { navigate(Screen.LETTERS) } }
-        item { MenuRow(Icons.Default.Campaign, "Informasi", "Pengumuman lingkungan") { navigate(Screen.INFO) } }
-        item { MenuRow(Icons.Default.GroupAdd, "Pengurus", if (spec.has(Feature.MULTI_ADMIN)) "Maksimal ${spec.maxAdmins} profil pengurus" else "Tersedia mulai Plus") { if (spec.has(Feature.MULTI_ADMIN)) navigate(Screen.ADMINS) else navigate(Screen.PLANS) } }
-        item { MenuRow(Icons.Default.Cloud, "Cloud & Sinkronisasi", if (spec.has(Feature.CLOUD_SYNC)) "Fitur Plus/Pro" else "Tersedia mulai Plus") { if (spec.has(Feature.CLOUD_SYNC)) navigate(Screen.CLOUD) else navigate(Screen.PLANS) } }
-        item {
-            Card(shape = RoundedCornerShape(15.dp)) {
-                Column(Modifier.padding(14.dp)) {
-                    Text("Backup & Restore", fontWeight = FontWeight.Bold)
-                    Text("Backup lokal tersedia di semua paket.", color = Muted, fontSize = 10.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { backupLauncher.launch("RUKUNYA-backup.json") }, Modifier.weight(1f)) { Text("Backup") }
-                        Button(onClick = { restoreLauncher.launch(arrayOf("application/json", "text/plain")) }, Modifier.weight(1f)) { Text("Restore") }
-                    }
+        item{
+            Card(colors=CardDefaults.cardColors(containerColor=Color(0xFFFFF7DE)),shape=RoundedCornerShape(15.dp)){
+                Row(Modifier.fillMaxWidth().padding(14.dp),verticalAlignment=Alignment.CenterVertically){
+                    Icon(Icons.Default.WorkspacePremium,null,tint=Color(0xFF9B6A00));Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Paket "+Plans.get(plan).title,fontWeight=FontWeight.Bold,fontSize=11.sp);Text("Tingkatkan layanan sesuai kebutuhan lingkungan.",color=Muted,fontSize=9.sp)};Button(onClick={navigate(Screen.PLANS)}){Text("Lihat Paket",fontSize=8.sp)}
                 }
             }
         }
-        item {
-            if (spec.has(Feature.WHATSAPP_REMINDER)) {
-                MenuRow(Icons.Default.Whatsapp, "Pengingat WhatsApp", "Kirim template pengingat iuran") { shareWhatsappReminder(context, vm.currentPeriod()) }
-            } else {
-                UpgradeBanner("Pengingat WhatsApp otomatis", "Fitur Pro untuk mempercepat penagihan iuran.") { navigate(Screen.PLANS) }
-            }
-        }
+        item{MenuRow(Icons.Default.Backup,"Backup & Restore","Simpan dan pulihkan data"){backupLauncher.launch("RUKUNYA-backup.json")}}
+        item{MenuRow(Icons.Default.Restore,"Restore Data","Pulihkan file backup"){restoreLauncher.launch(arrayOf("application/json","text/plain"))}}
+        item{MenuRow(Icons.Default.Settings,"Pengaturan","Atur aplikasi sesuai kebutuhan") { }}
+        item{MenuRow(Icons.Default.GroupAdd,"Pengurus",if(spec.has(Feature.MULTI_ADMIN))"Maksimal "+spec.maxAdmins+" profil pengurus" else "Tersedia mulai Plus"){if(spec.has(Feature.MULTI_ADMIN))navigate(Screen.ADMINS)else navigate(Screen.PLANS)}}
+        item{MenuRow(Icons.Default.Cloud,"Cloud & Sinkronisasi",if(spec.has(Feature.CLOUD_SYNC))"Sinkronisasi aktif untuk Plus/Pro" else "Tersedia mulai Plus"){if(spec.has(Feature.CLOUD_SYNC))navigate(Screen.CLOUD)else navigate(Screen.PLANS)}}
+        item{MenuRow(Icons.Default.Info,"Tentang RUKUNYA","Versi 2.2 Native • by Zenstars Techindo") { }}
+        if(spec.has(Feature.WHATSAPP_REMINDER)) item{MenuRow(Icons.Default.Whatsapp,"Pengingat WhatsApp","Bagikan template pengingat iuran"){shareWhatsappReminder(context,vm.currentPeriod())}}
     }
 }
-
 @Composable
 private fun PlansScreen(vm: RukunyaViewModel) {
     val active by vm.activePlan.collectAsStateWithLifecycle()
