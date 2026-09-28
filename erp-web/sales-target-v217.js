@@ -4,11 +4,11 @@
   const VERSION = 'v22.2-sales-portfolio-target-safe';
   const ALLOWED = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Sales']);
   const FALLBACK = Object.freeze({
-    paidPaxMonthly: 200,
+    paidPaxMonthly: 400,
     bepPax: 60,
     productivePax: 100,
-    stretchPax: 300,
-    outstandingPax: 400,
+    stretchPax: 500,
+    outstandingPax: 600,
     leadsMonthly: 100,
     followupsMonthly: 200,
     quotationsMonthly: 20,
@@ -87,7 +87,7 @@
     const errorNote=state.error?`<div class="gmu-target-note" style="margin-top:10px;color:var(--bad)">Data otomatis belum dapat dimuat: ${String(state.error)}</div>`:'';
 
     section.innerHTML=`
-      <div class="head"><div><h3>Target Sales GMU EduTrans • Seluruh Program</h3><p>${periodLabel()} • ${scopeText} Bukan 200 pax per program.</p></div><span class="badge ${s.paidPax>=s.target?'ok':'info'}">${statusLabel(s.level)}</span></div>
+      <div class="head"><div><h3>Target Sales GMU EduTrans • Seluruh Program</h3><p>${periodLabel()} • ${scopeText} Target utama perusahaan 400 pax/bulan lintas seluruh program.</p></div><span class="badge ${s.paidPax>=s.target?'ok':'info'}">${statusLabel(s.level)}</span></div>
       <div class="gmu-target-grid">
         <div class="gmu-target-card"><small>Target paid pax / bulan</small><b>${integer(s.target)} pax</b><span>Lintas Edukasi Kereta, Stasiun, Pandanwangi, Membatik, Factory Visit dan Custom EduTrip.</span></div>
         <div class="gmu-target-card"><small>Aktual paid pax otomatis</small><b>${integer(s.paidPax)} pax</b><span>${integer(s.paidBookings)} booking memiliki pembayaran positif terverifikasi.</span></div>
