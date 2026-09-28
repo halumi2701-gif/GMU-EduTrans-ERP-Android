@@ -55,11 +55,14 @@ jobs:
           test -f supabase/migrations/20260915189000_gmu_v224_pricing_master_preflight.sql
           test -f supabase/migrations/20260915190000_gmu_v224_master_program_pricing_engine.sql
           test -f supabase/migrations/20260917193000_gmu_v226_sales_public_b2b_unified_pricing.sql
+          test -f supabase/migrations/20260928153452_gmu_v228_profit_allocation_policy.sql
           grep -Fq 'ALL_PROGRAMS' supabase/migrations/20260915181000_gmu_v221_portfolio_target_train_packages.sql
           grep -Fq 'gmu_sales_portfolio_summary' supabase/migrations/20260915182000_gmu_v222_sales_portfolio_safe_rpc.sql
           grep -Fq '25%' docs/GMU_V224_MASTER_PROGRAM_PRICING_ENGINE.md
           grep -Fq 'STATION-PROF-2026' supabase/migrations/20260917193000_gmu_v226_sales_public_b2b_unified_pricing.sql
           grep -Fq 'train-package-policy-v221.js' erp-web/unified-v10-loader.js
+          grep -Fq 'profit-allocation-v228.js' erp-web/unified-v10-loader.js
+          grep -Fq "paidPaxMonthly: 400" erp-web/sales-target-v217.js
 
       - name: Validate production credentials
         shell: bash
@@ -109,9 +112,12 @@ jobs:
           test -f dist/erp-web-v10/station-operating-policy-v218.js
           test -f dist/erp-web-v10/customer-account-crm-v220.js
           test -f dist/erp-web-v10/train-package-policy-v221.js
+          test -f dist/erp-web-v10/sales-funnel-forecast-v225.js
+          test -f dist/erp-web-v10/profit-allocation-v228.js
           grep -Fq 'v22.2-sales-portfolio-target-safe' dist/erp-web-v10/sales-target-v217.js
           grep -Fq 'Customer Account & Prospek Web' dist/erp-web-v10/customer-account-crm-v220.js
           grep -Fq 'HPP fasilitas • LOCK' dist/erp-web-v10/train-package-policy-v221.js
+          grep -Fq 'v22.8-profit-allocation-recovery' dist/erp-web-v10/profit-allocation-v228.js
 
       - name: Install pinned Vercel CLI
         run: npm install --global vercel@59.16.0
@@ -144,13 +150,14 @@ jobs:
           curl --fail --silent --show-error --location "$DEPLOYMENT_URL" -o /tmp/erp-current.html
           grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-current.html
           grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-current.html
-          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js; do
+          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js; do
             curl --fail --silent --show-error --location "$DEPLOYMENT_URL/$file" -o "/tmp/$file"
           done
           grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/sales-target-v217.js
           grep -Fq 'v22.1-station-pricing-policy' /tmp/station-target-v216.js
           grep -Fq 'v22.0-customer-account-crm' /tmp/customer-account-crm-v220.js
           grep -Fq 'v22.1-train-package-policy' /tmp/train-package-policy-v221.js
+          grep -Fq 'v22.8-profit-allocation-recovery' /tmp/profit-allocation-v228.js
 
       - name: Verify production custom domain
         shell: bash
@@ -159,13 +166,14 @@ jobs:
           curl --fail --silent --show-error --location "$ERP_LIVE_URL" -o /tmp/erp-prod.html
           grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-prod.html
           grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-prod.html
-          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js; do
+          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js; do
             curl --fail --silent --show-error --location "${ERP_LIVE_URL}$file" -o "/tmp/prod-$file"
           done
           grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/prod-sales-target-v217.js
           grep -Fq 'v22.1-station-pricing-policy' /tmp/prod-station-target-v216.js
           grep -Fq 'v22.0-customer-account-crm' /tmp/prod-customer-account-crm-v220.js
           grep -Fq 'v22.1-train-package-policy' /tmp/prod-train-package-policy-v221.js
+          grep -Fq 'v22.8-profit-allocation-recovery' /tmp/prod-profit-allocation-v228.js
           echo "GMU EduTrans current-main production verification: PASS"
 
       - name: Production summary
@@ -178,4 +186,5 @@ jobs:
           echo "Deployment: $DEPLOYMENT_URL"
           echo "Database: all pending migrations through v22.6 applied."
           echo "Sales pricing: PUBLIC + B2B unified from master pricing engine."
-          echo "Sales target: 200 paid pax/month across all programs."
+          echo "Sales target: 400 paid pax/month across all programs."
+          echo "Profit split: 50% recovery, 30% company cash, 20% Owner; field crew meal Rp12.000/person/trip."
