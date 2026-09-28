@@ -7,7 +7,7 @@
     'MONTHLY_PAX_TARGET','MONTHLY_UTILITY_BUDGET','LOSS_RECOVERY_TARGET','LOSS_RECOVERY_PAID_TO_DATE',
     'PROFIT_SPLIT_RECOVERY_PCT','PROFIT_SPLIT_COMPANY_CASH_PCT','PROFIT_SPLIT_OWNER_PCT',
     'FIELD_CREW_MEAL_PER_PERSON','INTERNAL_MANAGER_FEE_PER_TRIP','INTERNAL_TL_MC_FEE_PER_TRIP',
-    'INTERNAL_OPS_DOC_FEE_PER_TRIP','SALES_FIXED_MONTHLY','SALES_COMMISSION_PER_20_PAX',
+    'INTERNAL_OPS_DOC_FEE_PER_TRIP','SALES_FIXED_MONTHLY','SALES_COMMISSION_PER_PAX','SALES_COMMISSION_PER_20_PAX',
     'ADMIN_PART_TIME_MONTHLY','FINANCE_PART_TIME_MONTHLY','OWNER_FIXED_SALARY'
   ];
   const state = { settings:{}, pnl:null, sales:null, loading:false, error:null };
@@ -105,7 +105,7 @@
         <div class="pa228-row"><strong>TL / MC</strong><span>${money(setting('INTERNAL_TL_MC_FEE_PER_TRIP',110000))} / kegiatan</span></div>
         <div class="pa228-row"><strong>Ops + Dokumentasi</strong><span>${money(setting('INTERNAL_OPS_DOC_FEE_PER_TRIP',55000))} / kegiatan</span></div>
         <div class="pa228-row"><strong>Uang makan crew lapangan</strong><span>${money(setting('FIELD_CREW_MEAL_PER_PERSON',12000))} / orang hadir / kegiatan</span></div>
-        <div class="pa228-row"><strong>Sales</strong><span>${money(setting('SALES_FIXED_MONTHLY',600000))} / bulan + ${money(setting('SALES_COMMISSION_PER_20_PAX',50000))} / 20 pax</span></div>
+        <div class="pa228-row"><strong>Sales</strong><span>${money(setting('SALES_FIXED_MONTHLY',600000))} / bulan + ${money(setting('SALES_COMMISSION_PER_PAX',5000))} / pax</span></div>
         <div class="pa228-row"><strong>Admin part-time</strong><span>${money(setting('ADMIN_PART_TIME_MONTHLY',450000))} / bulan</span></div>
         <div class="pa228-row"><strong>Finance part-time</strong><span>${money(setting('FINANCE_PART_TIME_MONTHLY',550000))} / bulan</span></div>
         <div class="pa228-row"><strong>Owner fixed salary</strong><span>${money(setting('OWNER_FIXED_SALARY',0))} — memakai pembagian laba ${v.ownerPct}%</span></div>
