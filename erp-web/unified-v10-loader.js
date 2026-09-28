@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v22.5-sales-funnel-forecast';
+  const VERSION = 'v22.8-profit-allocation-recovery';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
@@ -10,6 +10,7 @@
   const COMPENSATION_VERSION = 'v21.3-compensation-capacity-autopilot-layer';
   const COMPANY_CONTROL_VERSION = 'v21.4-company-control-center-layer';
   const PORTFOLIO_TARGET_VERSION = 'v22.5-sales-funnel-forecast';
+  const PROFIT_ALLOCATION_VERSION = 'v22.8-profit-allocation-recovery';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
@@ -46,6 +47,7 @@
     'target-cascade-v212.js',
     'compensation-autopilot-v213.js',
     'company-control-v214.js',
+    'profit-allocation-v228.js',
   ];
 
   function scriptBase() {
@@ -105,6 +107,7 @@
       compensationVersion: COMPENSATION_VERSION,
       companyControlVersion: COMPANY_CONTROL_VERSION,
       portfolioTargetVersion: PORTFOLIO_TARGET_VERSION,
+      profitAllocationVersion: PROFIT_ALLOCATION_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       v21CompatibilityMarker: V21_COMPATIBILITY_MARKER,
       v212CompatibilityMarker: V212_COMPATIBILITY_MARKER,
@@ -122,7 +125,7 @@
         state.modules.push(file);
       }
       state.booted = true;
-      notice('GMU EduTrans ERP aktif. Target Sales 400 paid pax lintas seluruh program memakai Sales Funnel & Forecast otomatis: lead, conversion, quotation, sekolah closing, pipeline coverage, pace bulanan, komisi, dan indikator risiko target. Pricing program tetap terpisah dan aksi sensitif tetap melalui approval manusia.');
+      notice('GMU EduTrans ERP aktif. Target utama 400 paid pax/bulan lintas seluruh program. Pembagian laba bersih positif otomatis ditampilkan sebagai 50% recovery utang, 30% kas perusahaan, dan 20% hak Owner; policy utilitas dan biaya internal tetap terkontrol.');
     } catch (error) {
       state.failedModule = MODULES[state.modules.length] || 'unknown';
       console.error('GMU EduTrans ERP loader', error);
