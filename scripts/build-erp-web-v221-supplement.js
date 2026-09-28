@@ -5,9 +5,11 @@ const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const SUPPLEMENTAL_MODULES = [
   'station-target-v216.js',
   'sales-target-v217.js',
+  'sales-funnel-forecast-v225.js',
   'station-operating-policy-v218.js',
   'customer-account-crm-v220.js',
   'train-package-policy-v221.js',
+  'profit-allocation-v228.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -30,6 +32,7 @@ function main() {
   assertIncludes(loader, 'sales-target-v217.js', 'portfolio target module in loader');
   assertIncludes(loader, 'customer-account-crm-v220.js', 'customer account CRM module in loader');
   assertIncludes(loader, 'train-package-policy-v221.js', 'train package policy module in loader');
+  assertIncludes(loader, 'profit-allocation-v228.js', 'profit allocation module in loader');
 
   const sales = fs.readFileSync(path.join(OUT_DIR, 'sales-target-v217.js'), 'utf8');
   const station = fs.readFileSync(path.join(OUT_DIR, 'station-target-v216.js'), 'utf8');
@@ -51,7 +54,7 @@ function main() {
     manifest.additiveModules = SUPPLEMENTAL_MODULES;
     manifest.portfolioSalesTarget = {
       scope: 'ALL_PROGRAMS',
-      paidPaxMonthly: 200,
+      paidPaxMonthly: 400,
       rule: 'One booking contributes pax once, in the month of its first verified positive payment',
       salesFinancePrivacy: 'Sales receives paid-pax/fee/bonus only; company revenue, cash-in, HPP, profit and margin remain management-only',
     };
@@ -63,7 +66,7 @@ function main() {
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   }
 
-  console.log(`GMU EduTrans v22.1/v22.2 supplemental release copied: ${SUPPLEMENTAL_MODULES.join(', ')}`);
+  console.log(`GMU EduTrans v22.8 supplemental release copied: ${SUPPLEMENTAL_MODULES.join(', ')}`);
 }
 
 main();
