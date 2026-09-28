@@ -14,7 +14,7 @@
     quotationsMonthly: 20,
     bookingsMonthly: 4,
     salesRetainer: 600_000,
-    salesFeePerPaidPax: 2_500,
+    salesFeePerPaidPax: 5_000,
     targetBonus: 250_000,
   });
 
