@@ -9,10 +9,6 @@ on:
         default: "NO"
         type: choice
         options: ["NO", "DEPLOY"]
-  push:
-    branches: ["main"]
-    paths:
-      - ".github/gmu-drive-deploy-once"
 
 permissions:
   contents: read
@@ -29,7 +25,7 @@ env:
 
 jobs:
   deploy:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_production == 'DEPLOY') || github.event_name == 'push' }}
+    if: ${{ inputs.confirm_production == 'DEPLOY' }}
     runs-on: ubuntu-latest
     environment: production
     env:
