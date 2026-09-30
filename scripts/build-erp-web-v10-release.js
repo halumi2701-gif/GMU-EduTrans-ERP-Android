@@ -4,7 +4,7 @@ const path = require('path');
 const VERIFIED_BASELINE_URL = process.env.ERP_BASELINE_URL || 'https://raw.githubusercontent.com/halumi2701-gif/GMU-EduTrans-ERP-Android/f6a28c609b1d82e4afee2988a09876f03452b3a7/baseline-v95.html';
 const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const MODULES = [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','unified-v10-loader.js',
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','drive-archive-v231.js','unified-v10-loader.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -76,6 +76,7 @@ async function main() {
   const targetCascadeSource = fs.readFileSync(path.join('erp-web', 'target-cascade-v212.js'), 'utf8');
   const compensationSource = fs.readFileSync(path.join('erp-web', 'compensation-autopilot-v213.js'), 'utf8');
   const companyControlSource = fs.readFileSync(path.join('erp-web', 'company-control-v214.js'), 'utf8');
+  const driveArchiveSource = fs.readFileSync(path.join('erp-web', 'drive-archive-v231.js'), 'utf8');
 
   assertIncludes(loaderSource, 'GMU EduTrans Company Autopilot v21 aktif', 'v21 compatibility marker');
   assertIncludes(loaderSource, 'v21.2-target-cascade-workforce-autopilot', 'v21.2 loader marker');
@@ -93,6 +94,8 @@ async function main() {
   assertIncludes(companyControlSource, 'internal_performance_payroll_v214_status', 'performance payroll backend RPC');
   assertIncludes(companyControlSource, 'Target Direktur Rp50 jt', 'director target chain');
   assertIncludes(companyControlSource, 'WhatsApp automation tetap dilewati', 'WhatsApp remains deferred');
+  assertIncludes(driveArchiveSource, 'Tes Sinkronisasi Drive', 'Owner/Director Drive sync test button');
+  assertIncludes(driveArchiveSource, "new Set(['Owner', 'Director', 'Direktur'])", 'Drive sync test role restriction');
 
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
