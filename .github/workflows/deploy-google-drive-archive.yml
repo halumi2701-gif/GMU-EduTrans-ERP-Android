@@ -51,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${SUPABASE_ACCESS_TOKEN:-}" || { echo "SUPABASE_ACCESS_TOKEN belum tersedia."; exit 1; }
+          test -n "${SUPABASE_DB_PASSWORD:-}" || { echo "SUPABASE_DB_PASSWORD belum tersedia. Tambahkan password database project production ke GitHub Environment production."; exit 1; }
           test -n "${GOOGLE_DRIVE_CLIENT_ID:-}" || { echo "GOOGLE_DRIVE_CLIENT_ID belum tersedia."; exit 1; }
           test -n "${GOOGLE_DRIVE_CLIENT_SECRET:-}" || { echo "GOOGLE_DRIVE_CLIENT_SECRET belum tersedia."; exit 1; }
           test -n "${GOOGLE_DRIVE_REFRESH_TOKEN:-}" || { echo "GOOGLE_DRIVE_REFRESH_TOKEN belum tersedia."; exit 1; }
@@ -58,17 +59,13 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
         with:
-          version: v2.117.0
+          version: v2.118.0
 
       - name: Link production
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
-            supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
-          else
-            supabase link --project-ref "$SUPABASE_PROJECT_ID"
-          fi
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
 
       - name: Dry-run migrations
         run: supabase db push --dry-run
@@ -80,7 +77,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase secrets set             GOOGLE_DRIVE_CLIENT_ID="$GOOGLE_DRIVE_CLIENT_ID"             GOOGLE_DRIVE_CLIENT_SECRET="$GOOGLE_DRIVE_CLIENT_SECRET"             GOOGLE_DRIVE_REFRESH_TOKEN="$GOOGLE_DRIVE_REFRESH_TOKEN"             GMU_DRIVE_ROOT_FOLDER_ID="$GMU_DRIVE_ROOT_FOLDER_ID"             GMU_DRIVE_ORDER_FOLDER_ID="$GMU_DRIVE_ORDER_FOLDER_ID"             --project-ref "$SUPABASE_PROJECT_ID"
+          supabase secrets set \
+            GOOGLE_DRIVE_CLIENT_ID="$GOOGLE_DRIVE_CLIENT_ID" \
+            GOOGLE_DRIVE_CLIENT_SECRET="$GOOGLE_DRIVE_CLIENT_SECRET" \
+            GOOGLE_DRIVE_REFRESH_TOKEN="$GOOGLE_DRIVE_REFRESH_TOKEN" \
+            GMU_DRIVE_ROOT_FOLDER_ID="$GMU_DRIVE_ROOT_FOLDER_ID" \
+            GMU_DRIVE_ORDER_FOLDER_ID="$GMU_DRIVE_ORDER_FOLDER_ID" \
+            --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Deploy Drive archive Edge Function
         run: supabase functions deploy gmu-drive-archive --project-ref "$SUPABASE_PROJECT_ID"
