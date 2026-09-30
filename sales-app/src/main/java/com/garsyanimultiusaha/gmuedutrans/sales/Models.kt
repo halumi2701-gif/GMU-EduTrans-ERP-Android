@@ -4,7 +4,8 @@ data class SalesProfile(
     val id: String,
     val fullName: String,
     val role: String,
-    val active: Boolean
+    val active: Boolean,
+    val phone: String = ""
 )
 
 data class SalesSession(
