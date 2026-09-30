@@ -27,18 +27,18 @@ with customer as (
 ),
 created as (
   select public.create_sales_booking_v226(
-    (select id from customer),
-    'STATION-PROF-2026',
-    current_date + 30,
-    20,
-    'DIRECT_PUBLIC',
-    null,
-    'PRIVATE',
-    20,
-    'Lead',
-    'SYSTEM E2E GOOGLE DRIVE TEST',
-    'CI TEST ONLY',
-    null
+    (select id::uuid from customer),
+    'STATION-PROF-2026'::text,
+    (current_date + 30)::date,
+    20::integer,
+    'DIRECT_PUBLIC'::text,
+    null::uuid,
+    'PRIVATE'::text,
+    20::integer,
+    'Lead'::text,
+    'SYSTEM E2E GOOGLE DRIVE TEST'::text,
+    'CI TEST ONLY'::text,
+    null::text
   ) as j
 )
 select
