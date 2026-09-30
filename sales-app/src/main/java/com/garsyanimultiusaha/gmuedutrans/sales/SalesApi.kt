@@ -179,7 +179,7 @@ class SalesApi {
         val arr = JSONArray(
             request(
                 "GET",
-                "/rest/v1/profiles?select=id,full_name,role,is_active&id=eq.$id&limit=1",
+                "/rest/v1/profiles?select=id,full_name,role,phone,is_active&id=eq.$id&limit=1",
                 null,
                 accessToken
             )
@@ -190,7 +190,8 @@ class SalesApi {
             id = x.getString("id"),
             fullName = x.optString("full_name", "Sales GMU"),
             role = x.optString("role", ""),
-            active = x.optBoolean("is_active", false)
+            active = x.optBoolean("is_active", false),
+            phone = x.optString("phone", "")
         )
     }
 
