@@ -494,8 +494,8 @@ private fun C61Documents(connected: V61ConnectedWorkspace) {
                 }
             }
         }
-        item { C61Header("Dokumen Booking Saya", "Hanya customer-visible document pada booking milik Sales") }
-        if (connected.documents.isEmpty()) item { C61Info("Belum ada dokumen customer-visible.") }
+        item { C61Header("Dokumen Booking Saya", "Quotation otomatis & dokumen booking milik Sales") }
+        if (connected.documents.isEmpty()) item { C61Info("Belum ada quotation/dokumen. PDF quotation dibuat otomatis setelah order.") }
         else items(connected.documents, key = { "doc-${it.id}" }) { d ->
             Card(shape = RoundedCornerShape(18.dp)) {
                 Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
