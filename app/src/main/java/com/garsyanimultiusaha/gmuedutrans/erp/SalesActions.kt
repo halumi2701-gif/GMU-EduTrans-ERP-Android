@@ -33,7 +33,7 @@ fun MainViewModel.createBooking(
     actionBusy = true
     viewModelScope.launch {
         try {
-            api.createBooking(
+            val bookingNo = api.createBooking(
                 session.accessToken,
                 session.userId,
                 session.profile.role,
@@ -46,7 +46,24 @@ fun MainViewModel.createBooking(
                 group,
                 meeting
             )
-            done(true, "Booking berhasil dibuat.")
+            val customerName = customers.firstOrNull { it.id == customerId }?.name ?: "CUSTOMER"
+            val driveStatus = runCatching {
+                DriveArchiveApi().ensureOrderFolder(
+                    accessToken = session.accessToken,
+                    bookingNo = bookingNo,
+                    customerName = customerName,
+                    activityDate = tripDate
+                )
+            }
+            done(
+                true,
+                if (driveStatus.isSuccess) {
+                    "$bookingNo berhasil dibuat dan folder Google Drive + 9 subfolder sudah disiapkan."
+                } else {
+                    "$bookingNo berhasil dibuat. Sinkronisasi Google Drive tertunda: " +
+                        (driveStatus.exceptionOrNull()?.message ?: "kesalahan tidak diketahui.")
+                }
+            )
             loadAll(session)
         } catch (e: Exception) {
             done(false, e.message ?: "Gagal membuat booking.")
