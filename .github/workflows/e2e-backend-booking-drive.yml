@@ -1,0 +1,131 @@
+name: E2E Backend Booking to Google Drive
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/gmu-backend-drive-e2e-once"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmu-backend-drive-e2e
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
+  SUPABASE_DB_POOLER_HOST: aws-0-ap-south-1.pooler.supabase.com
+  DRIVE_ORDER_PARENT_ID: 1eLza3RKK7sMPuHF55k1V8G09_KN9rPJR
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
+      GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
+      GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+          test -n "${GOOGLE_DRIVE_CLIENT_ID:-}"
+          test -n "${GOOGLE_DRIVE_CLIENT_SECRET:-}"
+          test -n "${GOOGLE_DRIVE_REFRESH_TOKEN:-}"
+
+      - name: Run backend booking and Drive E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          export PGPASSWORD="$SUPABASE_DB_PASSWORD"
+          DB_CONN="host=$SUPABASE_DB_POOLER_HOST port=5432 dbname=postgres user=postgres.$SUPABASE_PROJECT_ID sslmode=require"
+
+          BOOKING_ID=""
+          BOOKING_NO=""
+          DRIVE_FOLDER_ID=""
+          GOOGLE_ACCESS_TOKEN=""
+
+          cleanup() {
+            set +e
+            if [ -n "$DRIVE_FOLDER_ID" ] && [ -n "$GOOGLE_ACCESS_TOKEN" ]; then
+              curl -sS -X DELETE                 -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"                 "https://www.googleapis.com/drive/v3/files/$DRIVE_FOLDER_ID?supportsAllDrives=true"                 >/dev/null 2>&1
+            fi
+            if [ -n "$BOOKING_ID" ]; then
+              psql "$DB_CONN" -v ON_ERROR_STOP=0                 -c "delete from public.gmu_drive_documents where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.gmu_drive_folders where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.bookings where id='$BOOKING_ID'::uuid;"                 >/dev/null 2>&1
+            fi
+          }
+          trap cleanup EXIT
+
+          echo "1/5 Membuat booking uji melalui RPC ERP production..."
+          RESULT="$(psql "$DB_CONN" -qAtF $'\t' -f .github/scripts/e2e-create-booking.sql | tail -n 1)"
+          BOOKING_ID="$(printf '%s' "$RESULT" | cut -f1)"
+          BOOKING_NO="$(printf '%s' "$RESULT" | cut -f2)"
+          CUSTOMER_NAME="$(printf '%s' "$RESULT" | cut -f3)"
+          TRIP_DATE="$(printf '%s' "$RESULT" | cut -f4)"
+
+          test -n "$BOOKING_ID"
+          test -n "$BOOKING_NO"
+          test -n "$CUSTOMER_NAME"
+          test -n "$TRIP_DATE"
+
+          echo "BOOKING_NO=$BOOKING_NO"
+          echo "BOOKING_ID=$BOOKING_ID"
+          echo "CUSTOMER_NAME=$CUSTOMER_NAME"
+          echo "TRIP_DATE=$TRIP_DATE"
+
+          echo "2/5 Mengambil Google access token production..."
+          HTTP_CODE="$(curl -sS -o /tmp/google-token.json -w '%{http_code}'             https://oauth2.googleapis.com/token             --data-urlencode "client_id=$GOOGLE_DRIVE_CLIENT_ID"             --data-urlencode "client_secret=$GOOGLE_DRIVE_CLIENT_SECRET"             --data-urlencode "refresh_token=$GOOGLE_DRIVE_REFRESH_TOKEN"             --data-urlencode "grant_type=refresh_token")"
+          test "$HTTP_CODE" = "200"
+          GOOGLE_ACCESS_TOKEN="$(jq -r '.access_token // empty' /tmp/google-token.json)"
+          test -n "$GOOGLE_ACCESS_TOKEN"
+          echo "::add-mask::$GOOGLE_ACCESS_TOKEN"
+
+          echo "3/5 Membuat folder order dan 9 subfolder..."
+          SAFE_CUSTOMER="$(printf '%s' "$CUSTOMER_NAME" | sed -E 's#[\\/:*?"<>|#%{}~&]#-#g' | tr -s ' ' | cut -c1-90)"
+          FOLDER_NAME="$BOOKING_NO - $SAFE_CUSTOMER - $TRIP_DATE"
+
+          jq -n             --arg name "$FOLDER_NAME"             --arg parent "$DRIVE_ORDER_PARENT_ID"             '{name:$name,mimeType:"application/vnd.google-apps.folder",parents:[$parent]}'             >/tmp/order-folder.json
+
+          curl -fsS -X POST             -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"             -H "Content-Type: application/json"             --data-binary @/tmp/order-folder.json             "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,parents,webViewLink"             -o /tmp/order-created.json
+
+          DRIVE_FOLDER_ID="$(jq -r '.id // empty' /tmp/order-created.json)"
+          test -n "$DRIVE_FOLDER_ID"
+
+          while IFS= read -r SUBFOLDER; do
+            jq -n               --arg name "$SUBFOLDER"               --arg parent "$DRIVE_FOLDER_ID"               '{name:$name,mimeType:"application/vnd.google-apps.folder",parents:[$parent]}'               >/tmp/subfolder.json
+
+            curl -fsS -X POST               -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"               -H "Content-Type: application/json"               --data-binary @/tmp/subfolder.json               "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id,name,parents"               >/dev/null
+          done <<'EOF'
+          01 - PENAWARAN
+          02 - BOOKING
+          03 - PEMBAYARAN
+          04 - DATA PESERTA
+          05 - OPERASIONAL
+          06 - TIKET
+          07 - DOKUMENTASI
+          08 - LAPORAN
+          09 - DOKUMEN FINAL
+          EOF
+
+          echo "4/5 Memverifikasi folder fisik di Google Drive..."
+          curl -fsS -G             -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"             --data-urlencode "q='$DRIVE_FOLDER_ID' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"             --data-urlencode "fields=files(id,name,parents)"             --data-urlencode "pageSize=100"             "https://www.googleapis.com/drive/v3/files"             -o /tmp/children.json
+
+          COUNT="$(jq '[.files[] | select(.name=="01 - PENAWARAN" or .name=="02 - BOOKING" or .name=="03 - PEMBAYARAN" or .name=="04 - DATA PESERTA" or .name=="05 - OPERASIONAL" or .name=="06 - TIKET" or .name=="07 - DOKUMENTASI" or .name=="08 - LAPORAN" or .name=="09 - DOKUMEN FINAL")] | length' /tmp/children.json)"
+          test "$COUNT" = "9"
+
+          echo "5/5 E2E VERIFIED"
+          echo "E2E_RESULT=PASS"
+          echo "BOOKING_NO=$BOOKING_NO"
+          echo "DRIVE_FOLDER_ID=$DRIVE_FOLDER_ID"
+          echo "DRIVE_FOLDER_NAME=$FOLDER_NAME"
+          echo "SUBFOLDERS_VERIFIED=$COUNT"
+          echo "CLEANUP=automatic"
