@@ -67,6 +67,7 @@ private data class SalesPricePreviewV226(
 
 private data class SalesBookingDraftV226(
     val customerId: String,
+    val customerName: String,
     val packageCode: String,
     val tripDate: String,
     val bookingPax: Int,
@@ -342,7 +343,7 @@ fun SalesCommercialBookingV226Screen(
                             driveArchiveApi.ensureOrderFolder(
                                 accessToken = session.accessToken,
                                 bookingNo = bookingNo,
-                                customerName = draft.customerId,
+                                customerName = draft.customerName,
                                 activityDate = draft.tripDate
                             )
                         }
@@ -616,6 +617,7 @@ private fun SalesCommercialBookingDialogV226(
                     onCreated(
                         SalesBookingDraftV226(
                             customerId = customer!!.id,
+                            customerName = customer!!.name,
                             packageCode = selectedPackage!!.packageCode,
                             tripDate = date,
                             bookingPax = ownPax,
