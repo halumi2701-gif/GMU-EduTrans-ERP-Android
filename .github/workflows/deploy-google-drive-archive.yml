@@ -107,6 +107,39 @@ jobs:
             GMU_DRIVE_ORDER_FOLDER_ID="$GMU_DRIVE_ORDER_FOLDER_ID" \
             --project-ref "$SUPABASE_PROJECT_ID"
 
+      - name: Verify Google Drive OAuth and archive folders
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TOKEN_JSON="$(curl -fsS https://oauth2.googleapis.com/token \
+            --data-urlencode "client_id=$GOOGLE_DRIVE_CLIENT_ID" \
+            --data-urlencode "client_secret=$GOOGLE_DRIVE_CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$GOOGLE_DRIVE_REFRESH_TOKEN" \
+            --data-urlencode "grant_type=refresh_token")"
+
+          ACCESS_TOKEN="$(printf '%s' "$TOKEN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))')"
+          test -n "$ACCESS_TOKEN" || { echo "Google OAuth tidak menghasilkan access token."; exit 1; }
+          echo "::add-mask::$ACCESS_TOKEN"
+
+          ROOT_JSON="$(curl -fsS \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.googleapis.com/drive/v3/files/$GMU_DRIVE_ROOT_FOLDER_ID?fields=id,name,mimeType,trashed")"
+          ROOT_ID="$(printf '%s' "$ROOT_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+          ROOT_TRASHED="$(printf '%s' "$ROOT_JSON" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("trashed",False)).lower())')"
+          test "$ROOT_ID" = "$GMU_DRIVE_ROOT_FOLDER_ID" || { echo "Root arsip Drive tidak cocok."; exit 1; }
+          test "$ROOT_TRASHED" = "false" || { echo "Root arsip Drive berada di trash."; exit 1; }
+
+          ORDER_JSON="$(curl -fsS \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://www.googleapis.com/drive/v3/files/$GMU_DRIVE_ORDER_FOLDER_ID?fields=id,name,mimeType,trashed,parents")"
+          ORDER_ID="$(printf '%s' "$ORDER_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+          ORDER_TRASHED="$(printf '%s' "$ORDER_JSON" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("trashed",False)).lower())')"
+          test "$ORDER_ID" = "$GMU_DRIVE_ORDER_FOLDER_ID" || { echo "Folder ORDER & BOOKING tidak cocok."; exit 1; }
+          test "$ORDER_TRASHED" = "false" || { echo "Folder ORDER & BOOKING berada di trash."; exit 1; }
+
+          echo "Google OAuth valid dan root arsip + ORDER & BOOKING dapat dibaca."
+
       - name: List production Edge Functions
         run: supabase functions list
 
