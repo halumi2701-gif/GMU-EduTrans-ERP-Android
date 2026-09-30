@@ -402,8 +402,14 @@ private fun C61Closing(
     onPage: (C61Page) -> Unit,
     onSendQuotation: (SalesQuotation) -> Unit
 ) {
-    LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { C61Header("Closing Center", "Quotation → DP terverifikasi → WON → Handover Ops") }
+    var decisionQuote by remember { mutableStateOf<SalesQuotation?>(null) }
+    var decisionType by remember { mutableStateOf("") }
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 110.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item { C61Header("Closing Center", "Quotation → Customer Decision → DP → WON → Handover Ops") }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 C61Metric("Draft", vm.dashboard.quotations.count { it.status == "DRAFT" }.toString(), Modifier.weight(1f))
@@ -422,10 +428,14 @@ private fun C61Closing(
         else items(vm.dashboard.quotations, key = { it.id }) { q ->
             Card(shape = RoundedCornerShape(19.dp)) {
                 Column(Modifier.padding(15.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(q.quotationNo, fontWeight = FontWeight.Black); C61Pill(q.status) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(q.quotationNo, fontWeight = FontWeight.Black)
+                        C61Pill(q.status)
+                    }
                     Text(q.institutionName, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    Text("${q.programName} • ${q.pax} pax", fontSize = 9.sp, color = Color.Gray)
+                    Text(q.programName + " • " + q.pax + " pax", fontSize = 9.sp, color = Color.Gray)
                     Text(c61Rupiah(q.total), color = C61Green, fontWeight = FontWeight.Black, fontSize = 17.sp)
+
                     if (q.status == "DRAFT") {
                         Spacer(Modifier.height(8.dp))
                         Button(
@@ -440,41 +450,195 @@ private fun C61Closing(
                         if (q.whatsapp.isBlank()) {
                             Text("Nomor WhatsApp customer belum tersedia.", fontSize = 8.sp, color = Color.Red)
                         } else {
-                            Text("PDF resmi dilampirkan. Setelah WhatsApp berhasil dibuka, status otomatis menjadi SENT.", fontSize = 8.sp, color = Color.Gray)
+                            Text("PDF resmi dilampirkan. Setelah WhatsApp dibuka, status otomatis menjadi SENT.", fontSize = 8.sp, color = Color.Gray)
                         }
+                    }
+
+                    if (q.status == "SENT") {
+                        Spacer(Modifier.height(8.dp))
+                        if (q.customerDecision == "REVISION" && q.decisionStatus == "PROCESSED") {
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = C61SoftGold)
+                            ) {
+                                Text(
+                                    "Customer meminta revisi. Draft quotation -R baru sudah dibuat otomatis.",
+                                    Modifier.padding(10.dp),
+                                    fontSize = 9.sp,
+                                    color = C61GreenDark
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { decisionQuote = q; decisionType = "ACCEPT" },
+                                enabled = !busy && !vm.actionBusy,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Customer Terima")
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedButton(
+                                    onClick = { decisionQuote = q; decisionType = "REVISION" },
+                                    enabled = !busy && !vm.actionBusy,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Minta Revisi") }
+                                OutlinedButton(
+                                    onClick = { decisionQuote = q; decisionType = "REJECT" },
+                                    enabled = !busy && !vm.actionBusy,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Customer Tolak") }
+                            }
+                            Text(
+                                "ACCEPT membuat invoice DP otomatis. REVISI membuat draft -R baru. REJECT menutup lead.",
+                                fontSize = 8.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+
+                    if (q.status == "ACCEPTED" && q.invoiceNo.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = C61SoftGreen)
+                        ) {
+                            Column(Modifier.padding(11.dp)) {
+                                Text("INVOICE DP OTOMATIS", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = C61GreenDark)
+                                Text(q.invoiceNo, fontWeight = FontWeight.Black)
+                                val dpLabel = q.dpPercent?.let { it.toInt().toString() + "%" } ?: "DP"
+                                Text(dpLabel + " • " + c61Rupiah(q.invoiceTotal) + " • " + q.invoiceStatus, fontSize = 9.sp, color = Color.Gray)
+                                TextButton(onClick = { onPage(C61Page.DOCUMENTS) }) { Text("Buka Dokumen Invoice") }
+                            }
+                        }
+                    }
+
+                    if (q.status == "REJECTED") {
+                        Spacer(Modifier.height(6.dp))
+                        Text("Customer menolak quotation. Lead otomatis dipindahkan ke LOST.", fontSize = 9.sp, color = Color.Red)
                     }
                 }
             }
         }
-        item { C61Header("Payment State", "Status berasal dari pembayaran yang tercatat/terverifikasi Finance") }
+
+        item { C61Header("Payment State", "WON hanya setelah DP benar-benar terverifikasi") }
         if (vm.dashboard.bookings.isEmpty()) item { C61Info("Belum ada booking terkonversi.") }
-        else items(vm.dashboard.bookings.take(20), key = { "pay-${it.id}" }) { b ->
+        else items(vm.dashboard.bookings.take(20), key = { "pay-" + it.id }) { b ->
             val label = when (b.paymentState) {
                 "DP_TERVERIFIKASI" -> "DP TERVERIFIKASI"
                 "MENUNGGU_VERIFIKASI" -> "MENUNGGU VERIFIKASI"
                 else -> "BELUM ADA PEMBAYARAN"
             }
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = if (b.paymentState == "DP_TERVERIFIKASI") C61SoftGreen else Color.White)) {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = if (b.paymentState == "DP_TERVERIFIKASI") C61SoftGreen else Color.White)
+            ) {
                 Column(Modifier.padding(14.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(b.customerName.ifBlank { b.bookingNo }, fontWeight = FontWeight.Black); C61Pill(label) }
-                    Text("${b.bookingNo} • ${b.programName} • ${b.pax} pax", fontSize = 9.sp, color = Color.Gray)
-                    if (b.paymentVerifiedAt.isNotBlank()) Text("Verified ${b.paymentVerifiedAt.take(16).replace('T', ' ')}", fontSize = 9.sp, color = C61GreenDark)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(b.customerName.ifBlank { b.bookingNo }, fontWeight = FontWeight.Black)
+                        C61Pill(label)
+                    }
+                    Text(b.bookingNo + " • " + b.programName + " • " + b.pax + " pax", fontSize = 9.sp, color = Color.Gray)
+                    if (b.paymentVerifiedAt.isNotBlank()) Text("Verified " + b.paymentVerifiedAt.take(16).replace('T', ' '), fontSize = 9.sp, color = C61GreenDark)
                 }
             }
         }
+
         item { C61Header("Handover Ops", "Dibuat otomatis saat invoice DP menjadi PAID") }
         if (connected.handovers.isEmpty()) item { C61Info("Belum ada handover otomatis.") }
         else items(connected.handovers, key = { it.id }) { h ->
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = if (h.handoverStatus == "REVOKED") C61SoftRed else C61SoftGreen)) {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = if (h.handoverStatus == "REVOKED") C61SoftRed else C61SoftGreen)
+            ) {
                 Column(Modifier.padding(14.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(h.institutionName, fontWeight = FontWeight.Black); C61Pill(h.handoverStatus) }
-                    Text("${h.bookingNo} • Booking ${h.bookingStatus} • Request ${h.requestStatus}", fontSize = 9.sp, color = Color.Gray)
-                    if (h.tripStatus.isNotBlank()) Text("Ops/Trip: ${h.tripStatus}", fontSize = 9.sp, color = C61GreenDark)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(h.institutionName, fontWeight = FontWeight.Black)
+                        C61Pill(h.handoverStatus)
+                    }
+                    Text(h.bookingNo + " • Booking " + h.bookingStatus + " • Request " + h.requestStatus, fontSize = 9.sp, color = Color.Gray)
+                    if (h.tripStatus.isNotBlank()) Text("Ops/Trip: " + h.tripStatus, fontSize = 9.sp, color = C61GreenDark)
                 }
             }
         }
-        item { C61Info("Sales tidak dapat menandai WON manual. WON dan handover dibuat backend hanya setelah DP terverifikasi. Jika DP dibalik/refund, handover otomatis dapat direvoke.") }
+        item { C61Info("ACCEPT = WAITING_DP. Sales tidak dapat menandai WON manual. WON + handover hanya dibuat backend setelah DP terverifikasi.") }
     }
+
+    decisionQuote?.let { q ->
+        C61QuotationDecisionDialog(
+            quotation = q,
+            decision = decisionType,
+            busy = vm.actionBusy,
+            onDismiss = { decisionQuote = null; decisionType = "" },
+            onConfirm = { note ->
+                vm.recordCustomerDecision(q, decisionType, note)
+                decisionQuote = null
+                decisionType = ""
+            }
+        )
+    }
+}
+
+@Composable
+private fun C61QuotationDecisionDialog(
+    quotation: SalesQuotation,
+    decision: String,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String?) -> Unit
+) {
+    var note by remember(quotation.id, decision) { mutableStateOf("") }
+    val title = when (decision) {
+        "ACCEPT" -> "Customer menerima quotation?"
+        "REVISION" -> "Customer meminta revisi?"
+        "REJECT" -> "Customer menolak quotation?"
+        else -> "Keputusan customer"
+    }
+    val helper = when (decision) {
+        "ACCEPT" -> "Quotation menjadi ACCEPTED dan invoice DP otomatis dibuat dari pengaturan Finance."
+        "REVISION" -> "Tuliskan permintaan customer. Sistem membuat draft revision -R baru tanpa menimpa quotation lama."
+        "REJECT" -> "Tuliskan alasan penolakan. Quotation menjadi REJECTED dan lead otomatis masuk LOST."
+        else -> ""
+    }
+    val noteRequired = decision == "REVISION" || decision == "REJECT"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, fontWeight = FontWeight.Black) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(quotation.quotationNo, color = C61Green, fontWeight = FontWeight.Bold)
+                Text(quotation.institutionName, fontSize = 11.sp)
+                Text(helper, fontSize = 10.sp, color = Color.Gray)
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(if (noteRequired) "Catatan / alasan *" else "Catatan customer (opsional)") },
+                    minLines = 2,
+                    maxLines = 5,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(note.trim().takeIf { it.isNotBlank() }) },
+                enabled = !busy && (!noteRequired || note.isNotBlank())
+            ) {
+                Text(
+                    when (decision) {
+                        "ACCEPT" -> "Terima & Buat DP"
+                        "REVISION" -> "Buat Draft Revisi"
+                        "REJECT" -> "Tolak Quotation"
+                        else -> "Simpan"
+                    }
+                )
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
+    )
 }
 
 @Composable
