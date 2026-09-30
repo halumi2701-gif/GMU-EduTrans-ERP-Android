@@ -183,6 +183,35 @@ async function registerDocument(payload: JsonRecord) {
   });
 }
 
+async function writeSyncAudit(actorId: string, action: string, recordId: string, message: string) {
+  try {
+    await serviceRest("audit_logs", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: actorId,
+        action,
+        table_name: "gmu_drive_archive",
+        record_id: recordId,
+        message,
+      }),
+    });
+  } catch (auditError) {
+    console.error("gmu-drive-audit", auditError);
+  }
+}
+
+async function updateFolderMetadata(entityId: string, metadata: JsonRecord) {
+  await serviceRest(
+    `gmu_drive_folders?entity_type=eq.order&entity_id=eq.${encodeURIComponent(entityId)}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ metadata, updated_at: new Date().toISOString() }),
+    },
+  );
+}
+
 async function uploadBase64(name: string, mimeType: string, parentId: string, base64: string) {
   if (base64.length > 8_500_000) throw new Error("Ukuran dokumen terlalu besar untuk upload inline.");
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -220,8 +249,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
+  let actor: { id: string; role: string } | null = null;
   try {
-    const actor = await currentUser(req);
+    actor = await currentUser(req);
     if (!actor) return json({ error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => ({})) as JsonRecord;
     const action = String(body.action ?? "health");
@@ -233,7 +263,11 @@ Deno.serve(async (req) => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       const folder = await response.json();
-      if (!response.ok) return json({ ok: false, drive: folder }, 502);
+      if (!response.ok) {
+        await writeSyncAudit(actor.id, "DRIVE_HEALTH_ERROR", "health", `Google Drive health gagal HTTP ${response.status}.`);
+        return json({ ok: false, drive: folder }, 502);
+      }
+      await writeSyncAudit(actor.id, "DRIVE_HEALTH_OK", "health", `Google Drive terhubung ke ${String(folder?.name ?? "root arsip")}.`);
       return json({ ok: true, root: folder, actor_role: actor.role });
     }
 
@@ -248,7 +282,35 @@ Deno.serve(async (req) => {
         `gmu_drive_folders?select=*&entity_type=eq.order&entity_id=eq.${encodeURIComponent(entityId)}&limit=1`,
       );
       const existingRows = JSON.parse(existingText) as JsonRecord[];
-      if (existingRows.length) return json({ ok: true, reused: true, folder: existingRows[0] });
+      if (existingRows.length) {
+        const existing = existingRows[0];
+        const existingFolderId = String(existing.drive_folder_id ?? "");
+        if (!existingFolderId) throw new Error("Record folder Drive ditemukan tetapi drive_folder_id kosong.");
+
+        const children: Record<string, string> = {};
+        for (const subfolder of ORDER_SUBFOLDERS) {
+          const child = await ensureChildFolder(subfolder, existingFolderId);
+          children[subfolder] = String(child.id ?? "");
+        }
+
+        const previousMetadata = (existing.metadata ?? {}) as JsonRecord;
+        const metadata = {
+          ...previousMetadata,
+          children,
+          customer_name: customerName,
+          activity_date: activityDate,
+          structure_verified_at: new Date().toISOString(),
+        };
+        await updateFolderMetadata(entityId, metadata);
+        const repaired = { ...existing, metadata };
+        await writeSyncAudit(
+          actor.id,
+          "DRIVE_ORDER_REUSED",
+          entityId,
+          `Folder booking ${bookingCode} digunakan ulang; 9 subfolder diverifikasi tanpa duplikasi.`,
+        );
+        return json({ ok: true, reused: true, folder: repaired, actor_role: actor.role });
+      }
 
       const folderName = `${bookingCode} - ${customerName} - ${activityDate}`;
       const orderFolder = await ensureChildFolder(folderName, ORDER_PARENT_FOLDER_ID);
@@ -274,6 +336,12 @@ Deno.serve(async (req) => {
         created_by: actor.id,
       };
       await upsertFolderRecord(record);
+      await writeSyncAudit(
+        actor.id,
+        "DRIVE_ORDER_CREATED",
+        entityId,
+        `Folder booking ${bookingCode} + 9 subfolder berhasil dibuat.`,
+      );
       return json({ ok: true, reused: false, folder: record, actor_role: actor.role });
     }
 
@@ -312,12 +380,22 @@ Deno.serve(async (req) => {
         created_by: actor.id,
       };
       await registerDocument(record);
+      await writeSyncAudit(
+        actor.id,
+        "DRIVE_DOCUMENT_UPLOADED",
+        entityId,
+        `Dokumen ${fileName} diunggah ke ${targetSubfolder}.`,
+      );
       return json({ ok: true, document: record, actor_role: actor.role });
     }
 
     return json({ error: "Action tidak dikenal." }, 400);
   } catch (error) {
     console.error("gmu-drive-archive", error);
-    return json({ error: error instanceof Error ? error.message : "Integrasi Drive gagal." }, 500);
+    const message = error instanceof Error ? error.message : "Integrasi Drive gagal.";
+    if (actor?.id) {
+      await writeSyncAudit(actor.id, "DRIVE_SYNC_ERROR", "runtime", message);
+    }
+    return json({ error: message }, 500);
   }
 });
