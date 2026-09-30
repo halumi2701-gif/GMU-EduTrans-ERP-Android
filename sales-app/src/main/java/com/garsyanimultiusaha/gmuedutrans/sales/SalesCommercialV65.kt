@@ -214,7 +214,9 @@ internal class SalesCommercialApiV65 {
             )
         )
         if (!root.optBoolean("ok", false)) throw IllegalStateException("Booking gagal dibuat.")
-        root.optString("booking_no", "Booking")
+        val bookingNo = root.optString("booking_no", "Booking")
+        val quotationNo = root.optString("quotation_no", "")
+        if (quotationNo.isNotBlank()) "$bookingNo • Quotation $quotationNo" else bookingNo
     }
 
     private fun parsePreview(x: JSONObject) = SalesCommercialPreviewV65(
@@ -561,9 +563,9 @@ internal fun SalesCommercialV65Sheet(
                                 sharedSessionCode = sharedSessionCode
                             )
                         )
-                    }.onSuccess { bookingNo ->
-                        result = "$bookingNo berhasil dibuat dengan harga Master ERP."
-                        onCreated(bookingNo)
+                    }.onSuccess { creationResult ->
+                        result = "$creationResult berhasil dibuat otomatis dari harga Master ERP."
+                        onCreated(creationResult)
                     }.onFailure {
                         error = it.message ?: "Booking gagal dibuat."
                     }
