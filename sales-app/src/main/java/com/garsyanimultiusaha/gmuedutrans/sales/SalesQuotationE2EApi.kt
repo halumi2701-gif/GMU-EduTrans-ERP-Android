@@ -9,6 +9,19 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class SalesCustomerDecisionResult(
+    val decision: String,
+    val message: String,
+    val quotationNo: String,
+    val quotationStatus: String,
+    val revisionQuotationNo: String = "",
+    val revisionStatus: String = "",
+    val invoiceNo: String = "",
+    val invoiceStatus: String = "",
+    val invoiceTotal: Double = 0.0,
+    val dpPercent: Double? = null
+)
+
 class SalesQuotationE2EApi {
     private val base = BuildConfig.SUPABASE_URL
     private val key = BuildConfig.SUPABASE_PUBLISHABLE_KEY
@@ -44,6 +57,40 @@ class SalesQuotationE2EApi {
                 )
             }
         }
+    }
+
+    suspend fun recordCustomerDecision(
+        session: SalesSession,
+        quotationId: String,
+        decision: String,
+        note: String?
+    ): SalesCustomerDecisionResult = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("p_quotation_id", quotationId)
+            .put("p_decision", decision.uppercase())
+            .put("p_note", note?.trim()?.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+        val x = JSONObject(
+            requestRpc(
+                "gmu_sales_record_customer_quotation_decision",
+                body.toString(),
+                session.accessToken
+            )
+        )
+        if (!x.optBoolean("ok", false)) {
+            throw IllegalStateException(x.optString("message", "Keputusan customer gagal diproses."))
+        }
+        SalesCustomerDecisionResult(
+            decision = x.optString("decision", decision.uppercase()),
+            message = x.optString("message", ""),
+            quotationNo = x.optString("quotation_no", ""),
+            quotationStatus = x.optString("quotation_status", ""),
+            revisionQuotationNo = x.optString("revision_quotation_no", ""),
+            revisionStatus = x.optString("revision_status", ""),
+            invoiceNo = x.optString("invoice_no", ""),
+            invoiceStatus = x.optString("invoice_status", ""),
+            invoiceTotal = x.optDouble("invoice_total", 0.0),
+            dpPercent = if (x.isNull("dp_percent")) null else x.optDouble("dp_percent")
+        )
     }
 
     private fun requestRpc(name: String, body: String, accessToken: String): String {
