@@ -31,7 +31,9 @@ jobs:
 
       - name: Use exact GMU EduTrans logo
         run: |
+          set -euo pipefail
           mkdir -p tourleader/src/main/res/drawable
+          rm -f tourleader/src/main/res/drawable/ic_launcher_gmu.xml
           curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo" \
             -o tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
           file tourleader/src/main/res/drawable/ic_launcher_gmu.jpg
