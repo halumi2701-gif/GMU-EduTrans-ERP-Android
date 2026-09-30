@@ -143,6 +143,9 @@ private fun ManagerOpsAgentPanel(
     val handoverQueue = vm.table("sales_handover_events")
         .filter { it.text("status") in listOf("READY_FOR_OPS", "ACKNOWLEDGED", "IN_PROGRESS") }
     val autoSheets = vm.table("operation_sheets").count { it.text("generated_from") == "AUTO_HANDOVER" }
+    val helperRequiredTrips = vm.table("operation_sheets").count {
+        it.text("helper_required").equals("true", ignoreCase = true)
+    }
     val firstHandover = handoverQueue.firstOrNull()
     val firstHandoverBooking = firstHandover?.text("booking_id")?.let { id ->
         vm.bookings.firstOrNull { it.id == id }
@@ -255,7 +258,7 @@ private fun ManagerOpsAgentPanel(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Auto Handover", fontWeight = FontWeight.Black, color = GmuDark)
-                        Text("Sales → Manager/Ops", fontSize = 10.sp, color = Color.Gray)
+                        Text("Sales → Manager EduTrans → Staff Operasional", fontSize = 10.sp, color = Color.Gray)
                     }
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -275,6 +278,24 @@ private fun ManagerOpsAgentPanel(
                     "$autoSheets Operation Sheet dibuat otomatis dari handover.",
                     fontSize = 11.sp,
                     color = Color.Gray
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Struktur: Manager EduTrans → Staff Operasional → TL/Edukator + Dokumentasi + Helper",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = GmuDark
+                )
+                Text(
+                    "Unit lain di bawah Manager: Sales • Admin • Finance",
+                    fontSize = 10.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    if (helperRequiredTrips > 0) "$helperRequiredTrips trip membutuhkan Helper."
+                    else "Helper bersifat kondisional: program tertentu atau peserta >30.",
+                    fontSize = 10.sp,
+                    color = if (helperRequiredTrips > 0) GmuWarn else Color.Gray
                 )
                 if (firstHandover != null) {
                     Spacer(Modifier.height(10.dp))
@@ -395,10 +416,25 @@ private data class ManagerCostSnapshot(val rab: Double, val actual: Double)
 
 private fun managerReadiness(vm: MainViewModel, bookingId: String?): ManagerReadiness {
     if (bookingId.isNullOrBlank()) return ManagerReadiness(0, emptyList())
+
+    val trip = vm.table("trips").firstOrNull { it.text("booking_id") == bookingId }
+    val operationSheet = vm.table("operation_sheets").firstOrNull { it.text("booking_id") == bookingId }
+    val assignments = vm.table("staff_assignments").filter {
+        it.text("booking_id") == bookingId && !it.text("status").equals("Cancelled", ignoreCase = true)
+    }
+
+    val hasStaffOperational = !trip?.text("operation_pic_id").isNullOrBlank()
+    val hasTourLeader = !trip?.text("tl_id").isNullOrBlank()
+    val hasDocumentation = assignments.any { it.text("title").contains("dokumentasi", ignoreCase = true) }
+    val helperRequired = operationSheet?.text("helper_required").equals("true", ignoreCase = true)
+    val hasHelper = !helperRequired || assignments.any { it.text("title").contains("helper", ignoreCase = true) }
+    val crewReady = hasStaffOperational && hasTourLeader && hasDocumentation && hasHelper
+
     val checks = listOf(
         "Rundown" to vm.table("rundown_items").any { it.text("booking_id") == bookingId },
         "Manifest" to vm.table("manifests").any { it.text("booking_id") == bookingId },
-        "Operation Sheet" to vm.table("operation_sheets").any { it.text("booking_id") == bookingId },
+        "Operation Sheet" to (operationSheet != null),
+        "Crew" to crewReady,
         "Vendor/PO" to vm.table("vendor_pos").any { it.text("booking_id") == bookingId },
         "Documents" to (vm.table("documents").count { it.text("booking_id") == bookingId } >= 5)
     )
@@ -478,8 +514,9 @@ private fun routeManagerCommand(command: String): Pair<String, AppPage?> {
         normalized.isBlank() -> "Tuliskan perintah operasional terlebih dahulu." to null
         "vendor" in normalized || "po" in normalized ->
             "Saya buka Vendor & PO agar Manager dapat mengecek konfirmasi dan kebutuhan vendor." to AppPage.VENDORS
-        "crew" in normalized || "tim" in normalized || "tl" in normalized ->
-            "Saya buka Team & HR untuk menyusun atau mengecek assignment crew." to AppPage.TEAM_HR
+        "crew" in normalized || "tim" in normalized || "tl" in normalized ||
+            "edukator" in normalized || "dokumentasi" in normalized || "helper" in normalized ->
+            "Saya buka Team & HR untuk menyusun Staff Operasional, TL/Edukator, Dokumentasi, dan Helper." to AppPage.TEAM_HR
         "laporan" in normalized || "report" in normalized || "evaluasi" in normalized ->
             "Saya buka Reports untuk menyiapkan laporan dan evaluasi trip." to AppPage.REPORTS
         "dokumen" in normalized || "folder" in normalized ->
