@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v22.8-profit-allocation-recovery';
+  const VERSION = 'v23.2-drive-sync-test';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
@@ -11,7 +11,7 @@
   const COMPANY_CONTROL_VERSION = 'v21.4-company-control-center-layer';
   const PORTFOLIO_TARGET_VERSION = 'v22.5-sales-funnel-forecast';
   const PROFIT_ALLOCATION_VERSION = 'v22.8-profit-allocation-recovery';
-  const DRIVE_ARCHIVE_VERSION = 'v23.1-google-drive-archive';
+  const DRIVE_ARCHIVE_VERSION = 'v23.2-google-drive-owner-sync-test';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
