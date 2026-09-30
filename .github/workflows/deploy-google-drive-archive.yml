@@ -107,6 +107,9 @@ jobs:
             GMU_DRIVE_ORDER_FOLDER_ID="$GMU_DRIVE_ORDER_FOLDER_ID" \
             --project-ref "$SUPABASE_PROJECT_ID"
 
+      - name: List production Edge Functions
+        run: supabase functions list
+
       - name: Deploy Drive archive Edge Function
         run: supabase functions deploy gmu-drive-archive --project-ref "$SUPABASE_PROJECT_ID"
 
