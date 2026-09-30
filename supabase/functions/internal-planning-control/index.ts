@@ -65,7 +65,7 @@ Deno.serve(async(req:Request)=>{
       const month=date(body?.month);
       const start=date(body?.start_date)||month;
       const end=date(body?.end_date)||new Date().toISOString().slice(0,10);
-      const [score,budgets,weights,programs,pnl,settings,payroll,profiles]=await Promise.all([
+      const [score,budgets,weights,programs,pnl,settings,payroll,profiles,compProfiles]=await Promise.all([
         sb.rpc("internal_planning_management_scorecard",{p_month:month,p_actor:actor}),
         sb.rpc("internal_planning_budgets",{p_month:month,p_actor:actor}),
         sb.rpc("internal_planning_pipeline_weights",{p_actor:actor}),
@@ -82,9 +82,10 @@ Deno.serve(async(req:Request)=>{
           .gte("earned_at",start+"T00:00:00+00:00")
           .lte("earned_at",end+"T23:59:59+00:00")
           .neq("state","VOID"),
-        sb.from("profiles").select("id,full_name")
+        sb.from("profiles").select("id,full_name,role,is_active"),
+        sb.from("staff_compensation_profiles").select("staff_id,base_monthly,status,compensation_type")
       ]);
-      for(const x of [score,budgets,weights,programs,pnl,settings,payroll,profiles])if(x.error)throw x.error;
+      for(const x of [score,budgets,weights,programs,pnl,settings,payroll,profiles,compProfiles])if(x.error)throw x.error;
 
       const cfg:Record<string,number>={};
       for(const row of settings.data||[])cfg[String(row.setting_key)]=Number(row.numeric_value||0);
@@ -119,6 +120,14 @@ Deno.serve(async(req:Request)=>{
       const payableNote=outstandingTotal>0
         ?" | Internal belum dibayar "+rp(outstandingTotal)+(payablePeople?": "+payablePeople:"")+" | Internal sudah dibayar "+rp(paidTotal)
         :" | Internal belum dibayar Rp0 | Internal sudah dibayar "+rp(paidTotal);
+      const activeProfiles=(profiles.data||[]).filter((p:any)=>p.is_active===true);
+      const compMap:Record<string,any>={};
+      for(const c of compProfiles.data||[])compMap[String(c.staff_id)]=c;
+      const roleCount=(role:string)=>activeProfiles.filter((p:any)=>String(p.role||"")===role).length;
+      const fixedActive=(role:string)=>activeProfiles.filter((p:any)=>String(p.role||"")===role && compMap[String(p.id)]?.status==="ACTIVE" && Number(compMap[String(p.id)]?.base_monthly||0)>0).length;
+      const fixedMasterNote=" | Fixed payroll: Sales Rp600.000 kandidat "+roleCount("Sales")+" / aktif "+fixedActive("Sales")
+        +" | Admin Rp450.000 profil aktif "+roleCount("Admin")+" / penerima "+fixedActive("Admin")
+        +" | Finance Rp550.000 profil aktif "+roleCount("Finance")+" / penerima "+fixedActive("Finance");
 
       if(month){
         const companyTarget=await sb.from("planning_targets")
@@ -140,6 +149,7 @@ Deno.serve(async(req:Request)=>{
             +" | Utilitas bulanan "+rp(cfg.MONTHLY_UTILITY_BUDGET||1755000)
             +" | Target "+Math.round(cfg.MONTHLY_PAX_TARGET||400)+" pax"
             +payableNote
+            +fixedMasterNote
             +". Basis pembagian: laba bersih positif setelah biaya yang sudah dibukukan.";
           const upd=await sb.from("planning_targets")
             .update({notes:(prior?prior+" • ":"")+autoNote,updated_at:new Date().toISOString()})
