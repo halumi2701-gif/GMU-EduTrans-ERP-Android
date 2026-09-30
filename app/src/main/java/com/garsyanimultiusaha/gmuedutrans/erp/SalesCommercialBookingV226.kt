@@ -252,7 +252,8 @@ fun SalesCommercialBookingV226Screen(
     onNotice: (String) -> Unit
 ) {
     val screenScope = rememberCoroutineScope()
-    val commercialApi = remember { SalesCommercialApiV226() }\n    val driveArchiveApi = remember { DriveArchiveApi() }
+    val commercialApi = remember { SalesCommercialApiV226() }
+    val driveArchiveApi = remember { DriveArchiveApi() }
     var query by remember { mutableStateOf("") }
     var stage by remember { mutableStateOf("All") }
     var add by remember { mutableStateOf(false) }
