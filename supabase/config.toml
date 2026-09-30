@@ -8,3 +8,9 @@ verify_jwt = false
 # Customer catalog is intentionally public; handler only returns allow-listed public fields.
 [functions.public-package-catalog]
 verify_jwt = false
+
+# Commercial PDF accepts either a signed-in staff JWT (validated in-handler)
+# or a database-internal one-time service token stored in Vault for pg_net.
+# Platform verification is disabled because the handler performs both checks.
+[functions.internal-commercial-pdf]
+verify_jwt = false
