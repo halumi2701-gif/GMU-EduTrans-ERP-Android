@@ -23,7 +23,7 @@ const ORDER_SUBFOLDERS = [
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-gmu-drive-smoke",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
@@ -184,6 +184,7 @@ async function registerDocument(payload: JsonRecord) {
 }
 
 async function writeSyncAudit(actorId: string, action: string, recordId: string, message: string) {
+  if (!actorId) return;
   try {
     await serviceRest("audit_logs", {
       method: "POST",
@@ -251,10 +252,23 @@ Deno.serve(async (req) => {
 
   let actor: { id: string; role: string } | null = null;
   try {
-    actor = await currentUser(req);
-    if (!actor) return json({ error: "Unauthorized" }, 401);
     const body = await req.json().catch(() => ({})) as JsonRecord;
     const action = String(body.action ?? "health");
+    const configuredSmokeToken = (Deno.env.get("GMU_DRIVE_SMOKE_TOKEN") || "").trim();
+    const suppliedSmokeToken = (req.headers.get("x-gmu-drive-smoke") || "").trim();
+    const smokeAuthorized =
+      action === "smoke_test" &&
+      configuredSmokeToken.length >= 32 &&
+      suppliedSmokeToken === configuredSmokeToken;
+
+    if (action === "smoke_test" && !smokeAuthorized) {
+      return json({ error: "Unauthorized smoke test" }, 401);
+    }
+
+    actor = smokeAuthorized
+      ? { id: "", role: "SYSTEM_SMOKE" }
+      : await currentUser(req);
+    if (!actor) return json({ error: "Unauthorized" }, 401);
 
     if (action === "health") {
       const token = await googleAccessToken();
@@ -271,7 +285,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, root: folder, actor_role: actor.role });
     }
 
-    if (action === "ensure_order_folder") {
+    if (action === "ensure_order_folder" || action === "smoke_test") {
       const entityId = safePart(body.entity_id, "");
       const bookingCode = safePart(body.booking_code, entityId);
       const customerName = safePart(body.customer_name, "CUSTOMER");
@@ -333,7 +347,7 @@ Deno.serve(async (req) => {
         folder_name: folderName,
         parent_drive_folder_id: ORDER_PARENT_FOLDER_ID,
         metadata: { children, customer_name: customerName, activity_date: activityDate },
-        created_by: actor.id,
+        created_by: actor.id || null,
       };
       await upsertFolderRecord(record);
       await writeSyncAudit(
