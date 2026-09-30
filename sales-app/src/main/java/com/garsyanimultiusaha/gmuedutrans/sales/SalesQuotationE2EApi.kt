@@ -9,6 +9,15 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class SalesXenditCheckoutResult(
+    val ready: Boolean,
+    val checkoutUrl: String = "",
+    val orderNo: String = "",
+    val status: String = "",
+    val expiresAt: String = "",
+    val reason: String = ""
+)
+
 data class SalesCustomerDecisionResult(
     val decision: String,
     val message: String,
@@ -27,7 +36,7 @@ class SalesQuotationE2EApi {
     private val key = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     suspend fun loadMyQuotations(session: SalesSession): List<SalesQuotation> = withContext(Dispatchers.IO) {
-        val arr = JSONArray(requestRpc("gmu_sales_my_quotations_v2", "{}", session.accessToken))
+        val arr = JSONArray(requestRpc("gmu_sales_my_quotations_v3", "{}", session.accessToken))
         buildList {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
@@ -49,14 +58,65 @@ class SalesQuotationE2EApi {
                         createdAt = x.optString("created_at", ""),
                         customerDecision = x.optString("customer_decision", ""),
                         decisionStatus = x.optString("decision_status", ""),
+                        invoiceId = x.optString("invoice_id", ""),
                         invoiceNo = x.optString("invoice_no", ""),
                         invoiceStatus = x.optString("invoice_status", ""),
                         invoiceTotal = x.optDouble("invoice_total", 0.0),
-                        dpPercent = if (x.isNull("dp_percent")) null else x.optDouble("dp_percent")
+                        dpPercent = if (x.isNull("dp_percent")) null else x.optDouble("dp_percent"),
+                        paymentOrderNo = x.optString("payment_order_no", ""),
+                        paymentStatus = x.optString("payment_status", ""),
+                        paymentCheckoutUrl = x.optString("payment_checkout_url", ""),
+                        paymentExpiresAt = x.optString("payment_expires_at", "")
                     )
                 )
             }
         }
+    }
+
+
+    suspend fun prepareXenditCheckout(
+        session: SalesSession,
+        invoiceId: String
+    ): SalesXenditCheckoutResult = withContext(Dispatchers.IO) {
+        val connection = (URL(base.trimEnd('/') + "/functions/v1/public-customer-portal").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20_000
+            readTimeout = 35_000
+            setRequestProperty("apikey", key)
+            setRequestProperty("Authorization", "Bearer ${session.accessToken}")
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Accept", "application/json")
+            doOutput = true
+            outputStream.use {
+                it.write(
+                    JSONObject()
+                        .put("action", "sales_xendit_checkout")
+                        .put("invoice_id", invoiceId)
+                        .toString()
+                        .toByteArray(Charsets.UTF_8)
+                )
+            }
+        }
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val text = if (stream == null) "" else BufferedReader(InputStreamReader(stream)).use { it.readText() }
+        connection.disconnect()
+        val x = runCatching { JSONObject(text.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+        if (code !in 200..299) {
+            val reason = x.optString("reason")
+                .ifBlank { x.optString("error") }
+                .ifBlank { "Xendit checkout merespons HTTP $code" }
+            return@withContext SalesXenditCheckoutResult(ready = false, reason = reason)
+        }
+        val order = x.optJSONObject("order")
+        SalesXenditCheckoutResult(
+            ready = x.optBoolean("ready", x.optBoolean("ok", false)),
+            checkoutUrl = x.optString("checkout_url", ""),
+            orderNo = order?.optString("order_no", "") ?: "",
+            status = order?.optString("status", "") ?: "",
+            expiresAt = x.optString("expires_at", ""),
+            reason = x.optString("reason", "")
+        )
     }
 
     suspend fun recordCustomerDecision(
