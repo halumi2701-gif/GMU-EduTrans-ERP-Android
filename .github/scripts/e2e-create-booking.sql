@@ -47,8 +47,8 @@ select
   (
     select coalesce(nullif(trim(c.name),''),'CUSTOMER')
     from public.customers c
-    join public.bookings b on b.customer_id=c.id
-    where b.id=(j->>'booking_id')::uuid
+    where c.id=(select id from customer)
+    limit 1
   ),
   (current_date + 30)::text
 from created;
