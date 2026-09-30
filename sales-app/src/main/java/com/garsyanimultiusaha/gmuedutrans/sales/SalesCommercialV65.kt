@@ -216,7 +216,27 @@ internal class SalesCommercialApiV65 {
         if (!root.optBoolean("ok", false)) throw IllegalStateException("Booking gagal dibuat.")
         val bookingNo = root.optString("booking_no", "Booking")
         val quotationNo = root.optString("quotation_no", "")
-        if (quotationNo.isNotBlank()) "$bookingNo • Quotation $quotationNo" else bookingNo
+        val quotationId = root.optString("quotation_id", "")
+        val pdfReady = quotationId.isNotBlank() && runCatching {
+            val pdf = JSONObject(
+                request(
+                    "POST",
+                    "/functions/v1/internal-commercial-pdf",
+                    JSONObject()
+                        .put("action", "quotation")
+                        .put("id", quotationId)
+                        .put("mode", "auto")
+                        .toString(),
+                    accessToken
+                )
+            )
+            pdf.optBoolean("ok", false)
+        }.getOrDefault(false)
+        when {
+            quotationNo.isBlank() -> bookingNo
+            pdfReady -> "$bookingNo • Quotation $quotationNo • PDF siap"
+            else -> "$bookingNo • Quotation $quotationNo • PDF akan disinkronkan saat refresh"
+        }
     }
 
     private fun parsePreview(x: JSONObject) = SalesCommercialPreviewV65(
