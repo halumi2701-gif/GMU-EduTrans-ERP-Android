@@ -1,6 +1,10 @@
 name: Deploy Google Drive Archive Integration
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/deploy-google-drive-archive.yml"
   workflow_dispatch:
     inputs:
       confirm_production:
@@ -19,12 +23,13 @@ concurrency:
 
 env:
   SUPABASE_PROJECT_ID: gtgnwasijweewmaubvyg
+  SUPABASE_DB_POOLER_HOST: aws-0-ap-south-1.pooler.supabase.com
   GMU_DRIVE_ROOT_FOLDER_ID: 16Czc7Bd3sI7Bc7OV7RMmknjyNAVDfwpm
   GMU_DRIVE_ORDER_FOLDER_ID: 1eLza3RKK7sMPuHF55k1V8G09_KN9rPJR
 
 jobs:
   deploy:
-    if: ${{ inputs.confirm_production == 'DEPLOY' }}
+    if: ${{ github.event_name == 'push' || inputs.confirm_production == 'DEPLOY' }}
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -67,11 +72,15 @@ jobs:
           set -euo pipefail
           supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Dry-run migrations
-        run: supabase db push --dry-run
-
-      - name: Apply migrations
-        run: supabase db push
+      - name: Dry-run and apply migrations over Supavisor IPv4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENCODED_DB_PASSWORD="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
+          DB_URL="postgresql://postgres.${SUPABASE_PROJECT_ID}:${ENCODED_DB_PASSWORD}@${SUPABASE_DB_POOLER_HOST}:5432/postgres?sslmode=require"
+          supabase db push --db-url "$DB_URL" --dry-run
+          supabase db push --db-url "$DB_URL"
+          unset DB_URL ENCODED_DB_PASSWORD
 
       - name: Configure Edge Function secrets
         shell: bash
