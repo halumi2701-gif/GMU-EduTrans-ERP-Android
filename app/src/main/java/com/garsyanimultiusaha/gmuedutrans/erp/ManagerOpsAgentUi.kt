@@ -140,6 +140,13 @@ private fun ManagerOpsAgentPanel(
         .firstOrNull()
     val readiness = managerReadiness(vm, nextTrip?.id)
     val pendingApprovals = vm.table("approvals").count { it.text("status") == "Pending" }
+    val handoverQueue = vm.table("sales_handover_events")
+        .filter { it.text("status") in listOf("READY_FOR_OPS", "ACKNOWLEDGED", "IN_PROGRESS") }
+    val autoSheets = vm.table("operation_sheets").count { it.text("generated_from") == "AUTO_HANDOVER" }
+    val firstHandover = handoverQueue.firstOrNull()
+    val firstHandoverBooking = firstHandover?.text("booking_id")?.let { id ->
+        vm.bookings.firstOrNull { it.id == id }
+    }
 
     var costSnapshot by remember(nextTrip?.id) { mutableStateOf<ManagerCostSnapshot?>(null) }
     var costError by remember(nextTrip?.id) { mutableStateOf<String?>(null) }
@@ -235,6 +242,70 @@ private fun ManagerOpsAgentPanel(
                         color = GmuWarn,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Card(
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Auto Handover", fontWeight = FontWeight.Black, color = GmuDark)
+                        Text("Sales → Manager/Ops", fontSize = 10.sp, color = Color.Gray)
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (handoverQueue.isNotEmpty()) Color(0xFFEAF7EF) else GmuSoft
+                    ) {
+                        Text(
+                            handoverQueue.size.toString() + " antrean",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (handoverQueue.isNotEmpty()) GmuGreen else Color.Gray
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "$autoSheets Operation Sheet dibuat otomatis dari handover.",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+                if (firstHandover != null) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        firstHandoverBooking?.bookingNo ?: firstHandover.text("booking_id"),
+                        fontWeight = FontWeight.Bold,
+                        color = GmuDark
+                    )
+                    firstHandoverBooking?.let { b ->
+                        Text(
+                            b.customerName + " • " + b.programName + " • " + b.tripDate + " • " + b.pax + " pax",
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    Text(
+                        "Status: " + firstHandover.text("status") + " • " + firstHandover.text("source"),
+                        fontSize = 10.sp,
+                        color = GmuGreen,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                } else {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Belum ada handover baru yang menunggu Manager/Ops.", fontSize = 11.sp, color = Color.Gray)
+                }
+                Spacer(Modifier.height(10.dp))
+                Button(
+                    onClick = { onNavigate(AppPage.OPERATIONS) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Buka Trip Operation")
                 }
             }
         }
