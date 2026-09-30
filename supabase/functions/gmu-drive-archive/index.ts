@@ -94,9 +94,9 @@ async function currentUser(req: Request) {
 }
 
 async function googleAccessToken() {
-  const clientId = Deno.env.get("GOOGLE_DRIVE_CLIENT_ID") || "";
-  const clientSecret = Deno.env.get("GOOGLE_DRIVE_CLIENT_SECRET") || "";
-  const refreshToken = Deno.env.get("GOOGLE_DRIVE_REFRESH_TOKEN") || "";
+  const clientId = (Deno.env.get("GOOGLE_DRIVE_CLIENT_ID") || "").trim();
+  const clientSecret = (Deno.env.get("GOOGLE_DRIVE_CLIENT_SECRET") || "").trim();
+  const refreshToken = (Deno.env.get("GOOGLE_DRIVE_REFRESH_TOKEN") || "").trim();
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Kredensial Google Drive GMU belum dipasang di Edge Function secrets.");
   }
