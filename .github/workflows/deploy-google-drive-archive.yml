@@ -1,10 +1,6 @@
 name: Deploy Google Drive Archive Integration
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - ".github/workflows/deploy-google-drive-archive.yml"
   workflow_dispatch:
     inputs:
       confirm_production:
@@ -29,7 +25,7 @@ env:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'push' || inputs.confirm_production == 'DEPLOY' }}
+    if: ${{ inputs.confirm_production == 'DEPLOY' }}
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -155,36 +151,8 @@ jobs:
 
           echo "Google OAuth valid dan root arsip + ORDER & BOOKING dapat dibaca."
 
-      - name: List production Edge Functions
-        run: supabase functions list
-
-      - name: Recycle obsolete diagnostic probe slot and deploy Drive archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          OLD_FUNCTION="pamoyanan-vercel-preview-probe"
-
-          if supabase functions list | grep -Fq "$OLD_FUNCTION"; then
-            echo "Backing up obsolete diagnostic function before freeing its slot..."
-            rm -rf "supabase/functions/$OLD_FUNCTION"
-            supabase functions download "$OLD_FUNCTION" --project-ref "$SUPABASE_PROJECT_ID" --use-api
-            test -d "supabase/functions/$OLD_FUNCTION" || { echo "Backup download failed; refusing to delete."; exit 1; }
-
-            find "supabase/functions/$OLD_FUNCTION" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/obsolete-function-backup.sha256
-            echo "Backup manifest:"
-            cat /tmp/obsolete-function-backup.sha256
-
-            supabase functions delete "$OLD_FUNCTION" --project-ref "$SUPABASE_PROJECT_ID"
-
-            if ! supabase functions deploy gmu-drive-archive --project-ref "$SUPABASE_PROJECT_ID"; then
-              echo "Drive deployment failed. Restoring $OLD_FUNCTION from downloaded backup..."
-              supabase functions deploy "$OLD_FUNCTION" --project-ref "$SUPABASE_PROJECT_ID" || true
-              exit 1
-            fi
-          else
-            echo "$OLD_FUNCTION already absent; deploying Drive archive directly."
-            supabase functions deploy gmu-drive-archive --project-ref "$SUPABASE_PROJECT_ID"
-          fi
+      - name: Deploy Drive archive Edge Function
+        run: supabase functions deploy gmu-drive-archive --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Verify Drive archive function is deployed
         shell: bash
