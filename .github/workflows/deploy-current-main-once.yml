@@ -62,6 +62,9 @@ jobs:
           grep -Fq 'STATION-PROF-2026' supabase/migrations/20260917193000_gmu_v226_sales_public_b2b_unified_pricing.sql
           grep -Fq 'train-package-policy-v221.js' erp-web/unified-v10-loader.js
           grep -Fq 'profit-allocation-v228.js' erp-web/unified-v10-loader.js
+          grep -Fq 'drive-archive-v231.js' erp-web/unified-v10-loader.js
+          grep -Fq 'Tes Sinkronisasi Drive' erp-web/drive-archive-v231.js
+          grep -Fq "new Set(['Owner', 'Director', 'Direktur'])" erp-web/drive-archive-v231.js
           grep -Fq "paidPaxMonthly: 400" erp-web/sales-target-v217.js
 
       - name: Validate production credentials
@@ -114,6 +117,9 @@ jobs:
           test -f dist/erp-web-v10/train-package-policy-v221.js
           test -f dist/erp-web-v10/sales-funnel-forecast-v225.js
           test -f dist/erp-web-v10/profit-allocation-v228.js
+          test -f dist/erp-web-v10/drive-archive-v231.js
+          grep -Fq 'Tes Sinkronisasi Drive' dist/erp-web-v10/drive-archive-v231.js
+          grep -Fq 'v23.2-google-drive-owner-sync-test' dist/erp-web-v10/drive-archive-v231.js
           grep -Fq 'v22.2-sales-portfolio-target-safe' dist/erp-web-v10/sales-target-v217.js
           grep -Fq 'Customer Account & Prospek Web' dist/erp-web-v10/customer-account-crm-v220.js
           grep -Fq 'HPP fasilitas • LOCK' dist/erp-web-v10/train-package-policy-v221.js
@@ -150,7 +156,7 @@ jobs:
           curl --fail --silent --show-error --location "$DEPLOYMENT_URL" -o /tmp/erp-current.html
           grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-current.html
           grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-current.html
-          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js; do
+          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js drive-archive-v231.js; do
             curl --fail --silent --show-error --location "$DEPLOYMENT_URL/$file" -o "/tmp/$file"
           done
           grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/sales-target-v217.js
@@ -158,6 +164,8 @@ jobs:
           grep -Fq 'v22.0-customer-account-crm' /tmp/customer-account-crm-v220.js
           grep -Fq 'v22.1-train-package-policy' /tmp/train-package-policy-v221.js
           grep -Fq 'v22.8-profit-allocation-recovery' /tmp/profit-allocation-v228.js
+          grep -Fq 'Tes Sinkronisasi Drive' /tmp/drive-archive-v231.js
+          grep -Fq 'v23.2-google-drive-owner-sync-test' /tmp/drive-archive-v231.js
 
       - name: Verify production custom domain
         shell: bash
@@ -166,7 +174,7 @@ jobs:
           curl --fail --silent --show-error --location "$ERP_LIVE_URL" -o /tmp/erp-prod.html
           grep -Fq 'GMU EduTrans ERP v21' /tmp/erp-prod.html
           grep -Fq 'src="./unified-v10-loader.js"' /tmp/erp-prod.html
-          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js; do
+          for file in sales-target-v217.js station-target-v216.js customer-account-crm-v220.js train-package-policy-v221.js profit-allocation-v228.js drive-archive-v231.js; do
             curl --fail --silent --show-error --location "${ERP_LIVE_URL}$file" -o "/tmp/prod-$file"
           done
           grep -Fq 'v22.2-sales-portfolio-target-safe' /tmp/prod-sales-target-v217.js
@@ -174,6 +182,8 @@ jobs:
           grep -Fq 'v22.0-customer-account-crm' /tmp/prod-customer-account-crm-v220.js
           grep -Fq 'v22.1-train-package-policy' /tmp/prod-train-package-policy-v221.js
           grep -Fq 'v22.8-profit-allocation-recovery' /tmp/prod-profit-allocation-v228.js
+          grep -Fq 'Tes Sinkronisasi Drive' /tmp/prod-drive-archive-v231.js
+          grep -Fq 'v23.2-google-drive-owner-sync-test' /tmp/prod-drive-archive-v231.js
           echo "GMU EduTrans current-main production verification: PASS"
 
       - name: Production summary
