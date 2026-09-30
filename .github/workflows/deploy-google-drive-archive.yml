@@ -181,20 +181,7 @@ jobs:
         run: |
           set -euo pipefail
           ENDPOINT="https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/gmu-drive-archive"
-          BOOKING_CODE="_SMOKE-ERP-DRIVE"
-          CUSTOMER_NAME="UJI OTOMATIS JANGAN DIPROSES"
-          ACTIVITY_DATE="2026-09-30"
-          PAYLOAD="$(python3 - <<'PY'
-import json
-print(json.dumps({
-  "action": "smoke_test",
-  "entity_id": "_SMOKE-ERP-DRIVE",
-  "booking_code": "_SMOKE-ERP-DRIVE",
-  "customer_name": "UJI OTOMATIS JANGAN DIPROSES",
-  "activity_date": "2026-09-30",
-}))
-PY
-)"
+          PAYLOAD='{"action":"smoke_test","entity_id":"_SMOKE-ERP-DRIVE","booking_code":"_SMOKE-ERP-DRIVE","customer_name":"UJI OTOMATIS JANGAN DIPROSES","activity_date":"2026-09-30"}'
 
           curl -fsS "$ENDPOINT" \
             -H 'Content-Type: application/json' \
@@ -206,26 +193,7 @@ PY
             -H "x-gmu-drive-smoke: $GMU_DRIVE_SMOKE_TOKEN" \
             --data "$PAYLOAD" > /tmp/drive-smoke-2.json
 
-          python3 - <<'PY'
-import json
-a=json.load(open('/tmp/drive-smoke-1.json'))
-b=json.load(open('/tmp/drive-smoke-2.json'))
-assert a.get('ok') is True, a
-assert b.get('ok') is True, b
-fa=a.get('folder') or {}
-fb=b.get('folder') or {}
-assert fa.get('drive_folder_id'), fa
-assert fa.get('drive_folder_id') == fb.get('drive_folder_id'), (fa,fb)
-children=(fb.get('metadata') or {}).get('children') or {}
-expected=[
-  "01 - PENAWARAN","02 - BOOKING","03 - PEMBAYARAN","04 - DATA PESERTA",
-  "05 - OPERASIONAL","06 - TIKET","07 - DOKUMENTASI","08 - LAPORAN","09 - DOKUMEN FINAL"
-]
-assert sorted(children.keys()) == sorted(expected), children
-assert len(set(children.values())) == 9, children
-assert b.get('reused') is True, b
-print("Edge Function idempotency PASS:", fa.get('drive_folder_id'))
-PY
+          python3 -c 'import json; a=json.load(open("/tmp/drive-smoke-1.json")); b=json.load(open("/tmp/drive-smoke-2.json")); fa=a.get("folder") or {}; fb=b.get("folder") or {}; ch=(fb.get("metadata") or {}).get("children") or {}; exp=["01 - PENAWARAN","02 - BOOKING","03 - PEMBAYARAN","04 - DATA PESERTA","05 - OPERASIONAL","06 - TIKET","07 - DOKUMENTASI","08 - LAPORAN","09 - DOKUMEN FINAL"]; assert a.get("ok") is True and b.get("ok") is True; assert fa.get("drive_folder_id") and fa.get("drive_folder_id")==fb.get("drive_folder_id"); assert sorted(ch)==sorted(exp); assert len(set(ch.values()))==9; assert b.get("reused") is True; print("Edge Function idempotency PASS:",fa.get("drive_folder_id"))'
 
           CLEAN_CLIENT_ID="$(python3 -c 'import os; print(os.environ["GOOGLE_DRIVE_CLIENT_ID"].strip(), end="")')"
           CLEAN_CLIENT_SECRET="$(python3 -c 'import os; print(os.environ["GOOGLE_DRIVE_CLIENT_SECRET"].strip(), end="")')"
@@ -253,21 +221,7 @@ PY
             --data-urlencode "fields=files(id,name)" \
             --data-urlencode "pageSize=50" > /tmp/drive-children.json
 
-          python3 - <<'PY'
-import json
-parent=json.load(open('/tmp/drive-parent-count.json')).get('files',[])
-children=json.load(open('/tmp/drive-children.json')).get('files',[])
-expected=[
-  "01 - PENAWARAN","02 - BOOKING","03 - PEMBAYARAN","04 - DATA PESERTA",
-  "05 - OPERASIONAL","06 - TIKET","07 - DOKUMENTASI","08 - LAPORAN","09 - DOKUMEN FINAL"
-]
-assert len(parent) == 1, parent
-names=[x.get('name') for x in children]
-for name in expected:
-    assert names.count(name) == 1, (name,names)
-assert len([n for n in names if n in expected]) == 9, names
-print("Google Drive structure PASS: one order folder + exactly one of each 9 standard subfolders.")
-PY
+          python3 -c 'import json; parent=json.load(open("/tmp/drive-parent-count.json")).get("files",[]); children=json.load(open("/tmp/drive-children.json")).get("files",[]); exp=["01 - PENAWARAN","02 - BOOKING","03 - PEMBAYARAN","04 - DATA PESERTA","05 - OPERASIONAL","06 - TIKET","07 - DOKUMENTASI","08 - LAPORAN","09 - DOKUMEN FINAL"]; names=[x.get("name") for x in children]; assert len(parent)==1, parent; [(_ for _ in ()).throw(AssertionError((n,names))) for n in exp if names.count(n)!=1]; assert len([n for n in names if n in exp])==9, names; print("Google Drive structure PASS: one order folder + exactly one of each 9 standard subfolders.")'
 
       - name: Summary
         run: |
