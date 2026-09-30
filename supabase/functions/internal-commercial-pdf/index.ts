@@ -155,7 +155,7 @@ async function salesList(userId){
   const b=await sb.from("bookings").select("id,booking_no").eq("sales_id",userId).order("created_at",{ascending:false}).limit(300); if(b.error) throw b.error;
   const ids=(b.data||[]).map(x=>String(x.id)); if(!ids.length) return [];
   const map=new Map((b.data||[]).map(x=>[String(x.id),String(x.booking_no||"-")]));
-  const d=await sb.from("documents").select("id,booking_id,document_type,document_no,status,customer_title,storage_bucket,storage_path,file_name,generated_at").in("booking_id",ids).eq("document_type","Quotation").order("generated_at",{ascending:false}).limit(200); if(d.error) throw d.error;
+  const d=await sb.from("documents").select("id,booking_id,document_type,document_no,status,customer_title,storage_bucket,storage_path,file_name,generated_at").in("booking_id",ids).in("document_type",["Quotation","Invoice"]).order("generated_at",{ascending:false}).limit(200); if(d.error) throw d.error;
   const out=[];
   for(const x of d.data||[]){
     let url=""; if(x.storage_bucket==="gmu-trip-documents"&&x.storage_path){ const s=await sb.storage.from("gmu-trip-documents").createSignedUrl(x.storage_path,3600); url=s.data?.signedUrl||""; }
@@ -274,7 +274,9 @@ async function persist(bytes,doc,published=true){
   const path="customer/"+pathPart(doc.booking_code)+"/"+pathPart(doc.kind.toLowerCase())+"/"+pathPart(doc.document_no)+".pdf";
   const up=await sb.storage.from("gmu-trip-documents").upload(path,bytes,{contentType:"application/pdf",cacheControl:"3600",upsert:true}); if(up.error) throw up.error;
   const now=new Date().toISOString();
-  const payload={booking_id:doc.booking_id||null,booking_request_id:doc.booking_request_id||null,document_type:doc.kind,document_no:doc.document_no,status:published?"Published":"Draft",customer_visible:published,customer_title:doc.title,storage_bucket:"gmu-trip-documents",storage_path:path,file_name:pathPart(doc.document_no)+".pdf",mime_type:"application/pdf",published_at:published?now:null,generated_at:now};
+  const existing=await sb.from("documents").select("status,customer_visible,published_at").eq("document_no",doc.document_no).maybeSingle();
+  const effectivePublished=published || existing.data?.customer_visible===true || existing.data?.status==="Published";
+  const payload={booking_id:doc.booking_id||null,booking_request_id:doc.booking_request_id||null,document_type:doc.kind,document_no:doc.document_no,status:effectivePublished?"Published":"Draft",customer_visible:effectivePublished,customer_title:doc.title,storage_bucket:"gmu-trip-documents",storage_path:path,file_name:pathPart(doc.document_no)+".pdf",mime_type:"application/pdf",published_at:effectivePublished?(existing.data?.published_at||now):null,generated_at:now};
   const r=await sb.from("documents").upsert(payload,{onConflict:"document_no"}).select("id,booking_id,document_no,document_type,status,customer_visible,published_at,storage_bucket,storage_path,file_name,generated_at,customer_title").single(); if(r.error) throw r.error;
   const s=await sb.storage.from("gmu-trip-documents").createSignedUrl(path,3600);
   return {...r.data,file_url:s.data?.signedUrl||""};
@@ -312,21 +314,21 @@ Deno.serve(async function(req){
       const ctx=await officialQuoteContext(id,au);
       const revisionNo=Number(ctx.q.revision_no||0);
       const bytes=await makeOfficialQuotationPdf(ctx);
-      const publishNow=mode==="publish";
+      const publishNow=mode==="publish" || ["SENT","ACCEPTED"].includes(String(ctx.q.status||"").toUpperCase());
       const doc=await persist(bytes,{booking_code:ctx.br.booking_code,kind:"Quotation",title:revisionNo>0?"Quotation Revision R"+revisionNo+" - GMU EduTrans":"Quotation GMU EduTrans",document_no:ctx.q.quotation_no,booking_request_id:ctx.br.id,booking_id:ctx.q.booking_id},publishNow);
       if(publishNow && ctx.q.status==="DRAFT") await sb.from("quotations").update({status:"SENT",sent_at:new Date().toISOString(),sent_by:au.user.id}).eq("id",id);
-      await audit(au.user.id,id,(publishNow?"Published":"Auto-generated")+" quotation PDF "+ctx.q.quotation_no,doc);
+      await audit(au.user.id==="service"?null:au.user.id,id,(publishNow?"Published":"Auto-generated")+" quotation PDF "+ctx.q.quotation_no,doc);
       return respond(200,{ok:true,mode,document:doc,quotation_no:ctx.q.quotation_no});
     }
     if(action==="invoice"){
-      if(!ALLOWED.has(au.role)) return respond(403,{error:"Hanya Owner / Manager yang dapat menerbitkan invoice"});
+      if(!ALLOWED.has(au.role) && au.role!=="SERVICE") return respond(403,{error:"Hanya Owner / Manager yang dapat menerbitkan invoice"});
       const inv=await sb.from("invoices").select("*").eq("id",id).single(); if(inv.error) throw inv.error;
       const br=await getRequest(inv.data.booking_request_id), program=await getProgram(br);
       const it=await sb.from("invoice_items").select("description,qty,unit,unit_price,amount").eq("invoice_id",id).order("sort_order"); if(it.error) throw it.error;
       const bytes=await makePdf("Invoice",inv.data.invoice_no,{name:br.institution_name,pic:br.pic_name,whatsapp:br.whatsapp,email:br.email,address:br.address,city:br.city},Object.assign({},inv.data,{program:program,trip_date:br.trip_date,pax:br.pax,companion_pax:br.companion_pax,meeting_point:br.meeting_point}),it.data||[],inv.data.notes_customer,null);
       const doc=await persist(bytes,{booking_code:br.booking_code,kind:"Invoice",title:"Invoice GMU EduTrans",document_no:inv.data.invoice_no,booking_request_id:br.id,booking_id:inv.data.booking_id});
       if(inv.data.status==="DRAFT") await sb.from("invoices").update({status:"ISSUED",issued_at:new Date().toISOString()}).eq("id",id);
-      await audit(au.user.id,id,"Generated invoice PDF "+inv.data.invoice_no,doc);
+      await audit(au.user.id==="service"?null:au.user.id,id,"Generated invoice PDF "+inv.data.invoice_no,doc);
       return respond(200,{ok:true,document:doc});
     }
     if(!ALLOWED.has(au.role)) return respond(403,{error:"Hanya Owner / Manager yang dapat menerbitkan payment receipt"});
