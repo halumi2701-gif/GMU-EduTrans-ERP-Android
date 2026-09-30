@@ -1,6 +1,11 @@
 name: Deploy Google Drive Archive Integration
 
 on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "supabase/functions/gmu-drive-archive/**"
+      - ".github/workflows/deploy-google-drive-archive.yml"
   workflow_dispatch:
     inputs:
       confirm_production:
@@ -25,7 +30,7 @@ env:
 
 jobs:
   deploy:
-    if: ${{ inputs.confirm_production == 'DEPLOY' }}
+    if: ${{ github.event_name == 'push' || inputs.confirm_production == 'DEPLOY' }}
     runs-on: ubuntu-latest
     environment: production
     env:
