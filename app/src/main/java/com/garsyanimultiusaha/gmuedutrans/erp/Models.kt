@@ -142,11 +142,11 @@ object ErpRoles {
     fun displayName(role: String): String = when (canonical(role)) {
         DIRECTOR -> "Direktur"
         MANAGER_EDUTRANS -> "Manager EduTrans"
-        "Operation" -> "Operasional"
-        "Finance" -> "Keuangan"
-        "Admin" -> "Admin / Operasional"
-        "Sales" -> "Sales / Pengembangan Bisnis"
-        "TL" -> "Tour Leader"
+        "Operation" -> "Staff Operasional"
+        "Finance" -> "Finance"
+        "Admin" -> "Admin"
+        "Sales" -> "Sales"
+        "TL" -> "Tour Leader / Edukator"
         else -> canonical(role)
     }
 }
