@@ -88,10 +88,15 @@ data class SalesQuotation(
     val createdAt: String,
     val customerDecision: String = "",
     val decisionStatus: String = "",
+    val invoiceId: String = "",
     val invoiceNo: String = "",
     val invoiceStatus: String = "",
     val invoiceTotal: Double = 0.0,
-    val dpPercent: Double? = null
+    val dpPercent: Double? = null,
+    val paymentOrderNo: String = "",
+    val paymentStatus: String = "",
+    val paymentCheckoutUrl: String = "",
+    val paymentExpiresAt: String = ""
 )
 
 data class QuotationDraftResult(
