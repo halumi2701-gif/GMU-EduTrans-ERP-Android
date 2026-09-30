@@ -311,6 +311,7 @@ class SupabaseApi {
         if (role == "Sales") payload.put("sales_id", userId)
         insertRowBlocking(accessToken, "bookings", payload)
         audit(accessToken, userId, "CREATE_BOOKING", "bookings", bookingNo, "Booking $bookingNo dibuat dari Android Native RC")
+        bookingNo
     }
 
     suspend fun insertRow(accessToken: String, table: String, values: Map<String, Any?>): ErpRow? =
