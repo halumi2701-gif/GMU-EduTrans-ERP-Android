@@ -402,6 +402,7 @@ private fun C61Closing(
     onPage: (C61Page) -> Unit,
     onSendQuotation: (SalesQuotation) -> Unit
 ) {
+    val context = LocalContext.current
     var decisionQuote by remember { mutableStateOf<SalesQuotation?>(null) }
     var decisionType by remember { mutableStateOf("") }
 
@@ -510,7 +511,56 @@ private fun C61Closing(
                                 Text(q.invoiceNo, fontWeight = FontWeight.Black)
                                 val dpLabel = q.dpPercent?.let { it.toInt().toString() + "%" } ?: "DP"
                                 Text(dpLabel + " • " + c61Rupiah(q.invoiceTotal) + " • " + q.invoiceStatus, fontSize = 9.sp, color = Color.Gray)
-                                TextButton(onClick = { onPage(C61Page.DOCUMENTS) }) { Text("Buka Dokumen Invoice") }
+
+                                if (q.paymentCheckoutUrl.isBlank()) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Button(
+                                        onClick = { vm.prepareXenditCheckout(q) },
+                                        enabled = !busy && !vm.actionBusy && q.invoiceId.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(if (vm.actionBusy) "Menyiapkan Xendit…" else "Siapkan Link Xendit")
+                                    }
+                                    Text(
+                                        "Link pembayaran dibuat oleh backend Xendit. API key tidak disimpan di aplikasi.",
+                                        fontSize = 8.sp,
+                                        color = Color.Gray
+                                    )
+                                } else {
+                                    Spacer(Modifier.height(6.dp))
+                                    C61Pill("XENDIT " + q.paymentStatus.ifBlank { "PENDING" })
+                                    Spacer(Modifier.height(6.dp))
+                                    Button(
+                                        onClick = {
+                                            c61OpenWa(
+                                                context,
+                                                q.whatsapp,
+                                                "Halo " + q.picName.ifBlank { "Bapak/Ibu" } +
+                                                    ", berikut Invoice DP " + q.invoiceNo +
+                                                    " GMU EduTrans sebesar " + c61Rupiah(q.invoiceTotal) +
+                                                    ". Silakan melakukan pembayaran melalui Xendit pada link berikut:\n" +
+                                                    q.paymentCheckoutUrl +
+                                                    "\n\nSetelah pembayaran berhasil, sistem akan mengonfirmasi otomatis. Terima kasih."
+                                            )
+                                        },
+                                        enabled = q.whatsapp.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.Send, null)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Kirim Link Bayar via WhatsApp")
+                                    }
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        TextButton(
+                                            onClick = { c61OpenUrl(context, q.paymentCheckoutUrl) },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text("Buka Xendit") }
+                                        TextButton(
+                                            onClick = { onPage(C61Page.DOCUMENTS) },
+                                            modifier = Modifier.weight(1f)
+                                        ) { Text("Invoice PDF") }
+                                    }
+                                }
                             }
                         }
                     }
