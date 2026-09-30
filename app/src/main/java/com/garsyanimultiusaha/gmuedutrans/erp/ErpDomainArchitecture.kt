@@ -70,6 +70,7 @@ object ErpDataRegistry {
 
         ErpTableSource("trips", "updated_at.desc", ErpRolePolicy::canOperateTrips),
         ErpTableSource("operation_sheets", "updated_at.desc", ErpRolePolicy::canOperateTrips),
+        ErpTableSource("sales_handover_events", "created_at.desc", ErpRolePolicy::canOperateTrips),
         ErpTableSource("manifests", enabledFor = ErpRolePolicy::canOperateTrips),
         ErpTableSource("attendance", enabledFor = ErpRolePolicy::canOperateTrips),
         ErpTableSource("rundown_items", enabledFor = ErpRolePolicy::canOperateTrips),
