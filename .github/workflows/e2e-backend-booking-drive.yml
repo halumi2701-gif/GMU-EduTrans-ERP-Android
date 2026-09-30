@@ -54,13 +54,16 @@ jobs:
           DRIVE_FOLDER_ID=""
           GOOGLE_ACCESS_TOKEN=""
 
+          # Bersihkan sisa booking uji dari attempt sebelumnya bila ada.
+          psql "$DB_CONN" -v ON_ERROR_STOP=1             -c "delete from public.bookings where participant_group='SYSTEM E2E GOOGLE DRIVE TEST' and meeting_point='CI TEST ONLY';"             >/dev/null
+
           cleanup() {
             set +e
             if [ -n "$DRIVE_FOLDER_ID" ] && [ -n "$GOOGLE_ACCESS_TOKEN" ]; then
               curl -sS -X DELETE                 -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"                 "https://www.googleapis.com/drive/v3/files/$DRIVE_FOLDER_ID?supportsAllDrives=true"                 >/dev/null 2>&1
             fi
-            if [ -n "$BOOKING_ID" ]; then
-              psql "$DB_CONN" -v ON_ERROR_STOP=0                 -c "delete from public.gmu_drive_documents where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.gmu_drive_folders where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.bookings where id='$BOOKING_ID'::uuid;"                 >/dev/null 2>&1
+            if [ -n "$BOOKING_NO" ]; then
+              psql "$DB_CONN" -v ON_ERROR_STOP=0                 -c "delete from public.gmu_drive_documents where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.gmu_drive_folders where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.bookings where booking_no='$BOOKING_NO';"                 >/dev/null 2>&1
             fi
           }
           trap cleanup EXIT
@@ -83,8 +86,15 @@ jobs:
           echo "TRIP_DATE=$TRIP_DATE"
 
           echo "2/5 Mengambil Google access token production..."
-          HTTP_CODE="$(curl -sS -o /tmp/google-token.json -w '%{http_code}'             https://oauth2.googleapis.com/token             --data-urlencode "client_id=$GOOGLE_DRIVE_CLIENT_ID"             --data-urlencode "client_secret=$GOOGLE_DRIVE_CLIENT_SECRET"             --data-urlencode "refresh_token=$GOOGLE_DRIVE_REFRESH_TOKEN"             --data-urlencode "grant_type=refresh_token")"
-          test "$HTTP_CODE" = "200"
+          CLEAN_CLIENT_ID="$(printf '%s' "$GOOGLE_DRIVE_CLIENT_ID" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          CLEAN_CLIENT_SECRET="$(printf '%s' "$GOOGLE_DRIVE_CLIENT_SECRET" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          CLEAN_REFRESH_TOKEN="$(printf '%s' "$GOOGLE_DRIVE_REFRESH_TOKEN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          HTTP_CODE="$(curl -sS -o /tmp/google-token.json -w '%{http_code}'             https://oauth2.googleapis.com/token             --data-urlencode "client_id=$CLEAN_CLIENT_ID"             --data-urlencode "client_secret=$CLEAN_CLIENT_SECRET"             --data-urlencode "refresh_token=$CLEAN_REFRESH_TOKEN"             --data-urlencode "grant_type=refresh_token")"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Google OAuth token exchange gagal dengan HTTP $HTTP_CODE."
+            jq -r '.error // "unknown_error", .error_description // ""' /tmp/google-token.json
+            exit 1
+          fi
           GOOGLE_ACCESS_TOKEN="$(jq -r '.access_token // empty' /tmp/google-token.json)"
           test -n "$GOOGLE_ACCESS_TOKEN"
           echo "::add-mask::$GOOGLE_ACCESS_TOKEN"
