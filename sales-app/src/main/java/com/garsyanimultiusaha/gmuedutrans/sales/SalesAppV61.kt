@@ -69,6 +69,8 @@ fun SalesAppV61(vm: SalesViewModel) {
 @Composable
 private fun C61ConnectedRoot(vm: SalesViewModel, session: SalesSession) {
     val api = remember { SalesV61Api() }
+    val quotationShareApi = remember { SalesQuotationShareApi() }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var page by remember { mutableStateOf(C61Page.HOME) }
     var connected by remember(session.userId) { mutableStateOf(V61ConnectedWorkspace()) }
@@ -111,6 +113,30 @@ private fun C61ConnectedRoot(vm: SalesViewModel, session: SalesSession) {
         onRefresh = {
             vm.refresh()
             refreshConnected()
+        },
+        onSendQuotation = { quotation ->
+            if (!remoteBusy) {
+                remoteBusy = true
+                scope.launch {
+                    var whatsappOpened = false
+                    try {
+                        val prepared = quotationShareApi.preparePdf(session, quotation.id)
+                        quotationShareApi.launchWhatsAppWithPdf(context, quotation, prepared)
+                        whatsappOpened = true
+                        val quotationNo = quotationShareApi.markSent(session, quotation.id)
+                        localNotice = "$quotationNo dibuka di WhatsApp dengan PDF resmi terlampir. Status otomatis SENT dan follow-up dijadwalkan +2 hari."
+                    } catch (e: Exception) {
+                        localNotice = if (whatsappOpened) {
+                            "WhatsApp sudah dibuka, tetapi status SENT belum tersinkron: ${e.message ?: "coba Sync ulang"}"
+                        } else {
+                            e.message ?: "Quotation gagal disiapkan untuk WhatsApp."
+                        }
+                    }
+                    vm.refresh()
+                    connected = api.loadWorkspace(session)
+                    remoteBusy = false
+                }
+            }
         },
         onUpdateLead = { lead, stage, next, lost ->
             if (!remoteBusy) {
@@ -173,6 +199,7 @@ private fun C61Shell(
     onDismissLocalNotice: () -> Unit,
     onPage: (C61Page) -> Unit,
     onRefresh: () -> Unit,
+    onSendQuotation: (SalesQuotation) -> Unit,
     onUpdateLead: (SalesLead, String, String?, String?) -> Unit,
     onReadNotice: (String) -> Unit,
     onCompleteLearning: (String) -> Unit,
@@ -225,7 +252,7 @@ private fun C61Shell(
                 C61Page.HOME -> C61Home(vm, connected, onPage)
                 C61Page.CRM -> C61Crm(vm, remoteBusy, onUpdateLead)
                 C61Page.ACTIVITY -> V6ActivityCenter(vm)
-                C61Page.CLOSING -> C61Closing(vm, connected, onPage)
+                C61Page.CLOSING -> C61Closing(vm, connected, remoteBusy, onPage, onSendQuotation)
                 C61Page.MORE -> C61More(onPage)
                 C61Page.VISIT -> V6FieldVisitScreen(vm)
                 C61Page.FOLLOWUP -> C61FollowUp(vm, remoteBusy, onUpdateLead)
@@ -368,9 +395,13 @@ private fun C61FollowUp(vm: SalesViewModel, busy: Boolean, onUpdate: (SalesLead,
 }
 
 @Composable
-private fun C61Closing(vm: SalesViewModel, connected: V61ConnectedWorkspace, onPage: (C61Page) -> Unit) {
-    val context = LocalContext.current
-    val leads = vm.dashboard.leads.associateBy { it.id }
+private fun C61Closing(
+    vm: SalesViewModel,
+    connected: V61ConnectedWorkspace,
+    busy: Boolean,
+    onPage: (C61Page) -> Unit,
+    onSendQuotation: (SalesQuotation) -> Unit
+) {
     LazyColumn(contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 110.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { C61Header("Closing Center", "Quotation → DP terverifikasi → WON → Handover Ops") }
         item {
@@ -389,7 +420,6 @@ private fun C61Closing(vm: SalesViewModel, connected: V61ConnectedWorkspace, onP
         item { C61Header("Quotation", "Harga berasal dari master aktif") }
         if (vm.dashboard.quotations.isEmpty()) item { C61Info("Belum ada quotation Sales.") }
         else items(vm.dashboard.quotations, key = { it.id }) { q ->
-            val l = leads[q.bookingRequestId]
             Card(shape = RoundedCornerShape(19.dp)) {
                 Column(Modifier.padding(15.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(q.quotationNo, fontWeight = FontWeight.Black); C61Pill(q.status) }
@@ -397,9 +427,20 @@ private fun C61Closing(vm: SalesViewModel, connected: V61ConnectedWorkspace, onP
                     Text("${q.programName} • ${q.pax} pax", fontSize = 9.sp, color = Color.Gray)
                     Text(c61Rupiah(q.total), color = C61Green, fontWeight = FontWeight.Black, fontSize = 17.sp)
                     if (q.status == "DRAFT") {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            OutlinedButton(onClick = { if (l != null) c61OpenWa(context, l.whatsapp, "Halo ${l.picName.ifBlank { "Bapak/Ibu" }}, berikut penawaran GMU EduTrans ${q.quotationNo} untuk ${q.programName}, ${q.pax} peserta, total ${c61Rupiah(q.total)}. Berlaku sampai ${q.validUntil}.") }, enabled = l?.whatsapp?.isNotBlank() == true, modifier = Modifier.weight(1f)) { Text("Kirim WA") }
-                            Button(onClick = { vm.markQuotationSent(q) }, enabled = !vm.actionBusy, modifier = Modifier.weight(1f)) { Text("Tandai SENT") }
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = { onSendQuotation(q) },
+                            enabled = !busy && !vm.actionBusy && q.whatsapp.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Send, null)
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (busy) "Menyiapkan PDF…" else "Kirim PDF via WhatsApp")
+                        }
+                        if (q.whatsapp.isBlank()) {
+                            Text("Nomor WhatsApp customer belum tersedia.", fontSize = 8.sp, color = Color.Red)
+                        } else {
+                            Text("PDF resmi dilampirkan. Setelah WhatsApp berhasil dibuka, status otomatis menjadi SENT.", fontSize = 8.sp, color = Color.Gray)
                         }
                     }
                 }
