@@ -97,7 +97,7 @@ jobs:
             ui-focus-shell-v110.js automation-orchestrator-v111.js automation-orchestrator-fix-v111.js \
             crm-finance-notification-v112.js enterprise-os-v200.js business-priority-v201.js \
             recovery-command-v202.js company-autopilot-v210.js target-cascade-v212.js \
-            compensation-autopilot-v213.js company-control-v214.js unified-v10-loader.js; do
+            compensation-autopilot-v213.js company-control-v214.js drive-archive-v231.js unified-v10-loader.js; do
             test -f "erp-web/$file"
           done
           test -f supabase/migrations/20260915050000_gmu_v21_company_autopilot_core.sql
@@ -120,6 +120,7 @@ jobs:
           test -f dist/erp-web-v10/baseline-v95.html
           test -f dist/erp-web-v10/release-manifest.json
           test -f dist/erp-web-v10/company-control-v214.js
+          test -f dist/erp-web-v10/drive-archive-v231.js
           grep -Fq 'GMU EduTrans ERP v9.5' dist/erp-web-v10/baseline-v95.html
           grep -Fq 'GMU EduTrans ERP v21' dist/erp-web-v10/index.html
           grep -Fq 'Company Autopilot v21 — Enterprise Operating System' dist/erp-web-v10/index.html
@@ -137,6 +138,9 @@ jobs:
           grep -Fq 'internal_performance_payroll_v214_status' dist/erp-web-v10/company-control-v214.js
           grep -Fq 'Target Direktur Rp50 jt' dist/erp-web-v10/company-control-v214.js
           grep -Fq 'WhatsApp automation tetap dilewati' dist/erp-web-v10/company-control-v214.js
+          grep -Fq 'Tes Sinkronisasi Drive' dist/erp-web-v10/drive-archive-v231.js
+          grep -Fq "new Set(['Owner', 'Director', 'Direktur'])" dist/erp-web-v10/drive-archive-v231.js
+          grep -Fq 'v23.2-google-drive-owner-sync-test' dist/erp-web-v10/drive-archive-v231.js
           grep -Fq 'v21.3-compensation-capacity-autopilot' dist/erp-web-v10/compensation-autopilot-v213.js
           grep -Fq 'v21.2-target-cascade-workforce-autopilot' dist/erp-web-v10/target-cascade-v212.js
           grep -Fq 'v21-company-autopilot' dist/erp-web-v10/company-autopilot-v210.js
