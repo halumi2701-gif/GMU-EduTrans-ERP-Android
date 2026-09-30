@@ -67,6 +67,7 @@ private data class SalesPricePreviewV226(
 
 private data class SalesBookingDraftV226(
     val customerId: String,
+    val customerName: String,
     val packageCode: String,
     val tripDate: String,
     val bookingPax: Int,
@@ -251,7 +252,7 @@ fun SalesCommercialBookingV226Screen(
     onNotice: (String) -> Unit
 ) {
     val screenScope = rememberCoroutineScope()
-    val commercialApi = remember { SalesCommercialApiV226() }
+    val commercialApi = remember { SalesCommercialApiV226() }\n    val driveArchiveApi = remember { DriveArchiveApi() }
     var query by remember { mutableStateOf("") }
     var stage by remember { mutableStateOf("All") }
     var add by remember { mutableStateOf(false) }
@@ -338,7 +339,22 @@ fun SalesCommercialBookingV226Screen(
                 screenScope.launch {
                     try {
                         val bookingNo = commercialApi.createBooking(session.accessToken, draft)
-                        onNotice("$bookingNo berhasil dibuat dengan harga Master ERP.")
+                        val driveStatus = runCatching {
+                            driveArchiveApi.ensureOrderFolder(
+                                accessToken = session.accessToken,
+                                bookingNo = bookingNo,
+                                customerName = draft.customerName,
+                                activityDate = draft.tripDate
+                            )
+                        }
+                        onNotice(
+                            if (driveStatus.isSuccess) {
+                                "$bookingNo berhasil dibuat dan folder Google Drive otomatis sudah disiapkan."
+                            } else {
+                                "$bookingNo berhasil dibuat. Sinkronisasi Google Drive tertunda: " +
+                                    (driveStatus.exceptionOrNull()?.message ?: "konfigurasi Drive belum lengkap.")
+                            }
+                        )
                         add = false
                         vm.loadAll(session)
                     } catch (e: Exception) {
@@ -601,6 +617,7 @@ private fun SalesCommercialBookingDialogV226(
                     onCreated(
                         SalesBookingDraftV226(
                             customerId = customer!!.id,
+                            customerName = customer!!.name,
                             packageCode = selectedPackage!!.packageCode,
                             tripDate = date,
                             bookingPax = ownPax,
