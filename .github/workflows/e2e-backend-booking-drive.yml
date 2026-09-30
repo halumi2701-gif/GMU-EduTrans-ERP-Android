@@ -55,7 +55,7 @@ jobs:
           GOOGLE_ACCESS_TOKEN=""
 
           # Bersihkan sisa booking uji dari attempt sebelumnya bila ada.
-          psql "$DB_CONN" -v ON_ERROR_STOP=1             -c "delete from public.bookings where participant_group='SYSTEM E2E GOOGLE DRIVE TEST' and meeting_point='CI TEST ONLY';"             >/dev/null
+          psql "$DB_CONN" -v ON_ERROR_STOP=1             -c "update public.booking_requests set converted_booking_id=null where converted_booking_id::text in (select id::text from public.bookings where participant_group='SYSTEM E2E GOOGLE DRIVE TEST' and meeting_point='CI TEST ONLY'); delete from public.bookings where participant_group='SYSTEM E2E GOOGLE DRIVE TEST' and meeting_point='CI TEST ONLY';"             >/dev/null
 
           cleanup() {
             set +e
@@ -63,7 +63,7 @@ jobs:
               curl -sS -X DELETE                 -H "Authorization: Bearer $GOOGLE_ACCESS_TOKEN"                 "https://www.googleapis.com/drive/v3/files/$DRIVE_FOLDER_ID?supportsAllDrives=true"                 >/dev/null 2>&1
             fi
             if [ -n "$BOOKING_NO" ]; then
-              psql "$DB_CONN" -v ON_ERROR_STOP=0                 -c "delete from public.gmu_drive_documents where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.gmu_drive_folders where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.bookings where booking_no='$BOOKING_NO';"                 >/dev/null 2>&1
+              psql "$DB_CONN" -v ON_ERROR_STOP=0                 -c "delete from public.gmu_drive_documents where entity_type='order' and entity_id='$BOOKING_NO'; delete from public.gmu_drive_folders where entity_type='order' and entity_id='$BOOKING_NO'; update public.booking_requests set converted_booking_id=null where converted_booking_id::text in (select id::text from public.bookings where booking_no='$BOOKING_NO'); delete from public.bookings where booking_no='$BOOKING_NO';"                 >/dev/null 2>&1
             fi
           }
           trap cleanup EXIT
