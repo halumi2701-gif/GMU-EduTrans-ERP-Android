@@ -158,7 +158,15 @@ class SalesV61Api {
     }
 
     private fun getDocuments(session: SalesSession): List<V61Document> {
-        val arr = rpc(session, "gmu_sales_my_documents", JSONObject())
+        val root = JSONObject(
+            request(
+                "POST",
+                "/functions/v1/internal-commercial-pdf",
+                JSONObject().put("action", "sales_list").toString(),
+                session.accessToken
+            )
+        )
+        val arr = root.optJSONArray("items") ?: JSONArray()
         return buildList {
             for (i in 0 until arr.length()) {
                 val x = arr.getJSONObject(i)
