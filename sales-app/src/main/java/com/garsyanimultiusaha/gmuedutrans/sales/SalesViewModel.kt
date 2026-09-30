@@ -182,6 +182,35 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun prepareXenditCheckout(quotation: SalesQuotation) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        if (quotation.invoiceId.isBlank()) {
+            notice = "Invoice belum tersedia untuk quotation ini."
+            return
+        }
+        actionBusy = true
+        notice = null
+        viewModelScope.launch {
+            try {
+                val result = quotationE2EApi.prepareXenditCheckout(session, quotation.invoiceId)
+                dashboard = loadDashboardE2E(session)
+                notice = if (result.ready && result.checkoutUrl.isNotBlank()) {
+                    "Link pembayaran Xendit siap untuk " + quotation.invoiceNo.ifBlank { "invoice" } + "."
+                } else {
+                    when (result.reason) {
+                        "XENDIT_CREDENTIALS_MISSING" -> "Xendit belum aktif: credential produksi belum dipasang di backend."
+                        else -> result.reason.ifBlank { "Checkout Xendit belum dapat dibuat." }
+                    }
+                }
+            } catch (e: Exception) {
+                notice = e.message ?: "Checkout Xendit gagal disiapkan."
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
     fun recordCustomerDecision(quotation: SalesQuotation, decision: String, note: String?) {
         val session = (state as? SalesAppState.LoggedIn)?.session ?: return
         if (actionBusy) return
