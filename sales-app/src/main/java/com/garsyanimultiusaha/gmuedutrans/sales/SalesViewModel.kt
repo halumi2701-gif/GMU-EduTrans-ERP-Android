@@ -182,6 +182,56 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun recordCustomerDecision(quotation: SalesQuotation, decision: String, note: String?) {
+        val session = (state as? SalesAppState.LoggedIn)?.session ?: return
+        if (actionBusy) return
+        actionBusy = true
+        notice = null
+        viewModelScope.launch {
+            try {
+                val result = quotationE2EApi.recordCustomerDecision(
+                    session = session,
+                    quotationId = quotation.id,
+                    decision = decision,
+                    note = note
+                )
+                dashboard = loadDashboardE2E(session)
+                currentPage = SalesPage.FUNNEL
+                notice = when (result.decision) {
+                    "ACCEPT" -> buildString {
+                        append(result.quotationNo.ifBlank { quotation.quotationNo })
+                        append(" diterima customer.")
+                        if (result.invoiceNo.isNotBlank()) {
+                            append(" Invoice DP ")
+                            append(result.invoiceNo)
+                            append(" otomatis dibuat")
+                            result.dpPercent?.let { append(" (" + it.toInt() + "%)") }
+                            if (result.invoiceTotal > 0) {
+                                append(" sebesar ")
+                                append(rupiahNotice(result.invoiceTotal))
+                            }
+                            append(".")
+                        }
+                    }
+                    "REJECT" -> result.quotationNo.ifBlank { quotation.quotationNo } + " ditolak customer. Lead otomatis dipindahkan ke LOST."
+                    "REVISION" -> buildString {
+                        append("Permintaan revisi tercatat.")
+                        if (result.revisionQuotationNo.isNotBlank()) {
+                            append(" Draft ")
+                            append(result.revisionQuotationNo)
+                            append(" otomatis dibuat dan siap disesuaikan/dikirim ulang.")
+                        }
+                    }
+                    else -> result.message.ifBlank { "Keputusan customer berhasil diproses." }
+                }
+            } catch (e: Exception) {
+                notice = e.message ?: "Keputusan customer gagal diproses."
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
     fun updateLead(lead: SalesLead, stage: String, nextFollowUpAt: String?) {
         updateLead(lead, stage, nextFollowUpAt, null)
     }
