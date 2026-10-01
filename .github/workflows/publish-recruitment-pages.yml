@@ -1,0 +1,68 @@
+name: Publish Recruitment Form (GitHub Pages)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "public-web/recruitment.html"
+      - ".github/workflows/publish-recruitment-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: recruitment-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate recruitment form
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f public-web/recruitment.html
+          grep -Fq 'Recruitment GMU EduTrans' public-web/recruitment.html
+          grep -Fq 'gmu_public_recruitment_submit' public-web/recruitment.html
+          grep -Fq 'Admin Part Time' public-web/recruitment.html
+          grep -Fq 'Finance Part Time' public-web/recruitment.html
+          grep -Fq 'Marketing & Sales' public-web/recruitment.html
+          grep -Fq 'Operasional Freelance' public-web/recruitment.html
+          grep -Fq 'TL / MC / Edukator' public-web/recruitment.html
+          grep -Fq 'Dokumentasi Freelance' public-web/recruitment.html
+          grep -Fq 'Helper Freelance' public-web/recruitment.html
+
+      - name: Build Pages artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp public-web/recruitment.html _site/index.html
+          cp public-web/recruitment.html _site/recruitment.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
