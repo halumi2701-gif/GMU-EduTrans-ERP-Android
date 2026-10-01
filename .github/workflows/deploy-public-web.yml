@@ -48,8 +48,7 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@59.16.0
 
-      - name: Link public Vercel project
-        working-directory: public-web
+      - name: Link exact public Vercel project
         shell: bash
         run: |
           set -euo pipefail
@@ -60,7 +59,6 @@ jobs:
 
       - name: Deploy public web production
         id: deploy
-        working-directory: public-web
         shell: bash
         run: |
           set -euo pipefail
