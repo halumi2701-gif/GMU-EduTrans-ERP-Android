@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v23.2-drive-sync-test';
+  const VERSION = 'v23.3-recruitment-system';
   const ENTERPRISE_BASELINE_VERSION = 'v20-enterprise-operating-system';
   const PRIORITY_VERSION = 'v20.1-priority-command-layer';
   const RECOVERY_VERSION = 'v20.2-recovery-accountability-layer';
@@ -12,6 +12,7 @@
   const PORTFOLIO_TARGET_VERSION = 'v22.5-sales-funnel-forecast';
   const PROFIT_ALLOCATION_VERSION = 'v22.8-profit-allocation-recovery';
   const DRIVE_ARCHIVE_VERSION = 'v23.2-google-drive-owner-sync-test';
+  const RECRUITMENT_VERSION = 'v23.3-recruitment-system';
   const LEGACY_CONTRACT_MARKERS = 'GMU EduTrans Enterprise OS v20 aktif • Recovery & Accountability v20.2';
   const V21_COMPATIBILITY_MARKER = 'GMU EduTrans Company Autopilot v21 aktif';
   const V212_COMPATIBILITY_MARKER = 'v21.2-target-cascade-workforce-autopilot';
@@ -50,6 +51,7 @@
     'company-control-v214.js',
     'profit-allocation-v228.js',
     'drive-archive-v231.js',
+    'recruitment-center-v233.js',
   ];
 
   function scriptBase() {
@@ -111,6 +113,7 @@
       portfolioTargetVersion: PORTFOLIO_TARGET_VERSION,
       profitAllocationVersion: PROFIT_ALLOCATION_VERSION,
       driveArchiveVersion: DRIVE_ARCHIVE_VERSION,
+      recruitmentVersion: RECRUITMENT_VERSION,
       legacyContractMarkers: LEGACY_CONTRACT_MARKERS,
       v21CompatibilityMarker: V21_COMPATIBILITY_MARKER,
       v212CompatibilityMarker: V212_COMPATIBILITY_MARKER,
