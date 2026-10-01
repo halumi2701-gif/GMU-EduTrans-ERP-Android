@@ -90,17 +90,42 @@
     return state.rows.filter(x=>x.pipeline_status===state.filter);
   }
 
+  function ensurePage(){
+    if(!canView()) return null;
+    let page=q('#recruitmentCenterV233');
+    if(!page){
+      page=document.createElement('section');
+      page.id='recruitmentCenterV233';
+      page.className='page';
+      page.innerHTML='<div id="gmuRecruitmentCenterV233" class="card section"></div>';
+      (q('.content')||q('main')||document.body).appendChild(page);
+
+      const nav=q('#nav');
+      if(nav&&!q('#nav [data-page="recruitmentCenterV233"]')){
+        const b=document.createElement('button');
+        b.type='button';
+        b.dataset.page='recruitmentCenterV233';
+        b.textContent='Recruitment';
+        b.addEventListener('click',show);
+        nav.appendChild(b);
+      }
+    }
+    return page;
+  }
+
+  function show(){
+    const page=ensurePage(); if(!page) return;
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    page.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='recruitmentCenterV233'));
+    if(q('#title')) q('#title').textContent='Recruitment Center';
+    load();
+  }
+
   function render(){
     if(!canView()) return;
-    const anchor=q('#gmuCompanyControlCenter')||q('#gmuManagementDomains')||q('.content');
-    if(!anchor) return;
-    let root=q('#gmuRecruitmentCenterV233');
-    if(!root){
-      root=document.createElement('div');
-      root.id='gmuRecruitmentCenterV233';
-      root.className='card section';
-      anchor.appendChild(root);
-    }
+    const page=ensurePage(); if(!page) return;
+    const root=q('#gmuRecruitmentCenterV233',page);
     const s=stats();
     const rows=filtered().map(x=>`
       <tr>
@@ -175,6 +200,35 @@
     q('#gmuRecForm').onsubmit=e=>save(e,candidate);
   }
 
+  function caseEmployment(value){
+    return value==='PART_TIME'||value==='FULL_TIME'||value==='CONTRACT' ? value : 'FREELANCER';
+  }
+
+  async function ensureRecruitmentCase(position,employment,candidateName,contact){
+    const active=['NEED_REVIEW','APPROVED','SOURCING','INTERVIEW','OFFER','ONBOARDING'];
+    const existing=await db().from('recruitment_cases')
+      .select('id')
+      .eq('position_title',position)
+      .in('status',active)
+      .order('created_at',{ascending:false})
+      .limit(1);
+    if(existing.error) throw existing.error;
+    if(existing.data?.[0]?.id) return existing.data[0].id;
+
+    const created=await db().from('recruitment_cases').insert({
+      position_title:position,
+      employment_type:caseEmployment(employment),
+      reason:'Candidate intake via Recruitment Center v23.3',
+      status:'SOURCING',
+      candidate_name:candidateName||null,
+      candidate_contact:contact||null,
+      owner_id:uid()||null,
+      created_by:uid()||null
+    }).select('id').single();
+    if(created.error) throw created.error;
+    return created.data?.id;
+  }
+
   async function save(e,candidate){
     e.preventDefault();
     if(!canWrite()||!db()) return;
@@ -201,15 +255,29 @@
       notes:String(fd.get('notes')||'').trim()||null,
       updated_by:uid()||null
     };
-    payload.recommendation=recommendation(
-      [payload.screening_score,payload.interview_score,payload.practical_score].filter(v=>v!=null).reduce((a,v,_,arr)=>a+v/arr.length,0),
-      payload.red_flag_status
-    )||null;
-    let res;
-    if(candidate.id) res=await db().from('recruitment_candidates').update(payload).eq('id',candidate.id);
-    else res=await db().from('recruitment_candidates').insert({...payload,candidate_code:candidateCode(),created_by:uid()||null});
-    if(res.error){state.error=res.error.message;render();return;}
-    q('#gmuRecModal')?.remove();await load();
+    const scores=[payload.screening_score,payload.interview_score,payload.practical_score].filter(v=>v!=null);
+    const avg=scores.length?scores.reduce((a,v)=>a+v,0)/scores.length:null;
+    payload.recommendation=recommendation(avg,payload.red_flag_status)||null;
+
+    try{
+      let res;
+      if(candidate.id){
+        res=await db().from('recruitment_candidates').update(payload).eq('id',candidate.id);
+      }else{
+        const caseId=await ensureRecruitmentCase(position,employment,payload.full_name,payload.whatsapp||payload.email);
+        res=await db().from('recruitment_candidates').insert({
+          ...payload,
+          recruitment_case_id:caseId,
+          candidate_code:candidateCode(),
+          contact:payload.whatsapp||payload.email||null,
+          created_by:uid()||null
+        });
+      }
+      if(res.error) throw res.error;
+      q('#gmuRecModal')?.remove(); await load();
+    }catch(err){
+      state.error=err?.message||String(err); render();
+    }
   }
 
   function bind(){
@@ -244,11 +312,14 @@
       if(typeof profile==='undefined'||!profile) return;
       clearInterval(timer);
       if(!canView()) return;
-      render();load();
-      const obs=new MutationObserver(()=>{if(!q('#gmuRecruitmentCenterV233'))render();});
+      ensurePage(); render(); load();
+      const obs=new MutationObserver(()=>{
+        if(!q('#recruitmentCenterV233')) ensurePage();
+        if(!q('#gmuRecruitmentCenterV233')) render();
+      });
       obs.observe(document.body,{childList:true,subtree:true});
     },250);
-    window.GmuRecruitmentSystem=Object.freeze({version:VERSION,refresh:load,tracker:TRACKER_URL,scorecard:SCORECARD_URL});
+    window.GmuRecruitmentSystem=Object.freeze({version:VERSION,show,refresh:load,tracker:TRACKER_URL,scorecard:SCORECARD_URL});
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
