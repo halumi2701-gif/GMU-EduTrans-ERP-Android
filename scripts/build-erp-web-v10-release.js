@@ -4,7 +4,7 @@ const path = require('path');
 const VERIFIED_BASELINE_URL = process.env.ERP_BASELINE_URL || 'https://raw.githubusercontent.com/halumi2701-gif/GMU-EduTrans-ERP-Android/f6a28c609b1d82e4afee2988a09876f03452b3a7/baseline-v95.html';
 const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const MODULES = [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','drive-archive-v231.js','unified-v10-loader.js',
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','drive-archive-v231.js','recruitment-center-v233.js','unified-v10-loader.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -77,6 +77,7 @@ async function main() {
   const compensationSource = fs.readFileSync(path.join('erp-web', 'compensation-autopilot-v213.js'), 'utf8');
   const companyControlSource = fs.readFileSync(path.join('erp-web', 'company-control-v214.js'), 'utf8');
   const driveArchiveSource = fs.readFileSync(path.join('erp-web', 'drive-archive-v231.js'), 'utf8');
+  const recruitmentSource = fs.readFileSync(path.join('erp-web', 'recruitment-center-v233.js'), 'utf8');
 
   assertIncludes(loaderSource, 'GMU EduTrans Company Autopilot v21 aktif', 'v21 compatibility marker');
   assertIncludes(loaderSource, 'v21.2-target-cascade-workforce-autopilot', 'v21.2 loader marker');
@@ -96,6 +97,9 @@ async function main() {
   assertIncludes(companyControlSource, 'WhatsApp automation tetap dilewati', 'WhatsApp remains deferred');
   assertIncludes(driveArchiveSource, 'Tes Sinkronisasi Drive', 'Owner/Director Drive sync test button');
   assertIncludes(driveArchiveSource, "new Set(['Owner', 'Director', 'Direktur'])", 'Drive sync test role restriction');
+  assertIncludes(loaderSource, 'recruitment-center-v233.js', 'Recruitment Center loader module');
+  assertIncludes(recruitmentSource, "const VERSION = 'v23.3-recruitment-system'", 'Recruitment Center version');
+  assertIncludes(recruitmentSource, 'Recruitment Center', 'Recruitment Center UI marker');
 
   fs.writeFileSync(path.join(OUT_DIR, 'vercel.json'), JSON.stringify({
     cleanUrls: true,
@@ -108,13 +112,14 @@ async function main() {
       { key: 'X-GMU-ERP-Target-Cascade-Layer', value: 'v21.2-target-cascade-workforce-autopilot-layer' },
       { key: 'X-GMU-ERP-Compensation-Layer', value: 'v21.3-compensation-capacity-autopilot-layer' },
       { key: 'X-GMU-ERP-Performance-Payroll-Layer', value: 'v21.4-performance-payroll-workforce-capacity-layer' },
+      { key: 'X-GMU-ERP-Recruitment-Layer', value: 'v23.3-recruitment-system' },
       { key: 'Cache-Control', value: 'no-store, max-age=0' },
     ] }],
   }, null, 2) + '\n', 'utf8');
 
   const manifest = {
-    release: 'GMU EduTrans Performance-Based Payroll & Workforce Capacity v21.4',
-    strategy: 'additive-v21.4-on-compensation-v21.3-target-cascade-v21.2-company-autopilot-v21-and-verified-pinned-v9.5-baseline',
+    release: 'GMU EduTrans ERP v23.3 Recruitment System',
+    strategy: 'additive-v23.3-recruitment-on-v21.4-performance-payroll-and-verified-pinned-v9.5-baseline',
     baselineUrl: VERIFIED_BASELINE_URL,
     baselineBytes: Buffer.byteLength(baseline),
     generatedAt: new Date().toISOString(),
@@ -123,6 +128,7 @@ async function main() {
     backendProjectRef: 'gtgnwasijweewmaubvyg',
     enterpriseFlow: ['Director Rp50m Target','Monthly Profit Target','Revenue Requirement','SDM Target','Automatic Tasks','Sales/Ops/Finance Execution','Trip Closing','Actual Profit','Recovery Gap','Target Recalculation','Salary/Fee Capacity Recalculation'],
     performancePayrollCapabilities: ['Per-person KPI from real tasks and Sales outcomes','Variable fee eligibility from KPI + collection + margin','Earned payroll staging','Human approval before payment','Payment Request without automatic transfer','Workforce capacity review','Recruit review only when existing team is strong and payroll headroom exists','Freelance fallback when fixed payroll is not safe'],
+    recruitmentCapabilities: ['Candidate pipeline','Interview scorecard integration','Practical test scoring','Red flag review','Talent Pool','Active staff conversion','Recruitment status history','Admin read-only access'],
     approvalOnlyActions: ['Money transfer','Refund','Payroll payment','Compensation changes','Strategic price change','Margin below 20%','Reserve use','Permanent hiring/firing','Legal','Safety-critical decisions'],
     whatsappAutomation: 'DEFERRED',
     preservedMarkers: ['loginScreen','tripfolder','folderDocumentCenter','tripArchiveBanner','bookingForm','operationForm'],
