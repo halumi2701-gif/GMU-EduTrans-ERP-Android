@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recruitment GMU EduTrans</title>
+<meta name="description" content="Form rekrutmen resmi GMU EduTrans untuk Admin, Finance, Marketing & Sales, Operasional, TL/MC/Edukator, Dokumentasi, dan Helper.">
+<style>
+:root{--g:#168c0b;--gd:#0f6810;--gold:#d6a200;--ink:#1e2a22;--muted:#67736a;--line:#dfe8df;--soft:#f5faf4;--warn:#fff7dc}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#f7fbf6,#fff 260px)}
+.top{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:28px 18px 56px}
+.wrap{max-width:860px;margin:auto}.brand{display:flex;gap:14px;align-items:center}.brand img{width:74px;height:74px;object-fit:contain;background:#fff;border-radius:18px;padding:7px}.brand h1{margin:0;font-size:28px}.brand p{margin:6px 0 0;opacity:.92}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 40px rgba(22,80,22,.08);padding:22px;margin:-30px 14px 26px}
+.notice{background:var(--warn);border:1px solid #ead98c;border-radius:12px;padding:12px;font-size:13px;margin-bottom:18px}
+h2{font-size:18px;margin:24px 0 12px;color:var(--gd)}h3{font-size:14px;margin:18px 0 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.wide{grid-column:1/-1}
+label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,select,textarea{width:100%;border:1px solid #cfd9cf;border-radius:10px;padding:11px;font:inherit;background:#fff}textarea{min-height:96px;resize:vertical}
+.req:after{content:" *";color:#b72424}.role{display:none}.role.active{display:block}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:13px;margin:9px 0}.check input{width:auto;margin-top:2px}
+.actions{display:flex;gap:10px;align-items:center;margin-top:22px}.btn{border:0;background:var(--g);color:#fff;border-radius:11px;padding:12px 18px;font-weight:700;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.status{font-size:13px;color:var(--muted)}
+.success{display:none;text-align:center;padding:26px}.success.show{display:block}.success .code{font-size:22px;font-weight:800;color:var(--gd);margin:12px 0}
+.hp{position:absolute;left:-9999px;opacity:0;pointer-events:none}
+.small{font-size:11px;color:var(--muted);margin-top:5px}.progress{height:5px;background:#e6eee5;border-radius:99px;overflow:hidden;margin-top:18px}.progress span{display:block;height:100%;width:15%;background:var(--gold);transition:.25s}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:22px}.brand img{width:62px;height:62px}.card{padding:16px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">
+    <img src="https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-edutrans-logo" alt="Logo GMU EduTrans">
+    <div><h1>Recruitment GMU EduTrans</h1><p>Learn • Explore • Experience</p></div>
+  </div>
+  <div class="progress"><span id="progress"></span></div>
+</div></header>
+
+<main class="wrap">
+<div class="card" id="formCard">
+<div class="notice">Form resmi rekrutmen GMU EduTrans. Isi data dengan benar. Kandidat yang sesuai akan dihubungi melalui WhatsApp atau email resmi GMU EduTrans.</div>
+<form id="recruitForm">
+<input class="hp" name="website" tabindex="-1" autocomplete="off">
+<input type="hidden" name="started_at" id="startedAt">
+
+<h2>1. Data Umum</h2>
+<div class="grid">
+<div><label class="req">Nama lengkap</label><input name="full_name" required maxlength="120"></div>
+<div><label class="req">Nomor WhatsApp aktif</label><input name="whatsapp" required placeholder="08xxxxxxxxxx"></div>
+<div><label class="req">Email</label><input name="email" type="email" required></div>
+<div><label class="req">Domisili</label><input name="domicile" required></div>
+<div><label class="req">Kecamatan</label><input name="kecamatan" required></div>
+<div><label class="req">Pendidikan terakhir</label><select name="education" required><option value="">Pilih</option><option>SMP</option><option>SMA/SMK/MA</option><option>D1-D3</option><option>D4-S1</option><option>S2+</option></select></div>
+<div><label>Jurusan</label><input name="major"></div>
+<div><label class="req">Aktivitas/pekerjaan saat ini</label><input name="current_activity" required></div>
+<div><label>Link CV / portfolio</label><input name="portfolio_url" type="url" placeholder="https://..."></div>
+<div><label class="req">Sumber mengetahui lowongan</label><select name="source" required><option value="">Pilih</option><option>Instagram</option><option>Facebook</option><option>WhatsApp</option><option>Teman/Referral</option><option>Platform Lowongan</option><option>Sekolah/Kampus/Komunitas</option><option>Lainnya</option></select></div>
+</div>
+
+<h2>2. Posisi</h2>
+<div class="grid">
+<div class="wide"><label class="req">Posisi utama yang dilamar</label>
+<select name="primary_position" id="position" required>
+<option value="">Pilih posisi</option>
+<option>Admin Part Time</option><option>Finance Part Time</option><option>Marketing & Sales</option>
+<option>Operasional Freelance</option><option>TL / MC / Edukator</option><option>Dokumentasi Freelance</option><option>Helper Freelance</option>
+</select></div>
+<div class="wide"><label>Posisi alternatif</label>
+<select name="alternate_position"><option>Tidak ada</option><option>Admin Part Time</option><option>Finance Part Time</option><option>Marketing & Sales</option><option>Operasional Freelance</option><option>TL / MC / Edukator</option><option>Dokumentasi Freelance</option><option>Helper Freelance</option></select></div>
+</div>
+
+<div class="role" data-role="Admin Part Time"><h2>3. Pertanyaan Admin</h2>
+<label class="req">Ceritakan pengalaman input data atau administrasi</label><textarea name="admin_experience"></textarea>
+<label class="req">Bagaimana memastikan tidak salah input?</label><textarea name="admin_accuracy"></textarea>
+<label class="req">Apa yang dilakukan jika data customer tidak lengkap atau berbeda antar dokumen?</label><textarea name="admin_missing"></textarea>
+<label class="req">Bersedia menggunakan ERP dan Google Drive kerja?</label><select name="admin_erp"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
+</div>
+
+<div class="role" data-role="Finance Part Time"><h2>3. Pertanyaan Finance</h2>
+<label class="req">Jelaskan perbedaan pemasukan, biaya, dan laba</label><textarea name="fin_basics"></textarea>
+<label class="req">Apa yang dilakukan jika bukti transaksi tidak tersedia?</label><textarea name="fin_receipt"></textarea>
+<label class="req">Bagaimana jika saldo aktual berbeda dari catatan?</label><textarea name="fin_reconcile"></textarea>
+<label class="req">Bagaimana menjaga kerahasiaan data keuangan?</label><textarea name="fin_confidentiality"></textarea>
+</div>
+
+<div class="role" data-role="Marketing & Sales"><h2>3. Pertanyaan Marketing & Sales</h2>
+<label class="req">Bersedia mencari calon customer sendiri melalui WhatsApp, telepon, dan canvassing?</label><select name="sales_prospect"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
+<label class="req">Jika 30 calon customer belum merespons, apa langkah berikutnya?</label><textarea name="sales_followup"></textarea>
+<label class="req">Bagaimana merespons penolakan?</label><textarea name="sales_rejection"></textarea>
+<label class="req">Jelaskan strategi mendapatkan customer pertama</label><textarea name="sales_first"></textarea>
+</div>
+
+<div class="role" data-role="Operasional Freelance"><h2>3. Pertanyaan Operasional</h2>
+<label class="req">Bagaimana memastikan perlengkapan kegiatan tidak tertinggal?</label><textarea name="ops_checklist"></textarea>
+<label class="req">Apa tindakan saat rundown berubah mendadak?</label><textarea name="ops_change"></textarea>
+<label class="req">Bagaimana jika instruksi koordinator belum jelas?</label><textarea name="ops_instruction"></textarea>
+</div>
+
+<div class="role" data-role="TL / MC / Edukator"><h2>3. Pertanyaan TL / MC / Edukator</h2>
+<label class="req">Ceritakan pengalaman public speaking/MC/TL/guru/pemateri</label><textarea name="tl_experience"></textarea>
+<label class="req">Bagaimana membuat 30 anak tetap fokus?</label><textarea name="tl_focus"></textarea>
+<label class="req">Apa yang dilakukan jika peserta gaduh atau menangis?</label><textarea name="tl_children"></textarea>
+<label>Link video public speaking</label><input name="tl_video" type="url" placeholder="https://...">
+</div>
+
+<div class="role" data-role="Dokumentasi Freelance"><h2>3. Pertanyaan Dokumentasi</h2>
+<label class="req">Perangkat kamera/smartphone yang digunakan</label><input name="doc_device">
+<label class="req">Ceritakan pengalaman foto/video</label><textarea name="doc_experience"></textarea>
+<label class="req">Link portfolio</label><input name="doc_portfolio" type="url">
+<label class="req">Bagaimana memastikan file tidak hilang?</label><textarea name="doc_backup"></textarea>
+</div>
+
+<div class="role" data-role="Helper Freelance"><h2>3. Pertanyaan Helper</h2>
+<label class="req">Bersedia bekerja on-call sesuai kebutuhan kegiatan?</label><select name="helper_oncall"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
+<label class="req">Bagaimana merespons instruksi mendadak?</label><textarea name="helper_instruction"></textarea>
+<label class="req">Nyaman bekerja dengan anak-anak/rombongan?</label><select name="helper_children"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
+</div>
+
+<h2>4. Ketersediaan & Pengalaman</h2>
+<div class="grid">
+<div><label class="req">Hari/jam yang tersedia</label><input name="availability" required placeholder="Contoh: Senin–Jumat sore, Sabtu-Minggu"></div>
+<div><label class="req">Bersedia bekerja pada weekend?</label><select name="weekend" required><option value="">Pilih</option><option>Ya</option><option>Tidak</option><option>Kondisional</option></select></div>
+<div class="wide"><label class="req">Area kerja yang dapat dijangkau</label><input name="coverage_area" required></div>
+<div class="wide"><label class="req">Ceritakan pengalaman kerja/organisasi yang relevan</label><textarea name="experience_summary" required></textarea></div>
+<div><label>Memiliki laptop?</label><select name="has_laptop"><option>Ya</option><option>Tidak</option></select></div>
+<div><label>Memiliki smartphone?</label><select name="has_smartphone"><option>Ya</option><option>Tidak</option></select></div>
+<div><label>Memiliki kendaraan pribadi?</label><select name="has_vehicle"><option>Ya</option><option>Tidak</option></select></div>
+</div>
+
+<h2>5. Pernyataan Kandidat</h2>
+<label class="check"><input type="checkbox" name="truth" required> Saya menyatakan data yang saya berikan benar.</label>
+<label class="check"><input type="checkbox" name="process" required> Saya memahami proses rekrutmen tidak menjamin diterima.</label>
+<label class="check"><input type="checkbox" name="sop" required> Saya bersedia mengikuti SOP, ERP, dan kebijakan GMU EduTrans jika diterima.</label>
+<label class="check"><input type="checkbox" name="consent" required> Saya menyetujui penggunaan data untuk proses rekrutmen dan administrasi SDM internal.</label>
+<div class="small">GMU EduTrans tidak meminta KTP, rekening, atau dokumen identitas sensitif pada tahap pendaftaran awal.</div>
+
+<div class="actions"><button class="btn" id="submitBtn" type="submit">Kirim Lamaran</button><span class="status" id="status"></span></div>
+</form>
+</div>
+
+<div class="card success" id="success">
+<h2>Lamaran berhasil diterima</h2>
+<p>Terima kasih telah mendaftar di GMU EduTrans. Data Anda sudah masuk ke sistem rekrutmen.</p>
+<div class="code" id="candidateCode"></div>
+<p class="small">Simpan kode kandidat ini. Kandidat yang sesuai akan dihubungi melalui WhatsApp atau email resmi GMU EduTrans.</p>
+</div>
+</main>
+
+<script>
+const SUPABASE_URL="https://gtgnwasijweewmaubvyg.supabase.co";
+const ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z253YXNpandlZXdtYXVidnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDk0ODYsImV4cCI6MjEwNDE4NTQ4Nn0.R7e0xe9IxB-oS0aXztovbweYmwaxu2a8nG7pMVVdYOs";
+const form=document.getElementById("recruitForm"), pos=document.getElementById("position"), statusEl=document.getElementById("status"), btn=document.getElementById("submitBtn");
+document.getElementById("startedAt").value=new Date().toISOString();
+
+function setRole(){
+  document.querySelectorAll(".role").forEach(x=>{
+    const active=x.dataset.role===pos.value;
+    x.classList.toggle("active",active);
+    x.querySelectorAll("input,textarea,select").forEach(el=>{
+      if(active && el.closest(".role").querySelector('label.req') && ["SELECT","TEXTAREA","INPUT"].includes(el.tagName)){
+        const label=el.previousElementSibling;
+        if(label && label.classList.contains("req")) el.required=true;
+      } else if(!active) el.required=false;
+    });
+  });
+  document.getElementById("progress").style.width=pos.value?"55%":"30%";
+}
+pos.addEventListener("change",setRole);
+
+function obj(fd){const o={};for(const [k,v] of fd.entries())o[k]=v;return o}
+form.addEventListener("submit",async e=>{
+  e.preventDefault(); btn.disabled=true; statusEl.textContent="Mengirim...";
+  try{
+    const d=obj(new FormData(form));
+    const roleAnswers={};
+    Object.keys(d).filter(k=>/^(admin|fin|sales|ops|tl|doc|helper)_/.test(k)).forEach(k=>roleAnswers[k]=d[k]);
+    const payload={
+      started_at:d.started_at,website:d.website||"",consent:true,
+      full_name:d.full_name,whatsapp:d.whatsapp,email:d.email,domicile:d.domicile,kecamatan:d.kecamatan,
+      education:d.education,major:d.major,current_activity:d.current_activity,
+      portfolio_url:d.doc_portfolio||d.tl_video||d.portfolio_url||"",
+      source:d.source,primary_position:d.primary_position,alternate_position:d.alternate_position,
+      availability:d.availability,weekend:d.weekend,coverage_area:d.coverage_area,
+      experience_summary:d.experience_summary,has_laptop:d.has_laptop,has_smartphone:d.has_smartphone,has_vehicle:d.has_vehicle,
+      role_answers:roleAnswers
+    };
+    const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/gmu_public_recruitment_submit",{
+      method:"POST",headers:{"Content-Type":"application/json","apikey":ANON_KEY},body:JSON.stringify({p_payload:payload})
+    });
+    const body=await r.json();
+    if(!r.ok) throw new Error(body.message||"Pengiriman gagal");
+    document.getElementById("candidateCode").textContent=body.candidate_code||"";
+    document.getElementById("formCard").style.display="none";
+    document.getElementById("success").classList.add("show");
+    document.getElementById("progress").style.width="100%";
+    window.scrollTo({top:0,behavior:"smooth"});
+  }catch(err){
+    statusEl.textContent="Gagal mengirim. Periksa data dan coba lagi.";
+    console.error(err); btn.disabled=false;
+  }
+});
+</script>
+</body>
+</html>
