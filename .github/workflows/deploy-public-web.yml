@@ -50,7 +50,10 @@ jobs:
           grep -Fq 'Helper Freelance' public-web/recruitment.html
           grep -Fq 'Pendidikan minimal SMA/SMK/MA' public-web/recruitment.html
           grep -Fq 'name="experience_years"' public-web/recruitment.html
+          grep -Fq 'Kualifikasi Admin Part Time' public-web/recruitment.html
+          grep -Fq 'freelance_assignment_consent' public-web/recruitment.html
           grep -Fq 'gmu-public-recruitment-v2' supabase/migrations/20261002133000_gmu_v2337_public_recruitment_hardening.sql
+          grep -Fq 'freelance_assignment_consent_required' supabase/migrations/20261002140500_gmu_v2338_recruitment_freelance_consent.sql
           ! grep -Fq '<option>SMP</option>' public-web/recruitment.html
           ! grep -Fq 'barren-inexperienced-websphere--garsyanimultius.replit.app' public-web/recruitment.html
 
@@ -89,11 +92,14 @@ jobs:
           grep -Fq 'Recruitment GMU EduTrans' /tmp/recruitment.html
           grep -Fq 'gmu_public_recruitment_submit' /tmp/recruitment.html
           grep -Fq 'name="experience_years"' /tmp/recruitment.html
+          grep -Fq 'freelance_assignment_consent' /tmp/recruitment.html
           curl --fail --silent --show-error --location "$PUBLIC_LIVE_URL/recruitment" -o /tmp/recruitment-live.html
           grep -Fq 'Recruitment GMU EduTrans' /tmp/recruitment-live.html
           grep -Fq 'gmu_public_recruitment_submit' /tmp/recruitment-live.html
           grep -Fq 'Pendidikan minimal SMA/SMK/MA' /tmp/recruitment-live.html
           grep -Fq 'name="experience_years"' /tmp/recruitment-live.html
+          grep -Fq 'freelance_assignment_consent' /tmp/recruitment-live.html
+          grep -Fq 'Kualifikasi Admin Part Time' /tmp/recruitment-live.html
           ! grep -Fq 'Educational Trip & Educational Tourism Operator' /tmp/recruitment-live.html
 
       - name: Summary
