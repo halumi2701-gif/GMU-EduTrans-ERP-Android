@@ -50,7 +50,7 @@ jobs:
           grep -Fq 'Helper Freelance' public-web/recruitment.html
           grep -Fq 'Pendidikan minimal SMA/SMK/MA' public-web/recruitment.html
           grep -Fq 'name="experience_years"' public-web/recruitment.html
-          grep -Fq 'Kualifikasi Admin Part Time' public-web/recruitment.html
+          grep -Fq 'const QUALIFICATIONS={' public-web/recruitment.html
           grep -Fq 'freelance_assignment_consent' public-web/recruitment.html
           grep -Fq 'submission_id:submissionId' public-web/recruitment.html
           grep -Fq 'gmu-public-recruitment-v2' supabase/migrations/20261002133000_gmu_v2337_public_recruitment_hardening.sql
@@ -104,7 +104,7 @@ jobs:
           grep -Fq 'name="experience_years"' /tmp/recruitment-live.html
           grep -Fq 'freelance_assignment_consent' /tmp/recruitment-live.html
           grep -Fq 'submission_id:submissionId' /tmp/recruitment-live.html
-          grep -Fq 'Kualifikasi Admin Part Time' /tmp/recruitment-live.html
+          grep -Fq 'const QUALIFICATIONS={' /tmp/recruitment-live.html
           ! grep -Fq 'Educational Trip & Educational Tourism Operator' /tmp/recruitment-live.html
 
       - name: Summary
