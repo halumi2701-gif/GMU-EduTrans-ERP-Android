@@ -35,7 +35,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 
 <main class="wrap">
 <div class="card" id="formCard">
-<div class="notice">Form resmi rekrutmen GMU EduTrans. Isi data dengan benar. Kandidat yang sesuai akan dihubungi melalui WhatsApp atau email resmi GMU EduTrans.</div>
+<div class="notice"><strong>Kualifikasi umum:</strong> pendidikan minimal SMA/SMK/MA sederajat. Pengalaman kerja relevan minimal sekitar 1 tahun lebih disukai untuk Admin, Finance, dan Marketing & Sales; fresh graduate tetap dapat dipertimbangkan bila kompetensinya sesuai. Untuk posisi freelance crew, pengalaman event, pendidikan, pelayanan, dokumentasi, atau kegiatan lapangan menjadi nilai tambah. Domisili Cianjur dan sekitarnya diutamakan.</div>
 <form id="recruitForm">
 <input class="hp" name="website" tabindex="-1" autocomplete="off">
 <input type="hidden" name="started_at" id="startedAt">
@@ -47,7 +47,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <div><label class="req">Email</label><input name="email" type="email" required></div>
 <div><label class="req">Domisili</label><input name="domicile" required></div>
 <div><label class="req">Kecamatan</label><input name="kecamatan" required></div>
-<div><label class="req">Pendidikan terakhir</label><select name="education" required><option value="">Pilih</option><option>SMP</option><option>SMA/SMK/MA</option><option>D1-D3</option><option>D4-S1</option><option>S2+</option></select></div>
+<div><label class="req">Pendidikan terakhir</label><select name="education" required><option value="">Pilih</option><option>SMA/SMK/MA</option><option>D1-D3</option><option>D4-S1</option><option>S2+</option></select></div>
 <div><label>Jurusan</label><input name="major"></div>
 <div><label class="req">Aktivitas/pekerjaan saat ini</label><input name="current_activity" required></div>
 <div><label>Link CV / portfolio</label><input name="portfolio_url" type="url" placeholder="https://..."></div>
@@ -118,7 +118,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <div><label class="req">Hari/jam yang tersedia</label><input name="availability" required placeholder="Contoh: Senin–Jumat sore, Sabtu-Minggu"></div>
 <div><label class="req">Bersedia bekerja pada weekend?</label><select name="weekend" required><option value="">Pilih</option><option>Ya</option><option>Tidak</option><option>Kondisional</option></select></div>
 <div class="wide"><label class="req">Area kerja yang dapat dijangkau</label><input name="coverage_area" required></div>
-<div class="wide"><label class="req">Ceritakan pengalaman kerja/organisasi yang relevan</label><textarea name="experience_summary" required></textarea></div>
+<div><label class="req">Lama pengalaman relevan</label><select name="experience_years" required><option value="">Pilih</option><option>Fresh graduate / belum 1 tahun</option><option>±1 tahun</option><option>2–3 tahun</option><option>>3 tahun</option></select></div><div class="wide"><label class="req">Ceritakan pengalaman kerja/organisasi yang relevan</label><textarea name="experience_summary" required></textarea></div>
 <div><label>Memiliki laptop?</label><select name="has_laptop"><option>Ya</option><option>Tidak</option></select></div>
 <div><label>Memiliki smartphone?</label><select name="has_smartphone"><option>Ya</option><option>Tidak</option></select></div>
 <div><label>Memiliki kendaraan pribadi?</label><select name="has_vehicle"><option>Ya</option><option>Tidak</option></select></div>
@@ -179,7 +179,7 @@ form.addEventListener("submit",async e=>{
       source:d.source,primary_position:d.primary_position,alternate_position:d.alternate_position,
       availability:d.availability,weekend:d.weekend,coverage_area:d.coverage_area,
       experience_summary:d.experience_summary,has_laptop:d.has_laptop,has_smartphone:d.has_smartphone,has_vehicle:d.has_vehicle,
-      role_answers:roleAnswers
+      role_answers:Object.assign({experience_years:d.experience_years},roleAnswers)
     };
     const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/gmu_public_recruitment_submit",{
       method:"POST",headers:{"Content-Type":"application/json","apikey":ANON_KEY},body:JSON.stringify({p_payload:payload})
