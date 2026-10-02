@@ -21,7 +21,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 .success{display:none;text-align:center;padding:26px}.success.show{display:block}.success .code{font-size:22px;font-weight:800;color:var(--gd);margin:12px 0}
 .hp{position:absolute;left:-9999px;opacity:0;pointer-events:none}
 .small{font-size:11px;color:var(--muted);margin-top:5px}.progress{height:5px;background:#e6eee5;border-radius:99px;overflow:hidden;margin-top:18px}.progress span{display:block;height:100%;width:15%;background:var(--gold);transition:.25s}
-@media(max-width:640px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:22px}.brand img{width:62px;height:62px}.card{padding:16px}}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.brand h1{font-size:22px}.brand img{width:62px;height:62px}.card{padding:16px}.vacancy-summary{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -36,6 +36,11 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <main class="wrap">
 <div class="card" id="formCard">
 <div class="notice"><strong>Kualifikasi umum:</strong> pendidikan minimal SMA/SMK/MA sederajat. Pengalaman kerja relevan minimal sekitar 1 tahun lebih disukai untuk Admin, Finance, dan Marketing & Sales; fresh graduate tetap dapat dipertimbangkan bila kompetensinya sesuai. Untuk posisi freelance crew, pengalaman event, pendidikan, pelayanan, dokumentasi, atau kegiatan lapangan menjadi nilai tambah. Domisili Cianjur dan sekitarnya diutamakan.</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px" class="vacancy-summary">
+  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Admin & Finance</strong><div class="small">Part Time • teliti • spreadsheet • administrasi data/keuangan</div></div>
+  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Marketing & Sales</strong><div class="small">Target Based • prospecting • follow-up • closing</div></div>
+  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Freelance Crew</strong><div class="small">Operasional • TL/MC/Edukator • Dokumentasi • Helper</div></div>
+</div>
 <form id="recruitForm">
 <input class="hp" name="website" tabindex="-1" autocomplete="off">
 <input type="hidden" name="started_at" id="startedAt">
@@ -174,7 +179,7 @@ form.addEventListener("submit",async e=>{
     const payload={
       started_at:d.started_at,website:d.website||"",consent:true,
       full_name:d.full_name,whatsapp:d.whatsapp,email:d.email,domicile:d.domicile,kecamatan:d.kecamatan,
-      education:d.education,major:d.major,current_activity:d.current_activity,
+      education:d.education,major:d.major,current_activity:d.current_activity,experience_years:d.experience_years,
       portfolio_url:d.doc_portfolio||d.tl_video||d.portfolio_url||"",
       source:d.source,primary_position:d.primary_position,alternate_position:d.alternate_position,
       availability:d.availability,weekend:d.weekend,coverage_area:d.coverage_area,
@@ -192,7 +197,19 @@ form.addEventListener("submit",async e=>{
     document.getElementById("progress").style.width="100%";
     window.scrollTo({top:0,behavior:"smooth"});
   }catch(err){
-    statusEl.textContent="Gagal mengirim. Periksa data dan coba lagi.";
+    const code=String(err&&err.message||"");
+    const messages={
+      minimum_education_sma_required:"Pendidikan minimal SMA/SMK/MA sederajat.",
+      invalid_experience_years:"Pilih lama pengalaman yang sesuai.",
+      role_answers_required:"Lengkapi seluruh pertanyaan untuk posisi yang dipilih.",
+      invalid_whatsapp:"Nomor WhatsApp tidak valid. Gunakan nomor Indonesia aktif.",
+      invalid_email:"Alamat email tidak valid.",
+      invalid_kecamatan:"Kecamatan wajib diisi.",
+      rate_limit_contact:"Lamaran dengan kontak ini sudah terlalu sering dikirim. Coba lagi besok.",
+      rate_limit_global:"Pendaftaran sedang sangat ramai. Coba lagi beberapa saat.",
+      submission_timing_rejected:"Sesi formulir sudah kedaluwarsa. Muat ulang halaman lalu kirim kembali."
+    };
+    statusEl.textContent=messages[code]||"Gagal mengirim. Periksa kembali data yang wajib diisi lalu coba lagi.";
     console.error(err); btn.disabled=false;
   }
 });
