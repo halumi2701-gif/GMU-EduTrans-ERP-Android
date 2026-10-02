@@ -47,9 +47,9 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 
 <h2>1. Data Umum</h2>
 <div class="grid">
-<div><label class="req">Nama lengkap</label><input name="full_name" required maxlength="120"></div>
-<div><label class="req">Nomor WhatsApp aktif</label><input name="whatsapp" required placeholder="08xxxxxxxxxx"></div>
-<div><label class="req">Email</label><input name="email" type="email" required></div>
+<div><label class="req">Nama lengkap</label><input name="full_name" autocomplete="name" required maxlength="120"></div>
+<div><label class="req">Nomor WhatsApp aktif</label><input name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required maxlength="16" placeholder="08xxxxxxxxxx"></div>
+<div><label class="req">Email</label><input name="email" type="email" autocomplete="email" required maxlength="160"></div>
 <div><label class="req">Domisili</label><input name="domicile" required></div>
 <div><label class="req">Kecamatan</label><input name="kecamatan" required></div>
 <div><label class="req">Pendidikan terakhir</label><select name="education" required><option value="">Pilih</option><option>SMA/SMK/MA</option><option>D1-D3</option><option>D4-S1</option><option>S2+</option></select></div>
@@ -155,6 +155,7 @@ const SUPABASE_URL="https://gtgnwasijweewmaubvyg.supabase.co";
 const ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Z253YXNpandlZXdtYXVidnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDk0ODYsImV4cCI6MjEwNDE4NTQ4Nn0.R7e0xe9IxB-oS0aXztovbweYmwaxu2a8nG7pMVVdYOs";
 const form=document.getElementById("recruitForm"), pos=document.getElementById("position"), statusEl=document.getElementById("status"), btn=document.getElementById("submitBtn");
 document.getElementById("startedAt").value=new Date().toISOString();
+const submissionId=(globalThis.crypto&&crypto.randomUUID)?crypto.randomUUID():("sub-"+Date.now()+"-"+Math.random().toString(36).slice(2,12));
 
 const QUALIFICATIONS={
   "Admin Part Time":["Pendidikan minimal SMA/SMK/MA sederajat.","Pengalaman administrasi sekitar 1 tahun lebih disukai; fresh graduate dengan kemampuan sesuai tetap dapat dipertimbangkan.","Mampu menggunakan laptop, Google Sheets/Excel, Google Drive, dan aplikasi digital dasar.","Teliti, rapi, disiplin, serta mampu menjaga kerahasiaan data."],
@@ -200,7 +201,7 @@ form.addEventListener("submit",async e=>{
     const roleAnswers={};
     Object.keys(d).filter(k=>/^(admin|fin|sales|ops|tl|doc|helper)_/.test(k)).forEach(k=>roleAnswers[k]=d[k]);
     const payload={
-      started_at:d.started_at,website:d.website||"",consent:true,freelance_assignment_consent:d.freelance_assignment_consent==="on",
+      started_at:d.started_at,submission_id:submissionId,website:d.website||"",consent:true,freelance_assignment_consent:d.freelance_assignment_consent==="on",
       full_name:d.full_name,whatsapp:d.whatsapp,email:d.email,domicile:d.domicile,kecamatan:d.kecamatan,
       education:d.education,major:d.major,current_activity:d.current_activity,experience_years:d.experience_years,
       portfolio_url:d.doc_portfolio||d.tl_video||d.portfolio_url||"",
