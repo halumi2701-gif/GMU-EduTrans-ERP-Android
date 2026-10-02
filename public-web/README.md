@@ -1,6 +1,6 @@
-# GMU EduTrans Public Web v25
+# GMU EduTrans Public Web v25 + Recruitment v2
 
-Source permanen untuk **Paket & Harga + Customer Account Gate** pada web customer GMU EduTrans.
+Source canonical untuk **homepage customer, Paket & Harga, Customer Account Gate, dan Recruitment publik** pada web GMU EduTrans.
 
 ## Tujuan
 
@@ -13,8 +13,20 @@ Source permanen untuk **Paket & Harga + Customer Account Gate** pada web custome
 - Booking baru dibuat saat customer benar-benar melanjutkan order; signup tidak membuat booking palsu.
 - Data internal HPP, fee Manager, Sales, Mitra, laba, dan margin tidak boleh dirender di public web.
 
+## Recruitment publik
+
+URL final yang dituju: `https://edutrans.garsyanimultiusaha.site/recruitment`.
+
+Source: `recruitment.html`. Submit langsung ke RPC production `public.gmu_public_recruitment_submit(jsonb)` dengan honeypot, timing check, rate limit, minimum pendidikan SMA/SMK/MA, lama pengalaman relevan, dan pertanyaan wajib per posisi. Kandidat baru masuk sebagai `APPLIED` dengan `next_action = Admin Screening`.
+
+Link Replit adalah fallback historis dan **tidak boleh dipakai pada materi publik final**. Status go-live hanya boleh menjadi LIVE setelah route domain EduTrans menampilkan form recruitment, submit end-to-end berhasil, kandidat masuk ERP, sinkron Tracker terverifikasi, dan data uji dibersihkan.
+
 ## File
 
+- `index.html` — canonical snapshot homepage public production untuk mencegah regression saat deploy.
+- `recruitment.html` — form recruitment resmi 7 posisi.
+- `api/proxy.js` — proxy server-side customer-safe ke public Supabase functions.
+- `manifest.webmanifest` — manifest web publik.
 - `package-renderer-v23.js` — renderer kartu Paket & Harga.
 - `package-renderer-v23.css` — styling checklist/meta/estimasi.
 - `package-search-v23.js` — pencarian paket + integrasi Customer Account Gate.
@@ -72,4 +84,6 @@ ERP memuat `customer-account-crm-v220.js` untuk menampilkan akun baru, akun belu
 
 ## Deployment
 
-Project Vercel customer web yang aktif saat source ini dibuat **belum terhubung ke Git repository**. Karena itu perubahan di folder `public-web` adalah source canonical tetapi belum otomatis live. Setelah source homepage aktif dipindahkan/ditautkan ke Git, load file v25 di atas lalu deploy preview → verifikasi signup/login/order → production.
+Workflow `.github/workflows/deploy-public-web.yml` melakukan validasi source lalu deploy **folder `public-web`** ke project Vercel customer web yang sama. Workflow memverifikasi homepage tetap utuh dan route `/recruitment` benar-benar berisi form recruitment, bukan fallback homepage.
+
+Credential production yang dibutuhkan GitHub Actions: `VERCEL_TOKEN`. Jika secret ini belum tersedia, validasi source tetap dapat diperiksa tetapi deploy production berhenti dengan error eksplisit. Setelah token tersedia: rerun workflow → verifikasi homepage → verifikasi `/recruitment` → lakukan smoke test kandidat → cleanup → baru tandai URL sebagai LIVE di Tracker/Drive.
