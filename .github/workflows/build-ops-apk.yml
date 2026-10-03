@@ -1,0 +1,54 @@
+name: Build GMU EduTrans Ops APK
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "ops/**"
+      - "settings.gradle.kts"
+      - ".github/workflows/build-ops-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Use exact GMU EduTrans logo
+        run: |
+          set -euo pipefail
+          mkdir -p ops/src/main/res/drawable
+          rm -f ops/src/main/res/drawable/ic_launcher_gmu.xml
+          curl -fsSL "https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"             -o ops/src/main/res/drawable/ic_launcher_gmu.jpg
+          file ops/src/main/res/drawable/ic_launcher_gmu.jpg
+
+      - name: Build Ops debug APK
+        run: gradle --no-daemon :ops:assembleDebug
+
+      - name: Verify APK
+        run: |
+          test -f ops/build/outputs/apk/debug/ops-debug.apk
+          ls -lh ops/build/outputs/apk/debug/ops-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GMU-EduTrans-Ops-v1-APK
+          path: ops/build/outputs/apk/debug/ops-debug.apk
+          if-no-files-found: error
+          retention-days: 14
