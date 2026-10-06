@@ -72,9 +72,14 @@ begin
         raise exception 'AGENCY_SPECIAL_MANAGER_REQUIRED';
       end if;
     end if;
-    select a.is_active into v_active from public.special_agency_partners a
-      where a.partner_code=new.special_agency_partner_code
-      and a.effective_from<=current_date;
+    -- Existing bookings remain serviceable by Finance if an agency is later disabled.
+    if tg_op='UPDATE' and old.price_channel='AGENCY_SPECIAL' then
+      v_active:=true;
+    else
+      select a.is_active into v_active from public.special_agency_partners a
+        where a.partner_code=new.special_agency_partner_code
+        and a.effective_from<=current_date;
+    end if;
     if coalesce(v_active,false)=false
        or new.price_channel is distinct from 'AGENCY_SPECIAL'
        or new.package_code is distinct from 'STATION-PROF-2026'
