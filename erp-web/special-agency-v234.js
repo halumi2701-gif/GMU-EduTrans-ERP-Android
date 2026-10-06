@@ -47,7 +47,7 @@
         <h3>Agen Khusus — Edukasi Stasiun</h3>
         <p class="gsa-note">Pilih mitra, sekolah/customer terdaftar, tanggal kegiatan dan peserta. Harga tidak dapat diedit.</p>
         <form id="gsaForm">
-          <div class="gsa-field"><label>Mitra khusus</label><select id="gsaPartner" required><option value="">Memuat mitra…</option></select></div>
+          <div class="gsa-field"><label>Kemitraan khusus (1 agen, 2 PIC)</label><select id="gsaPartner" required><option value="">Memuat mitra…</option></select></div>
           <div class="gsa-field"><label>Customer / Sekolah di ERP</label><select id="gsaCustomer" required><option value="">Memuat customer…</option></select></div>
           <div class="gsa-field"><label>Tanggal kegiatan</label><input id="gsaDate" type="date" required min="${today()}" value="${today()}"></div>
           <div class="gsa-field"><label>Jumlah peserta (minimal 20)</label><input id="gsaPax" type="number" min="20" step="1" required value="20"></div>
@@ -59,7 +59,7 @@
       <div class="gsa-card">
         <h3>Rincian Harga Terkunci</h3>
         <div class="gsa-summary" id="gsaQuote">Pilih mitra dan peserta, lalu klik Hitung dari ERP.</div>
-        <p class="gsa-note">Harga paket Rp55.000/pax telah termasuk komisi mitra Rp5.000/pax. Komisi Sales GMU Rp0. Tidak menetapkan harga jual kembali agen.</p>
+        <p class="gsa-note">Harga paket Rp55.000/pax telah termasuk satu komisi mitra Rp5.000/pax untuk kemitraan (bukan per PIC). Komisi Sales GMU Rp0. Tidak menetapkan harga jual kembali agen.</p>
         <div id="gsaWarning" class="gsa-warn" style="display:none">Rombongan 40 pax ke atas memerlukan review skema dan HPP. Jangan gabungkan otomatis dengan tier B2B organisasi.</div>
         <div class="gsa-warn">Booking dibuat sebagai Lead, bukan transaksi lunas. Finance wajib meninjau HPP aktual sebelum penerbitan quotation dan pelaksanaan.</div>
       </div>
@@ -81,13 +81,13 @@
   async function loadData(){
     if(!allowed()||!db())return;
     const [p,c]=await Promise.all([
-      db().from('special_agency_partners').select('partner_code,display_name,partner_label,is_active').eq('is_active',true).order('display_name'),
+      db().from('special_agency_partners').select('partner_code,display_name,partner_label,primary_pic_name,secondary_pic_name,is_active').eq('is_active',true).order('display_name'),
       db().from('customers').select('id,name').order('name').limit(500)
     ]);
     if(p.error)throw p.error;if(c.error)throw c.error;
     state.partners=p.data||[];state.customers=c.data||[];
     const partner=q('#gsaPartner'),customer=q('#gsaCustomer');
-    if(partner)partner.innerHTML='<option value="">— Pilih agen khusus —</option>'+state.partners.map(a=>`<option value="${h(a.partner_code)}">${h(a.display_name)} — ${h(a.partner_label)}</option>`).join('');
+    if(partner)partner.innerHTML='<option value="">— Pilih kemitraan khusus —</option>'+state.partners.map(a=>`<option value="${h(a.partner_code)}">${h(a.display_name)} — ${h(a.partner_label)}</option>`).join('');
     if(customer)customer.innerHTML='<option value="">— Pilih sekolah/customer —</option>'+state.customers.map(x=>`<option value="${h(x.id)}">${h(x.name)}</option>`).join('');
     status(state.partners.length?'Pilih data untuk membuat booking.':'Belum ada mitra aktif. Pastikan migrasi ERP telah diterapkan.',!state.partners.length);
   }
@@ -110,7 +110,7 @@
       state.quote={...data,form};
       const quote=q('#gsaQuote');
       if(quote)quote.innerHTML=`
-        <div>Mitra: <b>${h(data.partner_name)}</b></div>
+        <div>Mitra: <b>${h(data.partner_name)}</b></div>\n        <div>PIC: <b>${h([data.primary_pic,data.secondary_pic].filter(Boolean).join(" / "))}</b></div>
         <div>Harga/pax: <b>${money(data.price_per_pax)}</b></div>
         <div>Total paket: <strong>${money(data.gross_total)}</strong></div>
         <div>Komisi mitra termasuk: <b>${money(data.partner_commission_total)}</b></div>
@@ -127,7 +127,7 @@
     if(!state.quote || JSON.stringify(state.quote.form)!==JSON.stringify(form)){
       status('Klik Hitung dari ERP terlebih dahulu agar penawaran sesuai data terbaru.',true);return;
     }
-    if(!window.confirm('Buat booking Lead agen khusus? Harga Rp55.000/pax sudah termasuk komisi mitra Rp5.000/pax.'))return;
+    if(!window.confirm('Buat booking Lead agen khusus? Harga Rp55.000/pax sudah termasuk satu komisi mitra Rp5.000/pax untuk kemitraan ini.'))return;
     state.busy=true;const button=q('#gsaCreate');if(button)button.disabled=true;
     try{
       const key=state.requestKey||(window.crypto?.randomUUID?.()||null);
