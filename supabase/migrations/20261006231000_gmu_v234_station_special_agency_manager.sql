@@ -63,10 +63,14 @@ begin
   end if;
 
   if new.price_channel='AGENCY_SPECIAL' or new.special_agency_partner_code is not null then
-    select p.role::text into v_role from public.profiles p
-      where p.id=(select auth.uid()) and p.is_active=true limit 1;
-    if coalesce(v_role,'') not in ('Owner','Director','Direktur','Manager','Manager EduTrans') then
-      raise exception 'AGENCY_SPECIAL_MANAGER_REQUIRED';
+    -- Manager/Owner must create the special booking. Later status/finance updates
+    -- by authorized ERP roles are allowed, but rate fields remain immutable.
+    if tg_op='INSERT' or (tg_op='UPDATE' and old.price_channel is distinct from 'AGENCY_SPECIAL') then
+      select p.role::text into v_role from public.profiles p
+        where p.id=(select auth.uid()) and p.is_active=true limit 1;
+      if coalesce(v_role,'') not in ('Owner','Director','Direktur','Manager','Manager EduTrans') then
+        raise exception 'AGENCY_SPECIAL_MANAGER_REQUIRED';
+      end if;
     end if;
     select a.is_active into v_active from public.special_agency_partners a
       where a.partner_code=new.special_agency_partner_code
@@ -74,7 +78,7 @@ begin
     if coalesce(v_active,false)=false
        or new.price_channel is distinct from 'AGENCY_SPECIAL'
        or new.package_code is distinct from 'STATION-PROF-2026'
-       or new.pax < 20
+       or coalesce(new.pax,0) < 20
        or new.price_per_pax is distinct from 55000
        or new.customer_sell_price_per_pax is distinct from 55000
        or new.sales_commission_per_pax is distinct from 0
