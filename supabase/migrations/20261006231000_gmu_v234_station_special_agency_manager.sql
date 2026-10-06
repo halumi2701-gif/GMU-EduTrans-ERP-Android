@@ -4,17 +4,26 @@ create table if not exists public.special_agency_partners (
   partner_code text primary key,
   display_name text not null,
   partner_label text not null,
+  primary_pic_name text,
+  secondary_pic_name text,
   is_active boolean not null default true,
   effective_from date not null default date '2026-10-06',
   created_at timestamptz not null default now(),
   constraint special_agency_partner_code_check check (partner_code ~ '^[A-Z0-9_-]+$')
 );
 
-insert into public.special_agency_partners(partner_code,display_name,partner_label)
+-- One business partner with two named PICs. Never create two agent records or pay two commissions.
+-- The individuals' organizational affiliations are not represented as an institutional agreement.
+insert into public.special_agency_partners
+  (partner_code,display_name,partner_label,primary_pic_name,secondary_pic_name)
 values
-  ('DEDEN_TRAVEL','Pak Deden','Agen Tour & Travel'),
-  ('HENDRY_MITRA','Pak Hendry','Mitra Khusus — afiliasi Dishub (bukan kerja sama instansi)')
-on conflict (partner_code) do nothing;
+  ('DEDEN_HENDRY_TRAVEL','Kemitraan Pak Deden & Pak Hendry',
+   'Agen Tour & Travel — 1 mitra / 2 PIC','Pak Deden','Pak Hendry')
+on conflict (partner_code) do update
+set display_name=excluded.display_name,
+    partner_label=excluded.partner_label,
+    primary_pic_name=excluded.primary_pic_name,
+    secondary_pic_name=excluded.secondary_pic_name;
 
 alter table public.special_agency_partners enable row level security;
 drop policy if exists special_agency_partners_staff_read on public.special_agency_partners;
@@ -126,11 +135,12 @@ begin
   end if;
   return jsonb_build_object(
     'partner_code',v_partner.partner_code,'partner_name',v_partner.display_name,
+    'primary_pic',v_partner.primary_pic_name,'secondary_pic',v_partner.secondary_pic_name,
     'package_code','STATION-PROF-2026','channel','AGENCY_SPECIAL',
     'pax',p_pax,'minimum_pax',20,
     'price_per_pax',55000,'commission_partner_per_pax',5000,
     'commission_sales_per_pax',0,'gross_total',p_pax*55000,
-    'partner_commission_total',p_pax*5000,
+    'partner_commission_total',p_pax*5000, -- once per booking, not per PIC
     'gmu_after_partner_commission',p_pax*50000,
     'cost_review_required',p_pax>=40,
     'note','Harga jual kembali mitra tidak ditentukan GMU. Biaya aktual perlu verifikasi Finance.'
