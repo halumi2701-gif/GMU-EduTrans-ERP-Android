@@ -5,7 +5,7 @@
   const q=(s,r=document)=>r.querySelector(s);
   const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID');
-  const state={partners:[],customers:[],quote:null,busy:false,initialized:false};
+  const state={partners:[],customers:[],quote:null,busy:false,initialized:false,requestKey:null};
 
   function role(){try{return String(profile?.role||'')}catch(_){return ''}}
   function allowed(){return ROLES.has(role())}
@@ -130,21 +130,22 @@
     if(!window.confirm('Buat booking Lead agen khusus? Harga Rp55.000/pax sudah termasuk komisi mitra Rp5.000/pax.'))return;
     state.busy=true;const button=q('#gsaCreate');if(button)button.disabled=true;
     try{
-      const key=(window.crypto?.randomUUID?.()||null);
+      const key=state.requestKey||(window.crypto?.randomUUID?.()||null);
+      state.requestKey=key;
       const {data,error}=await db().rpc('gmu_create_special_agency_booking',{
         p_customer_id:form.customer,p_partner_code:form.partner,
         p_trip_date:form.date,p_pax:form.pax,p_request_key:key
       });
       if(error)throw error;
-      state.quote=null;
+      state.quote=null;state.requestKey=null;
       status(`Booking ${data.booking_no} berhasil dibuat sebagai Lead. Lanjutkan validasi RAB dan Finance.`);
       if(q('#gsaQuote'))q('#gsaQuote').textContent=`Booking: ${data.booking_no}. Pilih Hitung dari ERP untuk transaksi berikutnya.`;
-      try{ if(typeof loadData==='function' && window.GmuMainRefresh)window.GmuMainRefresh(); }catch(_){}
+      try{ if(typeof window.GmuMainRefresh==='function')window.GmuMainRefresh(); }catch(_){}
     }catch(e){status('Gagal membuat booking: '+(e?.message||String(e)),true)}
     finally{state.busy=false;if(button)button.disabled=false}
   }
   function resetQuote(){
-    state.quote=null;
+    state.quote=null;state.requestKey=null;
     if(q('#gsaQuote'))q('#gsaQuote').textContent='Data berubah. Klik Hitung dari ERP kembali.';
   }
   function bind(){
