@@ -52,6 +52,7 @@
     'profit-allocation-v228.js',
     'drive-archive-v231.js',
     'recruitment-center-v233.js',
+    'special-agency-v234.js',
   ];
 
   function scriptBase() {
