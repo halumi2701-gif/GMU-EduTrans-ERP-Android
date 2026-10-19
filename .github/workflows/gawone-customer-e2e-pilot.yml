@@ -1,0 +1,145 @@
+name: GAWONE Customer RC5 E2E Pilot
+
+on:
+  push:
+    branches:
+      - gawone-customer-production-build
+    paths:
+      - "gawone-customer-rc5-e2e-pilot.py"
+      - ".github/workflows/gawone-customer-e2e-pilot.yml"
+      - "gawone-customer-rc2-src.*"
+      - "gawone-customer-rc2-to-rc3.patch.gz.b64"
+      - "gawone-customer-rc3-to-rc4.patch.gz.b64"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruct proven RC2 source
+        shell: bash
+        run: |
+          cat gawone-customer-rc2-src.00 gawone-customer-rc2-src.01 gawone-customer-rc2-src.02 > /tmp/customer-rc2.b64
+          base64 -d /tmp/customer-rc2.b64 > /tmp/customer-rc2.zip
+          unzip -q /tmp/customer-rc2.zip
+          test -f gawone-customer-production/app/build.gradle.kts
+
+      - name: Apply proven RC3
+        shell: bash
+        run: |
+          base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
+          cd gawone-customer-production
+          patch -p4 < /tmp/rc3.patch
+          cd ..
+          python gawone-customer-rc3-compile-fix.py
+          python gawone-customer-rc3-static-hardening.py
+
+      - name: Apply proven RC4 runtime gates
+        shell: bash
+        run: |
+          base64 -d gawone-customer-rc3-to-rc4.patch.gz.b64 | gunzip > /tmp/rc4.patch
+          patch -p1 < /tmp/rc4.patch
+          grep -q 'versionCode = 13' gawone-customer-production/app/build.gradle.kts
+
+      - name: Apply RC5 E2E pilot contract
+        shell: bash
+        run: |
+          python gawone-customer-rc5-e2e-pilot.py
+          grep -q 'versionCode = 14' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.4-customer-e2e-pilot"' gawone-customer-production/app/build.gradle.kts
+          grep -q 'E2E Pilot • Cleaning' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"MAPS")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"BOOKING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          grep -q 'featureEnabled(runtime,"MATCHING")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          zip -qr GAWONE_Customer_v1.0.4_E2E_PILOT_SOURCE.zip gawone-customer-production
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Lint and build release test APK
+        working-directory: gawone-customer-production
+        run: gradle :app:lintRelease :app:assembleRelease --stacktrace
+
+      - name: Verify RC5 APK
+        shell: bash
+        run: |
+          APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          cp "$APK" GAWONE_Customer_v1.0.4_E2E_PILOT.apk
+          unzip -t GAWONE_Customer_v1.0.4_E2E_PILOT.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.4_E2E_PILOT.apk | tee GAWONE_Customer_v1.0.4_E2E_PILOT_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.4_E2E_PILOT.apk > GAWONE_Customer_v1.0.4_E2E_PILOT_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='14' versionName='1.0.4-customer-e2e-pilot'" GAWONE_Customer_v1.0.4_E2E_PILOT_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.4_E2E_PILOT.apk > GAWONE_Customer_v1.0.4_E2E_PILOT_SIGNATURE.txt
+          grep -R "Simulasikan" gawone-customer-production/app/src/main && exit 1 || true
+          test -f gawone-customer-production/app/build/reports/lint-results-release.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.4_E2E_PILOT
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            GAWONE_Customer_v1.0.4_E2E_PILOT.apk
+            GAWONE_Customer_v1.0.4_E2E_PILOT_SHA256.txt
+            GAWONE_Customer_v1.0.4_E2E_PILOT_SOURCE.zip
+            GAWONE_Customer_v1.0.4_E2E_PILOT_BADGING.txt
+            GAWONE_Customer_v1.0.4_E2E_PILOT_SIGNATURE.txt
+            gawone-customer-production/app/build/reports/lint-results-release.html
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.4_E2E_PILOT
+      - name: Prepare RC5 smoke script
+        shell: bash
+        run: |
+          mkdir -p emulator-reports
+          sed -e 's/GAWONE_Customer_v1.0.3_RC4.apk/GAWONE_Customer_v1.0.4_E2E_PILOT.apk/g' -e 's/RC4 emulator production-prep gate/RC5 E2E pilot emulator gate/g' gawone-customer-emulator-smoke.sh > /tmp/gawone-customer-rc5-smoke.sh
+          chmod +x /tmp/gawone-customer-rc5-smoke.sh
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: RC5 emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash /tmp/gawone-customer-rc5-smoke.sh
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.4_E2E_PILOT_EMULATOR_GATE
+          if-no-files-found: warn
+          retention-days: 14
+          path: emulator-reports

@@ -1,0 +1,147 @@
+name: GAWONE Customer RC16 P2 Final
+on:
+  push:
+    branches: [gawone-customer-production-build]
+    paths:
+      - "gawone-customer-rc16-lintfix.py"
+      - ".github/workflows/gawone-customer-rc16-p2-final.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct proven RC2 source
+        shell: bash
+        run: |
+          cat gawone-customer-rc2-src.00 gawone-customer-rc2-src.01 gawone-customer-rc2-src.02 > /tmp/customer-rc2.b64
+          base64 -d /tmp/customer-rc2.b64 > /tmp/customer-rc2.zip
+          unzip -q /tmp/customer-rc2.zip
+      - name: Apply cumulative RC3 to RC12
+        shell: bash
+        run: |
+          base64 -d gawone-customer-rc2-to-rc3.patch.gz.b64 | gunzip > /tmp/rc3.patch
+          cd gawone-customer-production && patch -p4 < /tmp/rc3.patch && cd ..
+          python gawone-customer-rc3-compile-fix.py
+          python gawone-customer-rc3-static-hardening.py
+          base64 -d gawone-customer-rc3-to-rc4.patch.gz.b64 | gunzip > /tmp/rc4.patch
+          patch -p1 < /tmp/rc4.patch
+          python gawone-customer-rc5-e2e-pilot.py
+          python gawone-customer-rc6-auth-fallback.py
+          python gawone-customer-rc7-uiux-v2.py
+          python gawone-customer-rc8-uiux-v3.py
+          python gawone-customer-rc9-reliability.py
+          python gawone-customer-rc10-nine-services.py
+          python gawone-customer-rc11-five-service-canary.py
+          python gawone-customer-rc12-mobility-foundation.py
+      - name: Apply P1 and P2 RC16
+        shell: bash
+        run: |
+          python gawone-customer-rc14-business-labour.py
+          python gawone-customer-rc15-p1-closure.py
+          sed -i '2i // P2 endpoint label: Lokasi tujuan' gawone-customer-rc16-MobilityUi.kt
+          python gawone-customer-rc16-p2.py
+          python gawone-customer-rc16-lintfix.py
+          grep -q 'versionCode = 25' gawone-customer-production/app/build.gradle.kts
+          grep -q 'versionName = "1.0.15-p2-maps-live-mobility-rc16"' gawone-customer-production/app/build.gradle.kts
+          grep -q '@SuppressLint("MissingPermission")' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/LocationBridge.kt
+          grep -q 'MobilityTrackingCard' gawone-customer-production/app/src/main/java/site/garsyanimultiusaha/gawone/MainActivity.kt
+          zip -qr GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SOURCE.zip gawone-customer-production
+      - name: P2 provider health and network smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 2 https://fhtxlojbguineyqayhai.supabase.co/functions/v1/mobility-route | tee P2_MOBILITY_ROUTE_HEALTH.json
+          curl --fail --silent --show-error --retry 2 https://fhtxlojbguineyqayhai.supabase.co/functions/v1/mobility-tracking | tee P2_MOBILITY_TRACKING_HEALTH.json
+          python - <<'PY'
+          import json
+          a=json.load(open('P2_MOBILITY_ROUTE_HEALTH.json')); b=json.load(open('P2_MOBILITY_TRACKING_HEALTH.json'))
+          assert a.get('ok') is True and b.get('ok') is True
+          assert a.get('routeProvider') in {'OSRM_PUBLIC','GOOGLE_ROUTES','MAPBOX_DIRECTIONS'}
+          assert a.get('geocoderProvider') in {'NOMINATIM_PUBLIC','GOOGLE_GEOCODING','MAPBOX_GEOCODING'}
+          PY
+          curl --fail --silent --show-error --retry 2 -A 'GAWONE-CI/1.0' 'https://router.project-osrm.org/route/v1/driving/107.139,-6.821;107.147,-6.815?overview=false' > P2_OSRM_NETWORK_SMOKE.json
+          python - <<'PY'
+          import json
+          d=json.load(open('P2_OSRM_NETWORK_SMOKE.json')); r=d.get('routes',[{}])[0]
+          assert d.get('code')=='Ok' and r.get('distance',0)>50 and r.get('duration',0)>10
+          PY
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: '17'}
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.10.2'}
+      - name: Lint and build RC16
+        working-directory: gawone-customer-production
+        run: gradle :app:lintRelease :app:assembleRelease --stacktrace
+      - name: Verify RC16 APK
+        shell: bash
+        run: |
+          APK=gawone-customer-production/app/build/outputs/apk/release/app-release.apk
+          cp "$APK" GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk
+          unzip -t GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk >/dev/null
+          sha256sum GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk | tee GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk > GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone' versionCode='25' versionName='1.0.15-p2-maps-live-mobility-rc16'" GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk > GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SIGNATURE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk
+            GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SHA256.txt
+            GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SOURCE.zip
+            GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_BADGING.txt
+            GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_SIGNATURE.txt
+            P2_MOBILITY_ROUTE_HEALTH.json
+            P2_MOBILITY_TRACKING_HEALTH.json
+            P2_OSRM_NETWORK_SMOKE.json
+            gawone-customer-production/app/build/reports/lint-results-release.html
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16}
+      - name: Prepare RC16 smoke
+        shell: bash
+        run: |
+          mkdir -p emulator-reports
+          sed -e 's/GAWONE_Customer_v1.0.3_RC4.apk/GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16.apk/g' -e 's/RC4 emulator production-prep gate/RC16 P2 Maps Live Mobility emulator gate/g' gawone-customer-emulator-smoke.sh > /tmp/rc16-smoke.sh
+          chmod +x /tmp/rc16-smoke.sh
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: RC16 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash /tmp/rc16-smoke.sh
+      - name: Upload emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Customer_v1.0.15_P2_MAPS_LIVE_MOBILITY_RC16_EMULATOR_GATE
+          retention-days: 90
+          if-no-files-found: warn
+          path: emulator-reports
