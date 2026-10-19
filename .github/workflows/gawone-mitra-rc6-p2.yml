@@ -1,0 +1,124 @@
+name: GAWONE Mitra RC6 P2 Navigation
+
+on:
+  push:
+    branches:
+      - gawone-mitra-stage4j-build
+    paths:
+      - "gawone-mitra-stage4j-rc5-nine-services.py"
+      - "gawone-mitra-stage4j-rc6-p2-navigation.py"
+      - ".github/workflows/gawone-mitra-rc6-p2.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct Stage 4J source
+        shell: bash
+        run: |
+          cat gawone-stage4j-source.part00 gawone-stage4j-source.part01 gawone-stage4j-source.part02 gawone-stage4j-source.part03 gawone-stage4j-source.part04 > /tmp/gawone-stage4j-source.b64
+          base64 -d /tmp/gawone-stage4j-source.b64 > /tmp/gawone-stage4j-source.zip
+          unzip -q /tmp/gawone-stage4j-source.zip
+          test -f gawone-mitra-stage4j/app/build.gradle.kts
+      - name: Apply cumulative RC2 to RC5
+        shell: bash
+        run: |
+          base64 -d gawone-stage4j-rc2-patch.b64 > /tmp/rc2.py
+          python /tmp/rc2.py gawone-mitra-stage4j
+          python gawone-mitra-stage4j-rc3-pilot.py gawone-mitra-stage4j
+          python gawone-mitra-stage4j-rc3-static.py gawone-mitra-stage4j
+          python gawone-mitra-stage4j-rc4-reliability.py gawone-mitra-stage4j
+          python gawone-mitra-stage4j-rc5-nine-services.py gawone-mitra-stage4j
+          grep -q 'versionCode = 14' gawone-mitra-stage4j/app/build.gradle.kts
+      - name: Apply RC6 P2 navigation
+        shell: bash
+        run: |
+          python gawone-mitra-stage4j-rc6-p2-navigation.py gawone-mitra-stage4j
+          grep -q 'versionCode = 15' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'versionName = "1.0.5-p2-navigation-rc6"' gawone-mitra-stage4j/app/build.gradle.kts
+          grep -q 'get_my_partner_mobility_assignment' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'Navigasi ke Jemput' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          grep -q 'Navigasi ke Tujuan' gawone-mitra-stage4j/app/src/main/java/site/garsyanimultiusaha/gawone/mitra/MainActivity.kt
+          zip -qr GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SOURCE.zip gawone-mitra-stage4j
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Lint and build RC6
+        working-directory: gawone-mitra-stage4j
+        run: gradle :app:lintRelease :app:assembleRelease --stacktrace
+      - name: Verify RC6 APK
+        shell: bash
+        run: |
+          APK=gawone-mitra-stage4j/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          cp "$APK" GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk
+          unzip -t GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk >/dev/null
+          sha256sum GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk | tee GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SHA256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk > GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_BADGING.txt
+          grep -q "package: name='site.garsyanimultiusaha.gawone.mitra' versionCode='15' versionName='1.0.5-p2-navigation-rc6'" GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_BADGING.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk > GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SIGNATURE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk
+            GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SHA256.txt
+            GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SOURCE.zip
+            GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_BADGING.txt
+            GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_SIGNATURE.txt
+            gawone-mitra-stage4j/app/build/reports/lint-results-release.html
+
+  emulator_smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6
+      - name: Prepare RC6 emulator script
+        shell: bash
+        run: |
+          mkdir -p emulator-reports
+          sed -e 's/GAWONE_Mitra_v1.0.4_STAGE4J_NINE_SERVICES_RC5.apk/GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6.apk/g' -e 's/Nine Services RC5/P2 Navigation RC6/g' gawone-mitra-emulator-smoke.sh > /tmp/gawone-mitra-rc6-smoke.sh
+          chmod +x /tmp/gawone-mitra-rc6-smoke.sh
+      - name: Enable KVM permissions
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: RC6 Android emulator gate
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-snapshot -noaudio -no-boot-anim -gpu swiftshader_indirect -no-window -dns-server 8.8.8.8
+          script: bash /tmp/gawone-mitra-rc6-smoke.sh
+      - name: Upload RC6 emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GAWONE_Mitra_v1.0.5_P2_NAVIGATION_RC6_EMULATOR_GATE
+          if-no-files-found: warn
+          retention-days: 90
+          path: emulator-reports
