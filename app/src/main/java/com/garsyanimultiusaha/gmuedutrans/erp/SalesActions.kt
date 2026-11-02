@@ -30,6 +30,10 @@ fun MainViewModel.createBooking(
     done: (Boolean, String) -> Unit
 ) {
     val session = activeSession() ?: return
+    if (actionBusy) {
+        done(false, "Booking sedang dikirim. Tunggu proses selesai agar tidak membuat booking ganda.")
+        return
+    }
     actionBusy = true
     viewModelScope.launch {
         try {
@@ -67,8 +71,9 @@ fun MainViewModel.createBooking(
             loadAll(session)
         } catch (e: Exception) {
             done(false, e.message ?: "Gagal membuat booking.")
+        } finally {
+            actionBusy = false
         }
-        actionBusy = false
     }
 }
 
