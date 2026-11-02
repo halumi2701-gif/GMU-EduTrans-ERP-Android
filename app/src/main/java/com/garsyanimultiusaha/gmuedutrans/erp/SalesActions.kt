@@ -124,6 +124,26 @@ fun MainViewModel.updateBooking(
     }
 }
 
+fun MainViewModel.openBookingDocument(
+    bucket: String,
+    objectPath: String,
+    done: (String?, String?) -> Unit
+) {
+    val session = activeSession() ?: return
+    if (bucket.isBlank() || objectPath.isBlank()) {
+        done(null, "Lokasi dokumen belum tersedia.")
+        return
+    }
+    viewModelScope.launch {
+        try {
+            val url = api.createSignedStorageUrl(session.accessToken, bucket, objectPath)
+            done(url, null)
+        } catch (e: Exception) {
+            done(null, e.message ?: "Dokumen gagal dibuka.")
+        }
+    }
+}
+
 fun MainViewModel.deleteBooking(
     booking: Booking,
     done: (Boolean, String) -> Unit
