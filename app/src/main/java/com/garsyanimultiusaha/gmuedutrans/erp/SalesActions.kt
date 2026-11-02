@@ -88,8 +88,11 @@ fun MainViewModel.updateBooking(
     done: (Boolean, String) -> Unit
 ) {
     val session = activeSession() ?: return
-    if (!ErpRolePolicy.canEditBookings(session.profile.role)) {
-        done(false, "Tidak memiliki akses edit booking.")
+    val role = session.profile.role
+    val canEditDetails = role in listOf("Owner", "Manager", "Admin", "Finance", "Operation") ||
+        ErpRoles.isDirector(role) || ErpRoles.isManagerEduTrans(role)
+    if (!canEditDetails) {
+        done(false, "Role Anda tidak memiliki akses edit detail booking.")
         return
     }
     if (actionBusy) {
@@ -149,14 +152,16 @@ fun MainViewModel.deleteBooking(
             }
             val deleted = api.deleteRow(session.accessToken, "bookings", booking.id)
             if (!deleted) throw IllegalStateException("Booking tidak ditemukan atau penghapusan ditolak oleh database.")
-            api.audit(
-                session.accessToken,
-                session.userId,
-                "DELETE_BOOKING",
-                "bookings",
-                booking.bookingNo,
-                "Booking ${booking.bookingNo} dihapus oleh pengguna ERP."
-            )
+            runCatching {
+                api.audit(
+                    session.accessToken,
+                    session.userId,
+                    "DELETE_BOOKING",
+                    "bookings",
+                    booking.bookingNo,
+                    "Booking ${booking.bookingNo} dihapus oleh pengguna ERP."
+                )
+            }
             done(true, "Booking ${booking.bookingNo} berhasil dihapus.")
             loadAll(session)
         } catch (e: Exception) {
