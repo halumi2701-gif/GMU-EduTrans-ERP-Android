@@ -381,6 +381,11 @@ private fun BookingDetailDialog(
                     }
 
                     "Documents" -> {
+                        Text("PDF booking", fontWeight = FontWeight.Bold, color = GmuDark)
+                        Text("Bagikan ke WhatsApp/aplikasi lain, simpan ke perangkat, atau cetak.", fontSize = 11.sp, color = Color.Gray)
+                        Spacer(Modifier.height(8.dp))
+                        BookingPdfActionRow(booking)
+                        Spacer(Modifier.height(12.dp))
                         val docs = vm.table("documents").filter { it.text("booking_id") == booking.id }
                         val expected = listOf("Booking Form", "Quotation", "Invoice", "PO Vendor", "Manifest", "Rundown", "Operation Sheet", "Absensi", "Laporan Trip", "Evaluasi")
                         expected.forEach { type ->
