@@ -444,7 +444,10 @@ private fun BookingDetailDialog(
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (session.profile.role in listOf("Owner", "Manager", "Admin", "Sales")) {
+                val role = session.profile.role
+                val canEditDetails = role in listOf("Owner", "Manager", "Admin", "Finance", "Operation") ||
+                    ErpRoles.isDirector(role) || ErpRoles.isManagerEduTrans(role)
+                if (canEditDetails) {
                     OutlinedButton(onClick = { onEdit(booking) }, enabled = !busy) { Text("Edit Booking") }
                 }
                 if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
