@@ -1,5 +1,7 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -11,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -412,13 +415,60 @@ private fun BookingDetailDialog(
                         Spacer(Modifier.height(8.dp))
                         BookingPdfActionRow(booking)
                         Spacer(Modifier.height(12.dp))
-                        val docs = vm.table("documents").filter { it.text("booking_id") == booking.id }
-                        val expected = listOf("Booking Form", "Quotation", "Invoice", "PO Vendor", "Manifest", "Rundown", "Operation Sheet", "Absensi", "Laporan Trip", "Evaluasi")
-                        expected.forEach { type ->
-                            val row = docs.firstOrNull { it.text("document_type") == type }
-                            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(type, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                StatusChip(row?.text("status").orEmpty().ifBlank { "Belum" })
+                        val linkedRequestIds = vm.bookingRequests
+                            .filter { it.convertedBookingId == booking.id }
+                            .map { it.id }
+                            .toSet()
+                        val docs = vm.table("documents").filter {
+                            it.text("booking_id") == booking.id ||
+                                it.text("booking_request_id") in linkedRequestIds
+                        }
+                        val context = LocalContext.current
+                        if (docs.isEmpty()) {
+                            EmptyCard("Belum ada dokumen tersimpan untuk booking atau pengajuan terkait.")
+                        } else {
+                            docs.forEach { row ->
+                                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(
+                                            row.text("document_type").ifBlank { "Dokumen" } +
+                                                if (row.text("document_no").isNotBlank()) " • ${row.text("document_no")}" else "",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatusChip(row.text("status").ifBlank { "Tersedia" })
+                                    }
+                                    val bucket = row.text("storage_bucket")
+                                    val path = row.text("storage_path")
+                                    val directUrl = row.text("file_url")
+                                    if (directUrl.isNotBlank() || (bucket.isNotBlank() && path.isNotBlank())) {
+                                        TextButton(
+                                            onClick = {
+                                                if (directUrl.isNotBlank()) {
+                                                    runCatching {
+                                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directUrl)))
+                                                    }.onFailure {
+                                                        android.widget.Toast.makeText(context, "PDF tidak dapat dibuka: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+                                                    }
+                                                } else {
+                                                    vm.openBookingDocument(bucket, path) { url, error ->
+                                                        if (url != null) {
+                                                            runCatching {
+                                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                                            }.onFailure {
+                                                                android.widget.Toast.makeText(context, "PDF tidak dapat dibuka: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+                                                            }
+                                                        } else {
+                                                            android.widget.Toast.makeText(context, error ?: "Dokumen gagal dibuka.", android.widget.Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ) { Text("Buka PDF") }
+                                    }
+                                    HorizontalDivider(Modifier.padding(top = 4.dp))
+                                }
                             }
                         }
                     }
