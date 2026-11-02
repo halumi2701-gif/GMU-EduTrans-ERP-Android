@@ -354,6 +354,19 @@ class SupabaseApi {
             if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
         }
 
+    suspend fun deleteRow(accessToken: String, table: String, id: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val encodedId = URLEncoder.encode(id, "UTF-8")
+            val body = request(
+                "DELETE",
+                "/rest/v1/$table?id=eq.$encodedId",
+                null,
+                accessToken,
+                preferReturn = true
+            )
+            body.isNotBlank() && body != "[]"
+        }
+
     suspend fun updateProfile(accessToken: String, id: String, role: String? = null, active: Boolean? = null) =
         withContext(Dispatchers.IO) {
             val payload = JSONObject()
