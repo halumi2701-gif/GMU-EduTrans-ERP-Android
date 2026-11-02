@@ -72,6 +72,50 @@ fun MainViewModel.createBooking(
     }
 }
 
+fun MainViewModel.updateBooking(
+    bookingId: String,
+    program: String,
+    tripDate: String,
+    pax: Int,
+    pricePerPax: Double?,
+    participantGroup: String,
+    meetingPoint: String,
+    done: (Boolean, String) -> Unit
+) {
+    val session = activeSession() ?: return
+    if (!ErpRolePolicy.canEditBookings(session.profile.role)) {
+        done(false, "Tidak memiliki akses edit booking.")
+        return
+    }
+    if (actionBusy) {
+        done(false, "Booking lain sedang diproses. Tunggu sebentar.")
+        return
+    }
+    actionBusy = true
+    viewModelScope.launch {
+        try {
+            val values = linkedMapOf<String, Any?>(
+                "program_name" to program.trim(),
+                "trip_date" to tripDate.trim(),
+                "pax" to pax,
+                "participant_group" to participantGroup.trim().ifBlank { null },
+                "meeting_point" to meetingPoint.trim().ifBlank { null }
+            )
+            if (pricePerPax != null && FinancialAccess.canView(session.profile.role)) {
+                values["price_per_pax"] = pricePerPax
+            }
+            val saved = api.updateRow(session.accessToken, "bookings", bookingId, values)
+                ?: throw IllegalStateException("Booking tidak ditemukan atau akses edit ditolak.")
+            done(true, "Booking berhasil diperbarui.")
+            loadAll(session)
+        } catch (e: Exception) {
+            done(false, e.message ?: "Booking gagal diperbarui.")
+        } finally {
+            actionBusy = false
+        }
+    }
+}
+
 fun MainViewModel.updateBookingStatus(
     bookingId: String,
     status: String,
