@@ -599,3 +599,48 @@ private fun AddBookingDialog(
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
     )
 }
+
+
+@Composable
+private fun EditBookingDialog(
+    booking: Booking,
+    canSeeFinancials: Boolean,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Int, Double?, String, String) -> Unit
+) {
+    var program by remember(booking.id) { mutableStateOf(booking.programName) }
+    var date by remember(booking.id) { mutableStateOf(booking.tripDate) }
+    var pax by remember(booking.id) { mutableStateOf(booking.pax.toString()) }
+    var price by remember(booking.id) { mutableStateOf(booking.pricePerPax.toString()) }
+    var group by remember(booking.id) { mutableStateOf(booking.participantGroup) }
+    var meeting by remember(booking.id) { mutableStateOf(booking.meetingPoint) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Booking • ${booking.bookingNo}") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                GmuField(program, { program = it }, "Program *")
+                GmuField(date, { date = it }, "Tanggal Trip (YYYY-MM-DD) *")
+                GmuField(pax, { pax = it.filter(Char::isDigit) }, "Pax *")
+                if (canSeeFinancials) {
+                    GmuField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Harga/Pax")
+                }
+                GmuField(group, { group = it }, "Kelas / Usia / Grup")
+                GmuField(meeting, { meeting = it }, "Titik Kumpul")
+            }
+        },
+        confirmButton = {
+            val p = pax.toIntOrNull() ?: 0
+            val pr = if (canSeeFinancials) price.toDoubleOrNull() else null
+            Button(
+                onClick = { onSave(program, date, p, pr, group, meeting) },
+                enabled = !busy && program.isNotBlank() &&
+                    date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && p > 0 &&
+                    (!canSeeFinancials || pr != null && pr >= 0)
+            ) { Text("Simpan Perubahan") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
+    )
+}
