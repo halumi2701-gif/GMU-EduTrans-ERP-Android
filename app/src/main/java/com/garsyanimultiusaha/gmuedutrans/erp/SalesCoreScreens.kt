@@ -24,6 +24,7 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
     var viewMode by remember { mutableStateOf("Pipeline") }
     var add by remember { mutableStateOf(false) }
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
+    var editingBooking by remember { mutableStateOf<Booking?>(null) }
     val stages = listOf("Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed")
     val filtered = vm.bookings.filter {
         (filter == "All" || it.status == filter) &&
@@ -156,7 +157,23 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             session = session,
             busy = vm.actionBusy,
             onDismiss = { selectedBooking = null },
-            onNotice = onNotice
+            onNotice = onNotice,
+            onEdit = { editingBooking = it; selectedBooking = null }
+        )
+    }
+
+    editingBooking?.let { booking ->
+        EditBookingDialog(
+            booking = booking,
+            canSeeFinancials = FinancialAccess.canView(session.profile.role),
+            busy = vm.actionBusy,
+            onDismiss = { if (!vm.actionBusy) editingBooking = null },
+            onSave = { program, date, pax, price, group, meeting ->
+                vm.updateBooking(booking.id, program, date, pax, price, group, meeting) { ok, msg ->
+                    onNotice(msg)
+                    if (ok) editingBooking = null
+                }
+            }
         )
     }
 }
@@ -277,7 +294,8 @@ private fun BookingDetailDialog(
     session: SessionState,
     busy: Boolean,
     onDismiss: () -> Unit,
-    onNotice: (String) -> Unit
+    onNotice: (String) -> Unit,
+    onEdit: (Booking) -> Unit
 ) {
     var tab by remember(booking.id) { mutableStateOf("Overview") }
     var status by remember(booking.id, booking.status) { mutableStateOf(booking.status) }
@@ -416,7 +434,14 @@ private fun BookingDetailDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") } }
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (session.profile.role in listOf("Owner", "Manager", "Admin", "Sales")) {
+                    OutlinedButton(onClick = { onEdit(booking) }, enabled = !busy) { Text("Edit Booking") }
+                }
+                TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") }
+            }
+        }
     )
 }
 
