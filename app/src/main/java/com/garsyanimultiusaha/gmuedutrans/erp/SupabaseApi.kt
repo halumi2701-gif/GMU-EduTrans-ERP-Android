@@ -354,6 +354,20 @@ class SupabaseApi {
             if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
         }
 
+    suspend fun createSignedStorageUrl(accessToken: String, bucket: String, objectPath: String): String =
+        withContext(Dispatchers.IO) {
+            val encodedPath = objectPath.split("/").joinToString("/") { URLEncoder.encode(it, "UTF-8") }
+            val encodedBucket = URLEncoder.encode(bucket, "UTF-8")
+            val payload = JSONObject().put("expiresIn", 3600).toString()
+            val root = JSONObject(
+                request("POST", "/storage/v1/object/sign/$encodedBucket/$encodedPath", payload, accessToken)
+            )
+            val signed = root.optString("signedURL").ifBlank { root.optString("signedUrl") }
+            if (signed.isBlank()) throw IllegalStateException("Storage tidak mengembalikan tautan PDF.")
+            if (signed.startsWith("http://") || signed.startsWith("https://")) signed
+            else base.trimEnd('/') + "/storage/v1" + (if (signed.startsWith("/")) signed else "/$signed")
+        }
+
     suspend fun deleteRow(accessToken: String, table: String, id: String): Boolean =
         withContext(Dispatchers.IO) {
             val encodedId = URLEncoder.encode(id, "UTF-8")
