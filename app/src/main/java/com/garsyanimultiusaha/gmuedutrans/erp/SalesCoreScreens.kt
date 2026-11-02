@@ -158,7 +158,13 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             busy = vm.actionBusy,
             onDismiss = { selectedBooking = null },
             onNotice = onNotice,
-            onEdit = { editingBooking = it; selectedBooking = null }
+            onEdit = { editingBooking = it; selectedBooking = null },
+            onDelete = { booking ->
+                vm.deleteBooking(booking) { ok, msg ->
+                    onNotice(msg)
+                    if (ok) selectedBooking = null
+                }
+            }
         )
     }
 
@@ -295,8 +301,10 @@ private fun BookingDetailDialog(
     busy: Boolean,
     onDismiss: () -> Unit,
     onNotice: (String) -> Unit,
-    onEdit: (Booking) -> Unit
+    onEdit: (Booking) -> Unit,
+    onDelete: (Booking) -> Unit
 ) {
+    var confirmDelete by remember(booking.id) { mutableStateOf(false) }
     var tab by remember(booking.id) { mutableStateOf("Overview") }
     var status by remember(booking.id, booking.status) { mutableStateOf(booking.status) }
     val tabs = buildList {
@@ -439,10 +447,28 @@ private fun BookingDetailDialog(
                 if (session.profile.role in listOf("Owner", "Manager", "Admin", "Sales")) {
                     OutlinedButton(onClick = { onEdit(booking) }, enabled = !busy) { Text("Edit Booking") }
                 }
+                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                    TextButton(onClick = { confirmDelete = true }, enabled = !busy) { Text("Hapus") }
+                }
                 TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") }
             }
         }
     )
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { if (!busy) confirmDelete = false },
+            title = { Text("Hapus booking?") },
+            text = { Text("Booking ${booking.bookingNo} akan dihapus permanen. Penghapusan ditolak otomatis jika masih memiliki pembayaran atau invoice.") },
+            confirmButton = {
+                Button(
+                    onClick = { confirmDelete = false; onDelete(booking) },
+                    enabled = !busy,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E))
+                ) { Text("Ya, Hapus") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }, enabled = !busy) { Text("Batal") } }
+        )
+    }
 }
 
 @Composable
