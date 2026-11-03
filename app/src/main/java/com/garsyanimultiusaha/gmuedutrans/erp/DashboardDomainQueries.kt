@@ -11,20 +11,38 @@ import java.util.Locale
  */
 private fun MainViewModel.cashInForMonth(month: String): Double {
     val bookingById = bookings.associateBy { it.id }
-    return table("payments").filter { row ->
-        val dpConfirmedByBooking = row.text("payment_type").equals("DP", ignoreCase = true) &&
-            bookingById[row.text("booking_id")]?.status.equals("Confirmed", ignoreCase = true)
-        val paymentDate = row.text("payment_date").ifBlank {
-            row.text("verified_at").take(10)
-        }.ifBlank {
-            if (dpConfirmedByBooking) month else ""
+
+    // Business rule GMU: Confirmed means fully paid. Use the booking total once,
+    // rather than adding its DP and settlement rows again.
+    val confirmedCashIn = bookings
+        .filter { it.status.equals("Confirmed", ignoreCase = true) }
+        .sumOf { it.omzet }
+
+    // For bookings not yet Confirmed, count received DP/partial-payment records
+    // only when the payment has a receipt/verification date in the selected month.
+    val receivedBeforeConfirmation = table("payments")
+        .filter { row ->
+            val booking = bookingById[row.text("booking_id")]
+            val isRefund = row.text("payment_type").equals("Refund", ignoreCase = true)
+            val isConfirmed = booking?.status.equals("Confirmed", ignoreCase = true)
+            val paymentDate = row.text("payment_date").ifBlank {
+                row.text("verified_at").take(10)
+            }
+            !isConfirmed && !isRefund &&
+                paymentDate.startsWith(month) &&
+                (row.text("verified_at").isNotBlank() || row.text("payment_date").isNotBlank())
         }
-        paymentDate.startsWith(month) &&
-            (row.text("verified_at").isNotBlank() || dpConfirmedByBooking)
-    }.sumOf { row ->
-        val amount = row.number("amount")
-        if (row.text("payment_type").equals("Refund", ignoreCase = true)) -amount else amount
-    }
+        .sumOf { it.number("amount") }
+
+    // Refunds remain negative cash flow even if the booking was confirmed.
+    val refundsThisMonth = table("payments")
+        .filter { row ->
+            row.text("payment_type").equals("Refund", ignoreCase = true) &&
+                row.text("payment_date").ifBlank { row.text("verified_at").take(10) }.startsWith(month)
+        }
+        .sumOf { it.number("amount") }
+
+    return (confirmedCashIn + receivedBeforeConfirmation - refundsThisMonth).coerceAtLeast(0.0)
 }
 
 fun MainViewModel.dashboardStats(): DashboardStats {
@@ -66,7 +84,10 @@ fun MainViewModel.dashboardStats(): DashboardStats {
         }
     }
     val paid = cashInThisMonth
-    val paidForTripBookings = monthBookings.sumOf { paidByBooking[it.id] ?: 0.0 }
+    val paidForTripBookings = monthBookings.sumOf { booking ->
+        if (booking.status.equals("Confirmed", ignoreCase = true)) booking.omzet
+        else paidByBooking[booking.id] ?: 0.0
+    }
     val receivable = (omzet - paidForTripBookings).coerceAtLeast(0.0)
 
     val costs = table("trip_costs")
