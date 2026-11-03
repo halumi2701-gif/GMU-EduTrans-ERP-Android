@@ -1,9 +1,13 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.CancellationSignal
@@ -30,41 +34,100 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Shared PDF renderer for booking documents. Does not alter booking/payment records. */
+/** Creates a shareable visual PNG and a print/save PDF without changing booking/payment records. */
 object BookingPdfActions {
+    private const val PAGE_WIDTH = 595
+    private const val PAGE_HEIGHT = 842
+    private const val NAVY = 0xFF102A43.toInt()
+    private const val GOLD = 0xFFD5A52A.toInt()
+    private const val GREEN = 0xFF247A58.toInt()
+    private const val MUTED = 0xFF52606D.toInt()
+
+    private fun money(value: Double): String = String.format(Locale("id", "ID"), "%,.0f", value)
+
+    private fun drawBooking(canvas: Canvas, booking: Booking) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        canvas.drawColor(Color.WHITE)
+
+        // Branded header
+        paint.color = NAVY
+        canvas.drawRect(0f, 0f, PAGE_WIDTH.toFloat(), 178f, paint)
+        paint.color = GOLD
+        canvas.drawRect(0f, 178f, PAGE_WIDTH.toFloat(), 186f, paint)
+
+        paint.color = Color.WHITE
+        paint.textSize = 25f
+        paint.isFakeBoldText = true
+        canvas.drawText("GMU EDUTRANS", 36f, 55f, paint)
+        paint.textSize = 12f
+        paint.isFakeBoldText = false
+        canvas.drawText("EDUCATION • EXPERIENCE • JOURNEY", 36f, 78f, paint)
+        paint.textSize = 19f
+        paint.isFakeBoldText = true
+        canvas.drawText("RINGKASAN BOOKING", 36f, 125f, paint)
+        paint.textSize = 12f
+        paint.isFakeBoldText = false
+        canvas.drawText("Nomor: ${booking.bookingNo}", 36f, 151f, paint)
+
+        var y = 222f
+        fun sectionTitle(text: String) {
+            paint.color = NAVY
+            paint.textSize = 13f
+            paint.isFakeBoldText = true
+            canvas.drawText(text, 36f, y, paint)
+            y += 13f
+            paint.color = GOLD
+            canvas.drawRect(36f, y, 559f, y + 2f, paint)
+            y += 18f
+        }
+        fun field(label: String, value: String, bold: Boolean = false) {
+            paint.color = MUTED
+            paint.textSize = 9.5f
+            paint.isFakeBoldText = false
+            canvas.drawText(label.uppercase(Locale("id", "ID")), 36f, y, paint)
+            y += 14f
+            paint.color = NAVY
+            paint.textSize = if (bold) 14f else 12f
+            paint.isFakeBoldText = bold
+            val text = value.ifBlank { "-" }.take(78)
+            canvas.drawText(text, 36f, y, paint)
+            y += 25f
+        }
+
+        sectionTitle("INFORMASI PROGRAM")
+        field("Customer / Sekolah", booking.customerName, true)
+        field("Nama Program", booking.programName)
+        field("Tanggal Kegiatan", booking.tripDate)
+        field("Status Booking", booking.status)
+
+        sectionTitle("DETAIL PESERTA & NILAI")
+        field("Jumlah Peserta", "${booking.pax} peserta")
+        field("Harga per Peserta", "Rp ${money(booking.pricePerPax)}")
+        field("Total Nilai Booking", "Rp ${money(booking.omzet)}", true)
+
+        sectionTitle("INFORMASI OPERASIONAL")
+        field("Grup / Kelas", booking.participantGroup.ifBlank { "-" })
+        field("Titik Kumpul", booking.meetingPoint.ifBlank { "-" })
+        field("Fasilitas", booking.facilities.ifBlank { "-" })
+        field("Kebutuhan Khusus", booking.specialRequirements.ifBlank { "-" })
+
+        // Notes are kept concise to fit the page.
+        if (y < 730f) field("Catatan", booking.notes.ifBlank { "-" })
+
+        paint.color = GREEN
+        paint.textSize = 9f
+        paint.isFakeBoldText = true
+        canvas.drawText("GMU EDUTRANS • DOKUMEN BOOKING", 36f, 795f, paint)
+        paint.color = MUTED
+        paint.textSize = 8f
+        paint.isFakeBoldText = false
+        canvas.drawText("Dibuat dari GMU EduTrans ERP • ${SimpleDateFormat("dd MMM yyyy HH:mm", Locale("id", "ID")).format(Date())}", 36f, 812f, paint)
+    }
+
     fun render(booking: Booking): ByteArray {
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-        val page = document.startPage(pageInfo)
-        val canvas: Canvas = page.canvas
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 12f }
-        var y = 54f
-        fun line(text: String, bold: Boolean = false, size: Float = 12f) {
-            paint.textSize = size
-            paint.isFakeBoldText = bold
-            canvas.drawText(text.take(92), 42f, y, paint)
-            y += if (size >= 18f) 30f else 22f
-        }
-        line("GMU EDUTRANS", true, 22f)
-        line("DOKUMEN BOOKING / RINGKASAN PESANAN", true, 15f)
-        y += 8f
-        line("Nomor Booking: ${booking.bookingNo}", true)
-        line("Customer: ${booking.customerName}")
-        line("Program: ${booking.programName}")
-        line("Tanggal Trip: ${booking.tripDate}")
-        line("Jumlah Peserta: ${booking.pax} pax")
-        line("Harga per Peserta: Rp ${money(booking.pricePerPax)}")
-        line("Total Nilai Booking: Rp ${money(booking.omzet)}", true)
-        line("Status: ${booking.status}")
-        y += 8f
-        line("Grup Peserta: ${booking.participantGroup.ifBlank { "-" }}")
-        line("Titik Kumpul: ${booking.meetingPoint.ifBlank { "-" }}")
-        line("Fasilitas: ${booking.facilities.ifBlank { "-" }}")
-        line("Kebutuhan Khusus: ${booking.specialRequirements.ifBlank { "-" }}")
-        line("Catatan: ${booking.notes.ifBlank { "-" }}")
-        y += 24f
-        line("Dicetak: ${SimpleDateFormat("dd MMM yyyy HH:mm", Locale("id", "ID")).format(Date())}", size = 9f)
-        line("Dokumen ini merupakan ringkasan booking dari GMU EduTrans ERP.", size = 9f)
+        val page = document.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create())
+        drawBooking(page.canvas, booking)
         document.finishPage(page)
         val output = java.io.ByteArrayOutputStream()
         document.writeTo(output)
@@ -72,25 +135,37 @@ object BookingPdfActions {
         return output.toByteArray()
     }
 
-    private fun money(value: Double): String = String.format(Locale("id", "ID"), "%,.0f", value)
-
-    private fun cachePdf(context: Context, booking: Booking, bytes: ByteArray): File {
-        val dir = File(context.cacheDir, "booking-pdf").apply { mkdirs() }
-        val safeName = booking.bookingNo.replace(Regex("[^A-Za-z0-9._-]"), "_")
-        return File(dir, "${safeName}.pdf").also { file -> file.writeBytes(bytes) }
+    fun renderPng(booking: Booking): ByteArray {
+        val bitmap = Bitmap.createBitmap(1080, 1528, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.scale(1080f / PAGE_WIDTH, 1528f / PAGE_HEIGHT)
+        drawBooking(canvas, booking)
+        val output = java.io.ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+        bitmap.recycle()
+        return output.toByteArray()
     }
 
-    fun share(context: Context, booking: Booking, bytes: ByteArray) {
-        val file = cachePdf(context, booking, bytes)
+    private fun safeName(booking: Booking): String =
+        booking.bookingNo.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "booking" }
+
+    private fun cacheFile(context: Context, folder: String, name: String, bytes: ByteArray): File {
+        val dir = File(context.cacheDir, folder).apply { mkdirs() }
+        return File(dir, name).also { it.writeBytes(bytes) }
+    }
+
+    fun shareVisualPng(context: Context, booking: Booking, bytes: ByteArray) {
+        val file = cacheFile(context, "booking-visual", "${safeName(booking)}.png", bytes)
         val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
+            type = "image/png"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Dokumen Booking ${booking.bookingNo}")
-            putExtra(Intent.EXTRA_TEXT, "Dokumen booking GMU EduTrans ${booking.bookingNo}")
+            putExtra(Intent.EXTRA_SUBJECT, "Booking GMU EduTrans ${booking.bookingNo}")
+            putExtra(Intent.EXTRA_TEXT, "Ringkasan booking GMU EduTrans ${booking.bookingNo}")
+            clipData = ClipData.newUri(context.contentResolver, "Visual booking GMU", uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Bagikan PDF booking"))
+        context.startActivity(Intent.createChooser(intent, "Bagikan visual PNG"))
     }
 
     fun print(context: Context, booking: Booking, bytes: ByteArray) {
@@ -108,7 +183,7 @@ object BookingPdfActions {
                     callback.onLayoutCancelled()
                     return
                 }
-                val info = PrintDocumentInfo.Builder("GMU-${booking.bookingNo}.pdf")
+                val info = PrintDocumentInfo.Builder("GMU-${safeName(booking)}.pdf")
                     .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
                     .setPageCount(1)
                     .build()
@@ -139,22 +214,31 @@ object BookingPdfActions {
 @Composable
 fun BookingPdfActionRow(booking: Booking) {
     val context = LocalContext.current
-    val bytes = remember(booking) { BookingPdfActions.render(booking) }
+    val pdfBytes = remember(booking) { BookingPdfActions.render(booking) }
+    val pngBytes = remember(booking) { BookingPdfActions.renderPng(booking) }
     val saveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
         if (uri != null) {
             runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                context.contentResolver.openOutputStream(uri)?.use { it.write(pdfBytes) }
                     ?: throw IllegalStateException("Tidak dapat membuka lokasi penyimpanan PDF.")
-            }.onFailure { android.widget.Toast.makeText(context, it.message ?: "Gagal menyimpan PDF", android.widget.Toast.LENGTH_LONG).show() }
+            }.onFailure {
+                android.widget.Toast.makeText(context, it.message ?: "Gagal menyimpan PDF", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Button(onClick = { BookingPdfActions.share(context, booking, bytes) }) { Text("Bagikan PDF") }
-        OutlinedButton(onClick = { saveLauncher.launch("${booking.bookingNo}.pdf") }) { Text("Simpan") }
-        OutlinedButton(onClick = { runCatching { BookingPdfActions.print(context, booking, bytes) }.onFailure {
-            android.widget.Toast.makeText(context, it.message ?: "Gagal mencetak PDF", android.widget.Toast.LENGTH_LONG).show()
-        } }) { Text("Cetak") }
+        Button(onClick = {
+            runCatching { BookingPdfActions.shareVisualPng(context, booking, pngBytes) }.onFailure {
+                android.widget.Toast.makeText(context, it.message ?: "Gagal membagikan visual PNG", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }) { Text("Bagikan Visual PNG") }
+        OutlinedButton(onClick = { saveLauncher.launch("${booking.bookingNo}.pdf") }) { Text("Simpan PDF") }
+        OutlinedButton(onClick = {
+            runCatching { BookingPdfActions.print(context, booking, pdfBytes) }.onFailure {
+                android.widget.Toast.makeText(context, it.message ?: "Gagal mencetak PDF", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }) { Text("Cetak PDF") }
     }
 }
