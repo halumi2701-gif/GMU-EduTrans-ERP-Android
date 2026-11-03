@@ -12,10 +12,15 @@ import java.util.Locale
 private fun MainViewModel.cashInForMonth(month: String): Double {
     val bookingById = bookings.associateBy { it.id }
 
-    // Business rule GMU: Confirmed means fully paid. Use the booking total once,
-    // rather than adding its DP and settlement rows again.
+    // Business rule GMU: Confirmed means fully paid. Count the booking total
+    // once in the booking's trip month, not in every dashboard month.
+    // Payment rows for confirmed bookings are excluded below to prevent DP +
+    // settlement from being counted on top of the full booking amount.
     val confirmedCashIn = bookings
-        .filter { it.status.equals("Confirmed", ignoreCase = true) }
+        .filter {
+            it.status.equals("Confirmed", ignoreCase = true) &&
+                it.tripDate.startsWith(month)
+        }
         .sumOf { it.omzet }
 
     // For bookings not yet Confirmed, count received DP/partial-payment records
