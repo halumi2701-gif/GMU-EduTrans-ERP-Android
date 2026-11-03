@@ -11,10 +11,6 @@
       "headers": []
     },
     {
-      "source": "/(.*\\.(css|js|svg|png|jpg|jpeg|webp|woff2))",
-      "headers": []
-    },
-    {
       "source": "/(.*)",
       "headers": [
         {
