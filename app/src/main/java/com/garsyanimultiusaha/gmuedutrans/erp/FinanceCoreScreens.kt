@@ -52,13 +52,15 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MetricCard("Omzet", rupiah(stats.omzet), Modifier.weight(1f), accent = true)
-            MetricCard("Net Profit", rupiah(stats.profit), Modifier.weight(1f))
+            MetricCard("Kas Masuk", rupiah(stats.paid), Modifier.weight(1f), accent = true)
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard("Net Profit", rupiah(stats.profit), Modifier.weight(1f))
             MetricCard("Receivable", rupiah(stats.receivable), Modifier.weight(1f))
-            MetricCard("Margin", String.format("%.1f%%", stats.margin), Modifier.weight(1f))
         }
+        Spacer(Modifier.height(10.dp))
+        MetricCard("Margin", String.format("%.1f%%", stats.margin), Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
 
         Card(
@@ -200,7 +202,12 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
                         "amount" to amount,
                         "payment_date" to (v["Tanggal"] ?: ""),
                         "method" to (v["Metode"] ?: ""),
-                        "verified_by" to session.userId
+                        "verified_by" to session.userId,
+                        // Payment yang dicatat Finance adalah penerimaan terverifikasi.
+                        "verified_at" to java.text.SimpleDateFormat(
+                            "yyyy-MM-dd'T'HH:mm:ssXXX",
+                            java.util.Locale.US
+                        ).format(java.util.Date())
                     ),
                     "Payment berhasil ditambahkan."
                 ) { ok, msg ->
