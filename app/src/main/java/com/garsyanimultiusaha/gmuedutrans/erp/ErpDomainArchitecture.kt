@@ -66,6 +66,8 @@ data class ErpTableSource(
 object ErpDataRegistry {
     private val sources = listOf(
         ErpTableSource("payments", "payment_date.desc") { FinancialAccess.canView(it) },
+        // Shared cash-flow source: website and Android financial screens read the same treasury ledger.
+        ErpTableSource("treasury_ledger", "transaction_date.desc") { FinancialAccess.canView(it) },
         ErpTableSource("trip_costs", "created_at.desc") { FinancialAccess.canView(it) },
 
         ErpTableSource("trips", "updated_at.desc", ErpRolePolicy::canOperateTrips),
