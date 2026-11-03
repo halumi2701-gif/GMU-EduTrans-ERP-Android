@@ -2031,7 +2031,7 @@
   }
 
   function init(){
-    const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;render();load();const observer=new MutationObserver(()=>{if(!q('#gmuSales200Target'))render();});observer.observe(document.body,{childList:true,subtree:true});setInterval(load,60_000);},250);
+    const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;render();load();const observer=new MutationObserver(()=>{if(!q('#gmuSales200Target'))render();});observer.observe(document.body,{childList:true,subtree:true});setInterval(load,180_000);},250);
     window.GmuSalesTargetV217=Object.freeze({version:VERSION,refresh:load,target:FALLBACK});
   }
 
@@ -2227,7 +2227,7 @@
     }catch(e){state.error=e?.message||String(e);}finally{state.loading=false;render();}
   }
 
-  function init(){style();const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;render();load();const obs=new MutationObserver(()=>{if(!q('#gmuSalesFunnelForecast'))render();});obs.observe(document.body,{childList:true,subtree:true});setInterval(load,60000);},250);window.GmuSalesFunnelForecast=Object.freeze({version:VERSION,target:CFG,refresh:load});}
+  function init(){style();const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;render();load();const obs=new MutationObserver(()=>{if(!q('#gmuSalesFunnelForecast'))render();});obs.observe(document.body,{childList:true,subtree:true});setInterval(load,180000);},250);window.GmuSalesFunnelForecast=Object.freeze({version:VERSION,target:CFG,refresh:load});}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 
@@ -3420,7 +3420,7 @@
   }
 
   function render(){ if(!role()) return; installStyle(); installNav(); buildTaskAutomation(); buildPayroll(); buildRecruitment(); buildQuality(); buildCashForecast(); buildWorkforce(); buildRisk(); enhanceRoleExecution(); window.GmuExecutionControl=Object.freeze({version:VERSION,refresh:render}); }
-  function init(){ const t=setInterval(()=>{render(); if(role()&&q('#nav')) clearInterval(t);},250); setTimeout(()=>clearInterval(t),15000); document.addEventListener('click',e=>{const b=e.target.closest('[data-g109-go]');if(b)go(b.dataset.g109Go);}); setInterval(()=>{if(role())render();},30000); }
+  function init(){ const t=setInterval(()=>{render(); if(role()&&q('#nav')) clearInterval(t);},250); setTimeout(()=>clearInterval(t),15000); document.addEventListener('click',e=>{const b=e.target.closest('[data-g109-go]');if(b)go(b.dataset.g109Go);}); setInterval(()=>{if(role())render();},120000); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
 
@@ -4031,7 +4031,7 @@
   }
   function init(){
     bind(); const timer=setInterval(()=>{if(role()&&db()){clearInterval(timer);renderAll();refresh();}},300); setTimeout(()=>clearInterval(timer),15000);
-    setInterval(()=>{if(role()&&db()&&!document.hidden)refresh();},60000);
+    setInterval(()=>{if(role()&&db()&&!document.hidden)refresh();},180000);
     window.GmuV112Control=Object.freeze({version:VERSION,state,refresh});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
@@ -4130,7 +4130,7 @@
     document.addEventListener('click',e=>{const b=e.target.closest?.('[data-g114-refresh]');if(b)refresh()});
     const timer=setInterval(()=>{if(db()&&ALLOWED.has(role())){clearInterval(timer);ensurePage();ensureNav();refresh()}},500);
     setTimeout(()=>clearInterval(timer),15000);
-    setInterval(()=>{if(db()&&ALLOWED.has(role())&&!document.hidden)refresh()},60000);
+    setInterval(()=>{if(db()&&ALLOWED.has(role())&&!document.hidden)refresh()},180000);
     window.GmuInventoryCashV114=Object.freeze({version:VERSION,refresh,state});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
@@ -4381,7 +4381,7 @@
   function init(){
     let tries=0; const timer=setInterval(()=>{tries++;if(role()&&q('#nav')){clearInterval(timer);nav();render();load()}if(tries>60)clearInterval(timer)},250);
     document.addEventListener('click',async e=>{const g=e.target.closest('[data-g200-go]');if(g){go(g.dataset.g200Go);return}const x=e.target.closest('[data-g200-ex-status]');if(x){x.disabled=true;try{await updateException(x.dataset.id,x.dataset.g200ExStatus)}catch(err){alert(err?.message||String(err))}finally{x.disabled=false}}});
-    setInterval(()=>{if(role())load()},60000);
+    setInterval(()=>{if(role())load()},180000);
   }
 
   window.GmuEnterpriseOS=Object.freeze({version:VERSION,refresh:load,show:id=>go(id)});
@@ -4467,7 +4467,7 @@
   }
 
   function init(){
-    const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,60000)},250);
+    const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,180000)},250);
     window.GmuBusinessPriority=Object.freeze({version:VERSION,show,load,jump});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
@@ -4619,7 +4619,7 @@
     const page=document.createElement('section');page.id='recoveryCommand202';page.className='page';page.innerHTML=`<div class="card section"><div class="gr202-head"><div><div class="gr202-kicker">GMU EduTrans • ${VERSION}</div><h2>Recovery Command & Accountability</h2><p>Setiap gap HIGH/CRITICAL otomatis menjadi tugas recovery harian dengan PIC, deadline, target hasil dan bukti penyelesaian.</p></div><button data-refresh>Refresh</button></div><div data-recovery-body></div></div>`;content.appendChild(page);q('[data-refresh]',page)?.addEventListener('click',load);
     const b=document.createElement('button');b.type='button';b.dataset.page='recoveryCommand202';b.textContent='◆  Pusat Pemulihan';b.addEventListener('click',show);nav.prepend(b);load();
   }
-  function init(){const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,60000)},250);window.GmuRecoveryCommand=Object.freeze({version:VERSION,show,load})}
+  function init(){const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,180000)},250);window.GmuRecoveryCommand=Object.freeze({version:VERSION,show,load})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 
@@ -4706,7 +4706,7 @@
   function boot(){
     if(!allowed()) return;
     ensureStyle(); ensurePage(); load();
-    setInterval(()=>{if(allowed()) load()},60000);
+    setInterval(()=>{if(allowed()) load()},180000);
     window.__GMU_COMPANY_AUTOPILOT_V21__={version:VERSION,show,load};
   }
 
@@ -4811,7 +4811,7 @@
     if(error){alert(error.message||String(error));return}await load();
   }
 
-  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},60000);window.__GMU_TARGET_CASCADE_V212__={version:VERSION,show,load};}
+  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},180000);window.__GMU_TARGET_CASCADE_V212__={version:VERSION,show,load};}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 
@@ -4841,7 +4841,7 @@
     <div class="v213-section"><h4>Rekomendasi per Fungsi</h4>${rows.length?rows.map(r=>`<div class="v213-row"><div class="v213-role">${h(r.role_name)}</div><div class="v213-mode">${h(modeLabel(r.recommendation_mode))}<div class="v213-muted">Confidence ${h(r.confidence)}</div></div><div>${r.recommended_fee_low!=null?`${money(r.recommended_fee_low)} – ${money(r.recommended_fee_high)}`:'Belum ada nominal'}<div class="v213-muted">sample trip sehat: ${Number(r.healthy_trip_fee_sample_count||0)}</div></div><div>${h(r.rationale)}</div></div>`).join(''):'<div class="v213-note">Belum ada rekomendasi aktif.</div>'}</div>
     <div class="v213-section"><div class="v213-note"><b>Guardrail:</b> ERP tidak mengarang gaji atau fee. Nominal fee baru keluar setelah ada histori payroll pada minimal 3 trip dengan margin ≥25%. Kapasitas anggaran bukan pengganti ketentuan upah/ketenagakerjaan yang berlaku. Transfer, payroll payment dan perubahan kompensasi tetap membutuhkan approval manusia.</div></div>`}
   async function load(){if(!allowed()||!db()||state.loading)return;state.loading=true;state.error=null;render();try{const {data,error}=await db().rpc('internal_compensation_autopilot_status');if(error)throw error;state.data=data||{}}catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}}
-  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},60000);window.__GMU_COMPENSATION_AUTOPILOT_V213__={version:VERSION,show,load}}
+  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},180000);window.__GMU_COMPENSATION_AUTOPILOT_V213__={version:VERSION,show,load}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 
@@ -5143,7 +5143,7 @@
   }
 
   function init(){
-    const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;style();ensurePage();load();setInterval(load,60_000);},250);
+    const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;style();ensurePage();load();setInterval(load,180_000);},250);
     window.GmuProfitAllocationV228=Object.freeze({version:VERSION,show,refresh:load});
   }
 
