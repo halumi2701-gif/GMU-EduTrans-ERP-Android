@@ -4,7 +4,7 @@ const path = require('path');
 const VERIFIED_BASELINE_URL = process.env.ERP_BASELINE_URL || 'https://raw.githubusercontent.com/halumi2701-gif/GMU-EduTrans-ERP-Android/f6a28c609b1d82e4afee2988a09876f03452b3a7/baseline-v95.html';
 const OUT_DIR = process.env.ERP_V10_OUT_DIR || 'dist/erp-web-v10';
 const MODULES = [
-  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','drive-archive-v231.js','recruitment-center-v233.js','unified-v10-loader.js',
+  'role-privacy-v99.js','package-master-v97.js','media-master-v96.js','manager-ops-agent-v98.js','company-operating-system-v100.js','market-intelligence-v101.js','sales-target-engine-v103.js','company-system-center-v104.js','management-domains-v105.js','role-navigation-v106.js','company-detail-controls-v107.js','role-playbook-v108.js','execution-control-v109.js','ui-focus-shell-v110.js','automation-orchestrator-v111.js','automation-orchestrator-fix-v111.js','crm-finance-notification-v112.js','inventory-cash-v114.js','enterprise-os-v200.js','business-priority-v201.js','recovery-command-v202.js','company-autopilot-v210.js','target-cascade-v212.js','compensation-autopilot-v213.js','company-control-v214.js','drive-archive-v231.js','recruitment-center-v233.js','unified-v10-loader.js',
 ];
 
 function assertIncludes(source, needle, label) {
@@ -70,6 +70,7 @@ async function main() {
   const loaderSource = fs.readFileSync(path.join('erp-web', 'unified-v10-loader.js'), 'utf8');
   const enterpriseSource = fs.readFileSync(path.join('erp-web', 'enterprise-os-v200.js'), 'utf8');
   const activationSource = fs.readFileSync(path.join('erp-web', 'crm-finance-notification-v112.js'), 'utf8');
+  const inventorySource = fs.readFileSync(path.join('erp-web', 'inventory-cash-v114.js'), 'utf8');
   const prioritySource = fs.readFileSync(path.join('erp-web', 'business-priority-v201.js'), 'utf8');
   const recoverySource = fs.readFileSync(path.join('erp-web', 'recovery-command-v202.js'), 'utf8');
   const autopilotSource = fs.readFileSync(path.join('erp-web', 'company-autopilot-v210.js'), 'utf8');
@@ -86,6 +87,9 @@ async function main() {
   assertIncludes(loaderSource, 'company-control-v214.js', 'v21.4 company control module');
   assertIncludes(enterpriseSource, 'Enterprise Control Tower', 'enterprise control tower');
   assertIncludes(activationSource, 'internal_gl_profit_loss', 'existing accounting activation preserved');
+  assertIncludes(inventorySource, 'inventory_items', 'inventory master data module');
+  assertIncludes(inventorySource, 'Kas Keluar ERP (POSTED)', 'cash-out ledger UI');
+  assertIncludes(loaderSource, 'inventory-cash-v114.js', 'inventory cash module loaded');
   assertIncludes(prioritySource, "const VERSION = 'v20.1-business-priority-command'", 'priority layer preserved');
   assertIncludes(recoverySource, "const VERSION = 'v20.2-recovery-accountability-command'", 'recovery layer preserved');
   assertIncludes(autopilotSource, "const VERSION = 'v21-company-autopilot'", 'autopilot UI version');
