@@ -354,6 +354,33 @@ class SupabaseApi {
             if (arr.length() == 0) null else jsonToRow(table, arr.getJSONObject(0))
         }
 
+    suspend fun createSignedStorageUrl(accessToken: String, bucket: String, objectPath: String): String =
+        withContext(Dispatchers.IO) {
+            val encodedPath = objectPath.split("/").joinToString("/") { URLEncoder.encode(it, "UTF-8") }
+            val encodedBucket = URLEncoder.encode(bucket, "UTF-8")
+            val payload = JSONObject().put("expiresIn", 3600).toString()
+            val root = JSONObject(
+                request("POST", "/storage/v1/object/sign/$encodedBucket/$encodedPath", payload, accessToken)
+            )
+            val signed = root.optString("signedURL").ifBlank { root.optString("signedUrl") }
+            if (signed.isBlank()) throw IllegalStateException("Storage tidak mengembalikan tautan PDF.")
+            if (signed.startsWith("http://") || signed.startsWith("https://")) signed
+            else base.trimEnd('/') + "/storage/v1" + (if (signed.startsWith("/")) signed else "/$signed")
+        }
+
+    suspend fun deleteRow(accessToken: String, table: String, id: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val encodedId = URLEncoder.encode(id, "UTF-8")
+            val body = request(
+                "DELETE",
+                "/rest/v1/$table?id=eq.$encodedId",
+                null,
+                accessToken,
+                preferReturn = true
+            )
+            body.isNotBlank() && body != "[]"
+        }
+
     suspend fun updateProfile(accessToken: String, id: String, role: String? = null, active: Boolean? = null) =
         withContext(Dispatchers.IO) {
             val payload = JSONObject()

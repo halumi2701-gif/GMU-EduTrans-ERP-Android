@@ -1,5 +1,7 @@
 package com.garsyanimultiusaha.gmuedutrans.erp
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -11,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +27,7 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
     var viewMode by remember { mutableStateOf("Pipeline") }
     var add by remember { mutableStateOf(false) }
     var selectedBooking by remember { mutableStateOf<Booking?>(null) }
+    var editingBooking by remember { mutableStateOf<Booking?>(null) }
     val stages = listOf("Lead", "Quotation", "DP", "Confirmed", "Preparation", "Trip", "Completed", "Closed")
     val filtered = vm.bookings.filter {
         (filter == "All" || it.status == filter) &&
@@ -156,7 +160,29 @@ fun BookingScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
             session = session,
             busy = vm.actionBusy,
             onDismiss = { selectedBooking = null },
-            onNotice = onNotice
+            onNotice = onNotice,
+            onEdit = { editingBooking = it; selectedBooking = null },
+            onDelete = { booking ->
+                vm.deleteBooking(booking) { ok, msg ->
+                    onNotice(msg)
+                    if (ok) selectedBooking = null
+                }
+            }
+        )
+    }
+
+    editingBooking?.let { booking ->
+        EditBookingDialog(
+            booking = booking,
+            canSeeFinancials = FinancialAccess.canView(session.profile.role),
+            busy = vm.actionBusy,
+            onDismiss = { if (!vm.actionBusy) editingBooking = null },
+            onSave = { program, date, pax, price, group, meeting ->
+                vm.updateBooking(booking.id, program, date, pax, price, group, meeting) { ok, msg ->
+                    onNotice(msg)
+                    if (ok) editingBooking = null
+                }
+            }
         )
     }
 }
@@ -277,8 +303,11 @@ private fun BookingDetailDialog(
     session: SessionState,
     busy: Boolean,
     onDismiss: () -> Unit,
-    onNotice: (String) -> Unit
+    onNotice: (String) -> Unit,
+    onEdit: (Booking) -> Unit,
+    onDelete: (Booking) -> Unit
 ) {
+    var confirmDelete by remember(booking.id) { mutableStateOf(false) }
     var tab by remember(booking.id) { mutableStateOf("Overview") }
     var status by remember(booking.id, booking.status) { mutableStateOf(booking.status) }
     val tabs = buildList {
@@ -381,13 +410,65 @@ private fun BookingDetailDialog(
                     }
 
                     "Documents" -> {
-                        val docs = vm.table("documents").filter { it.text("booking_id") == booking.id }
-                        val expected = listOf("Booking Form", "Quotation", "Invoice", "PO Vendor", "Manifest", "Rundown", "Operation Sheet", "Absensi", "Laporan Trip", "Evaluasi")
-                        expected.forEach { type ->
-                            val row = docs.firstOrNull { it.text("document_type") == type }
-                            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(type, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                StatusChip(row?.text("status").orEmpty().ifBlank { "Belum" })
+                        Text("PDF booking", fontWeight = FontWeight.Bold, color = GmuDark)
+                        Text("Bagikan ke WhatsApp/aplikasi lain, simpan ke perangkat, atau cetak.", fontSize = 11.sp, color = Color.Gray)
+                        Spacer(Modifier.height(8.dp))
+                        BookingPdfActionRow(booking)
+                        Spacer(Modifier.height(12.dp))
+                        val linkedRequestIds = vm.bookingRequests
+                            .filter { it.convertedBookingId == booking.id }
+                            .map { it.id }
+                            .toSet()
+                        val docs = vm.table("documents").filter {
+                            it.text("booking_id") == booking.id ||
+                                it.text("booking_request_id") in linkedRequestIds
+                        }
+                        val context = LocalContext.current
+                        if (docs.isEmpty()) {
+                            EmptyCard("Belum ada dokumen tersimpan untuk booking atau pengajuan terkait.")
+                        } else {
+                            docs.forEach { row ->
+                                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(
+                                            row.text("document_type").ifBlank { "Dokumen" } +
+                                                if (row.text("document_no").isNotBlank()) " • ${row.text("document_no")}" else "",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        StatusChip(row.text("status").ifBlank { "Tersedia" })
+                                    }
+                                    val bucket = row.text("storage_bucket")
+                                    val path = row.text("storage_path")
+                                    val directUrl = row.text("file_url")
+                                    if (directUrl.isNotBlank() || (bucket.isNotBlank() && path.isNotBlank())) {
+                                        TextButton(
+                                            onClick = {
+                                                if (directUrl.isNotBlank()) {
+                                                    runCatching {
+                                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(directUrl)))
+                                                    }.onFailure {
+                                                        android.widget.Toast.makeText(context, "PDF tidak dapat dibuka: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+                                                    }
+                                                } else {
+                                                    vm.openBookingDocument(bucket, path) { url, error ->
+                                                        if (url != null) {
+                                                            runCatching {
+                                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                                            }.onFailure {
+                                                                android.widget.Toast.makeText(context, "PDF tidak dapat dibuka: ${it.message}", android.widget.Toast.LENGTH_LONG).show()
+                                                            }
+                                                        } else {
+                                                            android.widget.Toast.makeText(context, error ?: "Dokumen gagal dibuka.", android.widget.Toast.LENGTH_LONG).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ) { Text("Buka PDF") }
+                                    }
+                                    HorizontalDivider(Modifier.padding(top = 4.dp))
+                                }
                             }
                         }
                     }
@@ -411,8 +492,36 @@ private fun BookingDetailDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") } }
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val role = session.profile.role
+                val canEditDetails = role in listOf("Owner", "Manager", "Admin", "Finance", "Operation") ||
+                    ErpRoles.isDirector(role) || ErpRoles.isManagerEduTrans(role)
+                if (canEditDetails) {
+                    OutlinedButton(onClick = { onEdit(booking) }, enabled = !busy) { Text("Edit Booking") }
+                }
+                if (session.profile.role in listOf("Owner", "Manager", "Admin")) {
+                    TextButton(onClick = { confirmDelete = true }, enabled = !busy) { Text("Hapus") }
+                }
+                TextButton(onClick = onDismiss, enabled = !busy) { Text("Tutup") }
+            }
+        }
     )
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { if (!busy) confirmDelete = false },
+            title = { Text("Hapus booking?") },
+            text = { Text("Booking ${booking.bookingNo} akan dihapus permanen. Penghapusan ditolak otomatis jika masih memiliki pembayaran atau invoice.") },
+            confirmButton = {
+                Button(
+                    onClick = { confirmDelete = false; onDelete(booking) },
+                    enabled = !busy,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB3261E))
+                ) { Text("Ya, Hapus") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }, enabled = !busy) { Text("Batal") } }
+        )
+    }
 }
 
 @Composable
@@ -565,6 +674,51 @@ private fun AddBookingDialog(
                 onClick = { onSave(selected!!.id, program, date, p, pr, status, group, meeting) },
                 enabled = !busy && selected != null && program.isNotBlank() && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && p > 0
             ) { Text("Simpan") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
+    )
+}
+
+
+@Composable
+private fun EditBookingDialog(
+    booking: Booking,
+    canSeeFinancials: Boolean,
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Int, Double?, String, String) -> Unit
+) {
+    var program by remember(booking.id) { mutableStateOf(booking.programName) }
+    var date by remember(booking.id) { mutableStateOf(booking.tripDate) }
+    var pax by remember(booking.id) { mutableStateOf(booking.pax.toString()) }
+    var price by remember(booking.id) { mutableStateOf(booking.pricePerPax.toString()) }
+    var group by remember(booking.id) { mutableStateOf(booking.participantGroup) }
+    var meeting by remember(booking.id) { mutableStateOf(booking.meetingPoint) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Booking • ${booking.bookingNo}") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                GmuField(program, { program = it }, "Program *")
+                GmuField(date, { date = it }, "Tanggal Trip (YYYY-MM-DD) *")
+                GmuField(pax, { pax = it.filter(Char::isDigit) }, "Pax *")
+                if (canSeeFinancials) {
+                    GmuField(price, { price = it.filter { ch -> ch.isDigit() || ch == '.' } }, "Harga/Pax")
+                }
+                GmuField(group, { group = it }, "Kelas / Usia / Grup")
+                GmuField(meeting, { meeting = it }, "Titik Kumpul")
+            }
+        },
+        confirmButton = {
+            val p = pax.toIntOrNull() ?: 0
+            val pr = if (canSeeFinancials) price.toDoubleOrNull() else null
+            Button(
+                onClick = { onSave(program, date, p, pr, group, meeting) },
+                enabled = !busy && program.isNotBlank() &&
+                    date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && p > 0 &&
+                    (!canSeeFinancials || pr != null && pr >= 0)
+            ) { Text("Simpan Perubahan") }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Batal") } }
     )
