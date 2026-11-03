@@ -3,11 +3,11 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/production-bundle-v114.js",
+      "source": "/production-bundle-v115.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=180, stale-while-revalidate=86400"
+          "value": "public, max-age=600, stale-while-revalidate=86400"
         }
       ]
     },
@@ -16,7 +16,7 @@
       "headers": [
         {
           "key": "X-GMU-ERP-Release",
-          "value": "v23.3-recruitment-system"
+          "value": "v23.4-performance-optimization"
         },
         {
           "key": "X-GMU-ERP-Inventory-Cash",
