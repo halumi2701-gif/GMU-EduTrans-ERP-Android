@@ -41,6 +41,7 @@
     'automation-orchestrator-v111.js',
     'automation-orchestrator-fix-v111.js',
     'crm-finance-notification-v112.js',
+    'inventory-cash-v114.js',
     'customer-account-crm-v220.js',
     'enterprise-os-v200.js',
     'business-priority-v201.js',
