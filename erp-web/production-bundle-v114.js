@@ -3819,3 +3819,896 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stabilize, { once: true });
   else stabilize();
 })();
+
+/* ===== crm-finance-notification-v112.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v11.2-crm-finance-notification-activation';
+  const LEADERS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const CRM_MANAGERS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Admin']);
+  const q = (s, r = document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money = v => 'Rp ' + Number(v || 0).toLocaleString('id-ID');
+  const pct = v => Number.isFinite(Number(v)) ? `${Number(v).toLocaleString('id-ID',{maximumFractionDigits:2})}%` : '—';
+  const dateOnly = d => {
+    const x = d ? new Date(d) : new Date();
+    if (Number.isNaN(x.getTime())) return '';
+    const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,'0'), day=String(x.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  };
+  const dt = v => v ? new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}) : '—';
+  const state = {
+    leads:[], requests:[], sales:[], scorecard:[], activities:[],
+    ar:[], ap:[], trial:[], pnl:null, balance:null, cash:null, periods:[],
+    customerOutbox:[], customerDelivery:[], internalDelivery:[],
+    crmError:null, financeError:null, notificationError:null, loading:false
+  };
+
+  function role(){ try { return String(profile?.role || ''); } catch (_) { return ''; } }
+  function uid(){ try { return String(profile?.id || user?.id || ''); } catch (_) { return ''; } }
+  function db(){ try { return typeof sb !== 'undefined' && sb?.from ? sb : null; } catch (_) { return null; } }
+  function canCRM(){ return CRM_MANAGERS.has(role()) || role()==='Sales'; }
+  function canManageCRM(){ return CRM_MANAGERS.has(role()); }
+  function canFinance(){ return LEADERS.has(role()); }
+  function canNotifications(){ return LEADERS.has(role()); }
+
+  function installStyle(){
+    if(q('#gmuV112Style')) return;
+    const s=document.createElement('style'); s.id='gmuV112Style'; s.textContent=`
+      .g112{margin-top:12px}.g112-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.g112-head h4{margin:0;color:var(--gd)}.g112-kicker{font-size:8px;color:var(--muted);margin-bottom:4px}
+      .g112-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.g112-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.g112-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.g112-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px;min-width:0}.g112-card small{display:block;font-size:8px;color:var(--muted)}.g112-card b{display:block;font-size:15px;color:var(--gd);margin:3px 0}.g112-card p{font-size:9px;color:var(--muted);line-height:1.5;margin:4px 0}
+      .g112-list{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}.g112-row{display:grid;grid-template-columns:minmax(180px,1.7fr) minmax(100px,.8fr) minmax(110px,.9fr) minmax(120px,1fr) auto;gap:8px;align-items:center;padding:9px 11px;border-bottom:1px solid var(--line);font-size:9px}.g112-row:last-child{border-bottom:0}.g112-row strong{color:var(--gd)}.g112-row small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.g112-pill{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:4px 7px;font-size:8px;background:#f7faf8}.g112-warn{background:#fff8e9;border-color:#ead9a9}.g112-bad{background:#fff1f1;border-color:#efc5c5}.g112-ok{background:#eef9f1;border-color:#cce7d4}
+      .g112-actions{display:flex;gap:6px;flex-wrap:wrap}.g112-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 9px;font:inherit;font-size:8px;cursor:pointer}.g112-btn.primary{background:var(--g);color:#fff;border-color:var(--g)}.g112-btn:disabled{opacity:.5;cursor:not-allowed}.g112-error{padding:10px;border:1px solid #efc5c5;background:#fff4f4;color:#963434;border-radius:11px;font-size:9px}.g112-empty{padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:9px;text-align:center}
+      .g112-table{width:100%;border-collapse:collapse;font-size:9px}.g112-table th,.g112-table td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.g112-table th{font-size:8px;color:var(--muted)}
+      .g112-modal{position:fixed;inset:0;background:rgba(7,25,15,.42);z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px}.g112-dialog{background:#fff;width:min(620px,100%);max-height:90vh;overflow:auto;border-radius:17px;padding:16px}.g112-dialog h3{margin:0;color:var(--gd)}.g112-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.g112-field{display:flex;flex-direction:column;gap:4px}.g112-field.full{grid-column:1/-1}.g112-field label{font-size:8px;color:var(--muted)}.g112-field input,.g112-field select,.g112-field textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:9px}.g112-field textarea{min-height:80px;resize:vertical}
+      @media(max-width:980px){.g112-grid{grid-template-columns:repeat(2,1fr)}.g112-grid3,.g112-2{grid-template-columns:1fr 1fr}.g112-row{grid-template-columns:1.5fr .8fr .8fr 1fr}.g112-row>.g112-actions{grid-column:1/-1}}
+      @media(max-width:620px){.g112-grid,.g112-grid3,.g112-2{grid-template-columns:1fr}.g112-row,.g112-form{grid-template-columns:1fr}.g112-field.full{grid-column:auto}}
+    `; document.head.appendChild(s);
+  }
+
+  function ensurePage(id,title,subtitle='GMU EduTrans • Production Control'){
+    if(q(`#${CSS.escape(id)}`)) return q(`#${CSS.escape(id)}`);
+    const host=q('.content')||q('main')||document.body;
+    const el=document.createElement('section'); el.id=id; el.className='page';
+    el.innerHTML=`<div class="page-head"><div><h2>${h(title)}</h2><p>${h(subtitle)}</p></div></div>`;
+    host.appendChild(el); return el;
+  }
+  function ensureNav(id,label,allowed){
+    if(!allowed) return; const nav=q('#nav'); if(!nav||q(`#nav [data-page="${id}"]`)) return;
+    const b=document.createElement('button'); b.type='button'; b.dataset.page=id; b.textContent=label;
+    b.addEventListener('click',()=>showPage(id,label)); nav.appendChild(b);
+  }
+  function showPage(id,label){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active')); q(`#${CSS.escape(id)}`)?.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));
+    const title=q('#title'); if(title) title.textContent=label;
+    refresh();
+  }
+  function mount(pageId,key,html){
+    const page=q(`#${CSS.escape(pageId)}`); if(!page) return;
+    let box=q(`[data-g112="${key}"]`,page); if(!box){box=document.createElement('div');box.className='g112';box.dataset.g112=key;page.appendChild(box);} box.innerHTML=html;
+  }
+  function btn(label,attrs='',cls=''){ return `<button type="button" class="g112-btn ${cls}" ${attrs}>${h(label)}</button>`; }
+  function statusClass(s){ s=String(s||'').toUpperCase(); return ['FAILED','ERROR','OVERDUE','LOST','CRITICAL'].includes(s)?'g112-bad':['PENDING','QUEUED','RETRY','WAITING_DP','NEGOTIATION','HIGH'].includes(s)?'g112-warn':'g112-ok'; }
+
+  async function select(table,columns='*',builder){ let r=db().from(table).select(columns); if(builder) r=builder(r); const {data,error}=await r; if(error) throw error; return Array.isArray(data)?data:[]; }
+  async function rpc(fn,args={}){ const {data,error}=await db().rpc(fn,args); if(error) throw error; return data; }
+  async function updateWhere(table,match,values){ let r=db().from(table).update(values); Object.entries(match).forEach(([k,v])=>{r=r.eq(k,v)}); const {data,error}=await r.select(); if(error) throw error; return data?.[0]; }
+  async function insert(table,values){ const {data,error}=await db().from(table).insert(values).select(); if(error) throw error; return data?.[0]; }
+
+  function leadRequest(id){ return state.requests.find(x=>String(x.id)===String(id))||{}; }
+  function salesName(id){ if(!id) return 'Belum Ditugaskan'; return state.sales.find(x=>String(x.id)===String(id))?.full_name||'Sales'; }
+
+  async function loadCRM(){
+    state.crmError=null; if(!canCRM()) return;
+    try{
+      const start=new Date(); start.setDate(1); start.setHours(0,0,0,0);
+      const [leads,requests,sales,activities,scorecard]=await Promise.all([
+        select('crm_lead_controls','booking_request_id,stage,owner_id,lead_source,qualification_score,probability_pct,estimated_value,last_contact_at,next_follow_up_at,lost_reason,lost_at,won_at,recovery_status,recovery_plan,recovery_due_at,updated_at',r=>r.order('updated_at',{ascending:false}).limit(300)),
+        select('booking_requests','id,booking_code,institution_name,pic_name,whatsapp,email,city,source,status,assigned_sales,budget_per_pax,pax,converted_booking_id,created_at,updated_at',r=>r.order('created_at',{ascending:false}).limit(300)),
+        canManageCRM()?select('profiles','id,full_name,role,is_active',r=>r.eq('is_active',true).eq('role','Sales').order('full_name')):Promise.resolve([]),
+        select('crm_activities','id,booking_request_id,booking_id,customer_id,sales_id,channel,activity_type,outcome,lead_source,next_follow_up_at,lost_reason,notes,created_at',r=>r.order('created_at',{ascending:false}).limit(200)),
+        rpc('internal_crm_sales_scorecard',{p_start:dateOnly(start),p_end:dateOnly(new Date())})
+      ]);
+      state.leads=leads; state.requests=requests; state.sales=sales; state.activities=activities; state.scorecard=Array.isArray(scorecard)?scorecard:[];
+    }catch(e){ state.crmError=e?.message||String(e); }
+  }
+
+  async function loadFinance(){
+    state.financeError=null; if(!canFinance()) return;
+    try{
+      const now=new Date(), start=new Date(now.getFullYear(),now.getMonth(),1), asOf=dateOnly(now), pStart=dateOnly(start), actor=uid();
+      const res=await Promise.allSettled([
+        rpc('internal_management_ar_aging',{p_as_of:asOf,p_actor:actor}),
+        rpc('internal_management_ap_aging',{p_as_of:asOf,p_actor:actor}),
+        rpc('internal_gl_trial_balance',{p_as_of:asOf}),
+        rpc('internal_gl_profit_loss',{p_start:pStart,p_end:asOf}),
+        rpc('internal_gl_balance_sheet',{p_as_of:asOf}),
+        rpc('internal_gl_cash_flow',{p_start:pStart,p_end:asOf}),
+        select('finance_periods','id,period_no,period_type,period_start,period_end,status,closed_at,reopened_at,reopen_reason,updated_at',r=>r.order('period_start',{ascending:false}).limit(24))
+      ]);
+      const keys=['ar','ap','trial','pnl','balance','cash','periods'];
+      const errors=[];
+      res.forEach((x,i)=>{ if(x.status==='fulfilled') state[keys[i]]=x.value; else {state[keys[i]]=i<3||i===6?[]:null;errors.push(x.reason?.message||String(x.reason));} });
+      if(errors.length) state.financeError=[...new Set(errors)].join(' • ');
+    }catch(e){ state.financeError=e?.message||String(e); }
+  }
+
+  async function loadNotifications(){
+    state.notificationError=null; if(!canNotifications()) return;
+    try{
+      const [outbox,customer,internal]=await Promise.all([
+        select('customer_notification_outbox','id,notification_id,booking_request_id,status,next_attempt_at,completed_at,last_error,created_at,updated_at',r=>r.order('created_at',{ascending:false}).limit(100)),
+        select('customer_notification_deliveries','id,outbox_id,notification_id,booking_request_id,channel,recipient,provider,provider_message_id,status,attempts,max_attempts,available_at,last_attempt_at,sent_at,response_code,last_error,created_at,updated_at',r=>r.order('created_at',{ascending:false}).limit(150)),
+        select('internal_notification_deliveries','id,notification_id,recipient_id,channel,recipient,status,attempts,max_attempts,available_at,sent_at,provider_message_id,response_code,last_error,created_at,updated_at',r=>r.order('created_at',{ascending:false}).limit(150))
+      ]);
+      state.customerOutbox=outbox; state.customerDelivery=customer; state.internalDelivery=internal;
+    }catch(e){ state.notificationError=e?.message||String(e); }
+  }
+
+  function renderCRM(){
+    if(!q('#salesTargetControl')||!canCRM()) return;
+    const active=state.leads.filter(x=>!['WON','LOST'].includes(String(x.stage)));
+    const unassigned=active.filter(x=>!x.owner_id);
+    const overdue=active.filter(x=>x.next_follow_up_at && new Date(x.next_follow_up_at)<new Date());
+    const weighted=active.reduce((a,x)=>a+Number(x.estimated_value||0)*Number(x.probability_pct||0)/100,0);
+    const won=state.leads.filter(x=>x.stage==='WON').length, lost=state.leads.filter(x=>x.stage==='LOST').length;
+    const scoreRows=state.scorecard.map(x=>`<tr><td>${h(x.sales_name)}</td><td>${Number(x.prospects||0)}</td><td>${Number(x.activities||0)}</td><td>${Number(x.qualified_leads||0)}</td><td>${Number(x.quotations||0)}</td><td>${Number(x.won_leads||0)}</td><td>${pct(x.conversion_pct)}</td><td>${money(x.pipeline_value)}</td></tr>`).join('');
+    const leadRows=state.leads.slice(0,60).map(x=>{const r=leadRequest(x.booking_request_id);const isOver=x.next_follow_up_at&&new Date(x.next_follow_up_at)<new Date()&&!['WON','LOST'].includes(x.stage);return `<div class="g112-row"><div><strong>${h(r.institution_name||r.pic_name||r.booking_code||x.booking_request_id)}</strong><small>${h(r.city||'')} • ${h(x.lead_source||r.source||'Sumber belum dicatat')} • ${money(x.estimated_value)}</small></div><div><span class="g112-pill ${statusClass(x.stage)}">${h(x.stage)}</span></div><div>${h(salesName(x.owner_id))}<small>${h(x.recovery_status||'NONE')}</small></div><div><span class="g112-pill ${isOver?'g112-bad':''}">${h(x.next_follow_up_at?dt(x.next_follow_up_at):'Belum dijadwalkan')}</span></div><div class="g112-actions">${btn('Aktivitas',`data-g112-activity="${h(x.booking_request_id)}"`,'primary')}${canManageCRM()?btn('Atur Lead',`data-g112-lead="${h(x.booking_request_id)}"`):''}</div></div>`}).join('');
+    mount('salesTargetControl','crm-v112',`<div class="g112-head"><div><div class="g112-kicker">CRM production • ${VERSION}</div><h4>Pipeline, Assignment & Conversion</h4></div><div class="g112-actions">${btn('Muat Ulang','data-g112-refresh')}</div></div><div class="g112-grid"><div class="g112-card"><small>Lead aktif</small><b>${active.length}</b><p>Belum Won/Lost.</p></div><div class="g112-card"><small>Belum Ditugaskan</small><b>${unassigned.length}</b><p>PIC Sales belum ditetapkan.</p></div><div class="g112-card"><small>Follow-up terlambat</small><b>${overdue.length}</b><p>Masuk recovery/task otomatis.</p></div><div class="g112-card"><small>Weighted Pipeline</small><b>${money(weighted)}</b><p>Nilai × probabilitas stage.</p></div></div><div class="g112-grid3" style="margin-top:9px"><div class="g112-card"><small>Won</small><b>${won}</b></div><div class="g112-card"><small>Lost</small><b>${lost}</b></div><div class="g112-card"><small>Aktivitas CRM termuat</small><b>${state.activities.length}</b></div></div><div class="g112-card" style="margin-top:9px"><h4>Scorecard Sales Bulan Ini</h4>${scoreRows?`<div style="overflow:auto"><table class="g112-table"><thead><tr><th>Sales</th><th>Prospek</th><th>Aktivitas</th><th>Qualified</th><th>Quotation</th><th>Won</th><th>Conversion</th><th>Pipeline</th></tr></thead><tbody>${scoreRows}</tbody></table></div>`:'<div class="g112-empty">Belum ada scorecard Sales yang dapat ditampilkan.</div>'}</div><div style="margin-top:9px">${leadRows?`<div class="g112-list">${leadRows}</div>`:'<div class="g112-empty">Belum ada lead yang dapat dilihat role ini.</div>'}</div>${state.crmError?`<div class="g112-error" style="margin-top:9px">CRM: ${h(state.crmError)}</div>`:''}`);
+  }
+
+  function agingTable(rows,label){ rows=Array.isArray(rows)?rows:[]; return `<div class="g112-card"><h4>${h(label)}</h4>${rows.length?`<table class="g112-table"><thead><tr><th>Bucket</th><th>Item</th><th>Outstanding</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${h(x.bucket)}</td><td>${Number(x.item_count||0)}</td><td>${money(x.outstanding)}</td></tr>`).join('')}</tbody></table>`:'<div class="g112-empty">Tidak ada data / tidak memiliki akses.</div>'}</div>`; }
+  function renderFinance(){
+    if(!canFinance()) return; ensurePage('accountingControl','Accounting & Financial Statements'); ensureNav('accountingControl','Accounting & Laporan',true);
+    const p=state.pnl||{}, b=state.balance||{}, c=state.cash||{};
+    const period=state.periods?.[0];
+    const trial=(Array.isArray(state.trial)?state.trial:[]).slice(0,80).map(x=>`<tr><td>${h(x.account_code)}</td><td>${h(x.account_name)}</td><td>${h(x.account_type)}</td><td>${money(x.debit_total)}</td><td>${money(x.credit_total)}</td><td>${money(x.ending_debit)}</td><td>${money(x.ending_credit)}</td></tr>`).join('');
+    mount('accountingControl','finance-v112',`<div class="g112-head"><div><div class="g112-kicker">General Ledger production • ${VERSION}</div><h4>Laporan Keuangan & Closing Control</h4></div><div class="g112-actions">${btn('Muat Ulang','data-g112-refresh')}</div></div><div class="g112-grid"><div class="g112-card"><small>Omzet / Revenue bulan ini</small><b>${p.revenue===undefined?'—':money(p.revenue)}</b><p>COGS ${p.cogs===undefined?'—':money(p.cogs)}</p></div><div class="g112-card"><small>Laba Bersih bulan ini</small><b>${p.net_profit===undefined?'—':money(p.net_profit)}</b><p>Margin ${p.margin_pct===undefined?'—':pct(p.margin_pct)}</p></div><div class="g112-card"><small>Kas Penutupan GL</small><b>${c.gl_cash_balance===undefined?'—':money(c.gl_cash_balance)}</b><p>Net cash flow ${c.net_cash_flow===undefined?'—':money(c.net_cash_flow)}</p></div><div class="g112-card"><small>Periode terbaru</small><b>${h(period?.status||'—')}</b><p>${h(period?.period_no||'Belum ada periode')}</p></div></div><div class="g112-2" style="margin-top:9px">${agingTable(state.ar,'AR Aging / Piutang')}${agingTable(state.ap,'AP Aging / Hutang Vendor')}</div><div class="g112-grid3" style="margin-top:9px"><div class="g112-card"><small>Aset</small><b>${b.assets===undefined?'—':money(b.assets)}</b><p>Balanced: ${b.balanced===undefined?'—':(b.balanced?'Ya':'Tidak')}</p></div><div class="g112-card"><small>Liabilitas</small><b>${b.liabilities===undefined?'—':money(b.liabilities)}</b></div><div class="g112-card"><small>Ekuitas</small><b>${b.total_equity===undefined?'—':money(b.total_equity)}</b><p>Gap ${b.balance_gap===undefined?'—':money(b.balance_gap)}</p></div></div><div class="g112-card" style="margin-top:9px"><h4>Arus Kas Bulan Ini</h4><div class="g112-grid"><div><small>Opening</small><b>${c.opening_cash===undefined?'—':money(c.opening_cash)}</b></div><div><small>Operating</small><b>${c.operating_cash_flow===undefined?'—':money(c.operating_cash_flow)}</b></div><div><small>Investing</small><b>${c.investing_cash_flow===undefined?'—':money(c.investing_cash_flow)}</b></div><div><small>Financing</small><b>${c.financing_cash_flow===undefined?'—':money(c.financing_cash_flow)}</b></div></div></div><div class="g112-card" style="margin-top:9px"><h4>Trial Balance</h4>${trial?`<div style="overflow:auto"><table class="g112-table"><thead><tr><th>Kode</th><th>Akun</th><th>Tipe</th><th>Debit</th><th>Kredit</th><th>Saldo Debit</th><th>Saldo Kredit</th></tr></thead><tbody>${trial}</tbody></table></div>`:'<div class="g112-empty">Belum ada jurnal POSTED / akses tidak tersedia.</div>'}</div>${state.financeError?`<div class="g112-error" style="margin-top:9px">Sebagian laporan tidak termuat: ${h(state.financeError)}</div>`:''}`);
+    if(q('#cashForecastControl')) mount('cashForecastControl','accounting-link',`<div class="g112-card"><h4>Accounting Production</h4><p>AR/AP Aging, Trial Balance, Laba Rugi, Neraca, Arus Kas dan Period Lock sudah memakai engine backend production.</p><div class="g112-actions">${btn('Buka Accounting','data-g112-go="accountingControl"','primary')}</div></div>`);
+  }
+
+  function renderNotifications(){
+    if(!canNotifications()) return; ensurePage('notificationDeliveryControl','Pusat Notifikasi','Email, WhatsApp, retry & delivery log'); ensureNav('notificationDeliveryControl','Pusat Notifikasi',true);
+    const all=[...state.customerDelivery.map(x=>({...x,scope:'Pelanggan'})),...state.internalDelivery.map(x=>({...x,scope:'Internal'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+    const failed=all.filter(x=>['FAILED','ERROR','DEAD'].includes(String(x.status||'').toUpperCase()));
+    const pending=all.filter(x=>['PENDING','QUEUED','RETRY','PROCESSING'].includes(String(x.status||'').toUpperCase()));
+    const sent=all.filter(x=>['SENT','DELIVERED','SUCCESS'].includes(String(x.status||'').toUpperCase()));
+    const rows=all.slice(0,80).map(x=>`<div class="g112-row"><div><strong>${h(x.scope)} • ${h(x.channel||'CHANNEL')}</strong><small>${h(x.recipient||'Penerima tersamarkan')} ${x.provider?`• ${h(x.provider)}`:''}</small></div><div><span class="g112-pill ${statusClass(x.status)}">${h(x.status||'—')}</span></div><div>${Number(x.attempts||0)}/${Number(x.max_attempts||0)}<small>${x.response_code?`HTTP ${h(x.response_code)}`:''}</small></div><div>${h(x.sent_at?dt(x.sent_at):dt(x.available_at||x.created_at))}<small>${h(x.provider_message_id||'')}</small></div><div>${x.last_error?`<span class="g112-pill g112-bad" title="${h(x.last_error)}">Error</span>`:''}</div></div>`).join('');
+    mount('notificationDeliveryControl','main',`<div class="g112-head"><div><div class="g112-kicker">Delivery workers production • ${VERSION}</div><h4>Notification Delivery Center</h4></div><div class="g112-actions">${btn('Muat Ulang','data-g112-refresh')}</div></div><div class="g112-grid"><div class="g112-card"><small>Outbox customer</small><b>${state.customerOutbox.length}</b><p>Antrian yang termuat.</p></div><div class="g112-card"><small>Pending / Retry</small><b>${pending.length}</b></div><div class="g112-card"><small>Terkirim</small><b>${sent.length}</b></div><div class="g112-card"><small>Gagal</small><b>${failed.length}</b><p>Perlu cek provider/recipient bila berulang.</p></div></div><div style="margin-top:9px">${rows?`<div class="g112-list">${rows}</div>`:'<div class="g112-empty">Belum ada delivery log yang dapat dilihat.</div>'}</div>${state.notificationError?`<div class="g112-error" style="margin-top:9px">Notifikasi: ${h(state.notificationError)}</div>`:''}`);
+  }
+
+  function closeModal(){ q('.g112-modal')?.remove(); }
+  function openActivity(requestId){
+    const req=leadRequest(requestId), lead=state.leads.find(x=>String(x.booking_request_id)===String(requestId))||{};
+    const m=document.createElement('div');m.className='g112-modal';m.innerHTML=`<div class="g112-dialog"><h3>Catat Aktivitas CRM</h3><p class="g112-kicker">${h(req.institution_name||req.pic_name||req.booking_code||requestId)}</p><form class="g112-form" data-g112-form="activity"><input type="hidden" name="request_id" value="${h(requestId)}"><div class="g112-field"><label>Channel</label><select name="channel"><option>WHATSAPP</option><option>TELEPON</option><option>EMAIL</option><option>KUNJUNGAN</option><option>RAPAT</option><option>LAINNYA</option></select></div><div class="g112-field"><label>Jenis Aktivitas</label><input name="activity_type" required placeholder="Follow-up / Presentasi / Negosiasi"></div><div class="g112-field"><label>Hasil</label><input name="outcome" placeholder="Respons / hasil kontak"></div><div class="g112-field"><label>Next Follow-up</label><input name="next_follow_up_at" type="datetime-local"></div><div class="g112-field full"><label>Lost Reason (isi hanya jika gagal)</label><input name="lost_reason"></div><div class="g112-field full"><label>Catatan</label><textarea name="notes"></textarea></div><div class="g112-actions full">${btn('Batal','data-g112-close')}${btn('Simpan','type="submit"','primary')}</div></form></div>`;document.body.appendChild(m);
+  }
+  function openLead(requestId){
+    const req=leadRequest(requestId), lead=state.leads.find(x=>String(x.booking_request_id)===String(requestId))||{};
+    const opts=['NEW','CONTACTED','QUALIFIED','QUOTATION','NEGOTIATION','WAITING_DP','WON','LOST','NURTURE'].map(x=>`<option ${x===lead.stage?'selected':''}>${x}</option>`).join('');
+    const salesOpts=`<option value="">Belum Ditugaskan</option>`+state.sales.map(x=>`<option value="${h(x.id)}" ${String(x.id)===String(lead.owner_id)?'selected':''}>${h(x.full_name)}</option>`).join('');
+    const m=document.createElement('div');m.className='g112-modal';m.innerHTML=`<div class="g112-dialog"><h3>Atur Lead</h3><p class="g112-kicker">${h(req.institution_name||req.pic_name||req.booking_code||requestId)}</p><form class="g112-form" data-g112-form="lead"><input type="hidden" name="request_id" value="${h(requestId)}"><div class="g112-field"><label>Stage</label><select name="stage">${opts}</select></div><div class="g112-field"><label>PIC Sales</label><select name="owner_id">${salesOpts}</select></div><div class="g112-field"><label>Probabilitas %</label><input type="number" min="0" max="100" step="1" name="probability_pct" value="${h(lead.probability_pct??10)}"></div><div class="g112-field"><label>Nilai Potensi</label><input type="number" min="0" name="estimated_value" value="${h(lead.estimated_value??0)}"></div><div class="g112-field"><label>Next Follow-up</label><input type="datetime-local" name="next_follow_up_at"></div><div class="g112-field"><label>Recovery</label><select name="recovery_status"><option ${lead.recovery_status==='NONE'?'selected':''}>NONE</option><option ${lead.recovery_status==='NEEDED'?'selected':''}>NEEDED</option><option ${lead.recovery_status==='ACTIVE'?'selected':''}>ACTIVE</option><option ${lead.recovery_status==='CLOSED'?'selected':''}>CLOSED</option></select></div><div class="g112-field full"><label>Lost Reason</label><input name="lost_reason" value="${h(lead.lost_reason||'')}"></div><div class="g112-field full"><label>Recovery Plan</label><textarea name="recovery_plan">${h(lead.recovery_plan||'')}</textarea></div><div class="g112-actions full">${btn('Batal','data-g112-close')}${btn('Simpan','type="submit"','primary')}</div></form></div>`;document.body.appendChild(m);
+  }
+
+  async function submitActivity(form){
+    const fd=new FormData(form), requestId=fd.get('request_id'), lead=state.leads.find(x=>String(x.booking_request_id)===String(requestId))||{}, req=leadRequest(requestId);
+    const next=fd.get('next_follow_up_at');
+    await insert('crm_activities',{booking_request_id:requestId,booking_id:req.converted_booking_id||null,customer_id:null,sales_id:lead.owner_id||uid()||null,channel:fd.get('channel'),activity_type:String(fd.get('activity_type')||'').trim(),outcome:String(fd.get('outcome')||'').trim()||null,lead_source:lead.lead_source||req.source||null,next_follow_up_at:next?new Date(String(next)).toISOString():null,lost_reason:String(fd.get('lost_reason')||'').trim()||null,notes:String(fd.get('notes')||'').trim()||null,created_by:uid()||null});
+  }
+  async function submitLead(form){
+    const fd=new FormData(form), requestId=fd.get('request_id'), owner=String(fd.get('owner_id')||'')||null, next=fd.get('next_follow_up_at');
+    const values={stage:fd.get('stage'),owner_id:owner,probability_pct:Number(fd.get('probability_pct')||0),estimated_value:Number(fd.get('estimated_value')||0),recovery_status:fd.get('recovery_status'),lost_reason:String(fd.get('lost_reason')||'').trim()||null,recovery_plan:String(fd.get('recovery_plan')||'').trim()||null,updated_by:uid()||null};
+    if(next) values.next_follow_up_at=new Date(String(next)).toISOString();
+    if(values.stage==='LOST'&&!values.lost_reason) throw new Error('Lost Reason wajib diisi untuk stage LOST.');
+    if(values.stage==='LOST') values.lost_at=new Date().toISOString();
+    if(values.stage==='WON') values.won_at=new Date().toISOString();
+    await updateWhere('crm_lead_controls',{booking_request_id:requestId},values);
+    await updateWhere('booking_requests',{id:requestId},{assigned_sales:owner});
+  }
+
+  async function refresh(){
+    if(state.loading||!db()||!role()) return; state.loading=true;
+    try{await Promise.all([loadCRM(),loadFinance(),loadNotifications()]);}finally{state.loading=false;renderAll();}
+  }
+  function renderAll(){ installStyle(); if(canFinance()) ensurePage('accountingControl','Accounting & Financial Statements'); if(canNotifications()) ensurePage('notificationDeliveryControl','Pusat Notifikasi'); ensureNav('accountingControl','Accounting & Laporan',canFinance()); ensureNav('notificationDeliveryControl','Pusat Notifikasi',canNotifications()); renderCRM(); renderFinance(); renderNotifications(); }
+
+  function bind(){
+    document.addEventListener('click',e=>{
+      const t=e.target.closest?.('[data-g112-refresh],[data-g112-activity],[data-g112-lead],[data-g112-close],[data-g112-go]'); if(!t)return;
+      if(t.hasAttribute('data-g112-refresh')) refresh();
+      else if(t.dataset.g112Activity) openActivity(t.dataset.g112Activity);
+      else if(t.dataset.g112Lead) openLead(t.dataset.g112Lead);
+      else if(t.hasAttribute('data-g112-close')) closeModal();
+      else if(t.dataset.g112Go) showPage(t.dataset.g112Go,t.dataset.g112Go==='accountingControl'?'Accounting & Laporan':t.dataset.g112Go);
+    });
+    document.addEventListener('submit',async e=>{
+      const form=e.target.closest?.('[data-g112-form]'); if(!form)return; e.preventDefault();
+      const submit=form.querySelector('[type="submit"]'); if(submit)submit.disabled=true;
+      try{ if(form.dataset.g112Form==='activity') await submitActivity(form); else if(form.dataset.g112Form==='lead') await submitLead(form); closeModal(); await refresh(); }
+      catch(err){ alert(err?.message||String(err)); if(submit)submit.disabled=false; }
+    });
+  }
+  function init(){
+    bind(); const timer=setInterval(()=>{if(role()&&db()){clearInterval(timer);renderAll();refresh();}},300); setTimeout(()=>clearInterval(timer),15000);
+    setInterval(()=>{if(role()&&db()&&!document.hidden)refresh();},60000);
+    window.GmuV112Control=Object.freeze({version:VERSION,state,refresh});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+
+/* ===== inventory-cash-v114.js ===== */
+(() => {
+  'use strict';
+  const VERSION = 'v11.4-inventory-cash-visibility';
+  const ALLOWED = new Set(['Owner','Manager','Admin','Finance','Operation','Director','Direktur','Manager EduTrans']);
+  const q = (s,r=document)=>r.querySelector(s);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const money = v => 'Rp ' + Number(v||0).toLocaleString('id-ID');
+  const date = v => { if(!v) return '—'; const d=new Date(v); return Number.isNaN(d.getTime())?'—':d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); };
+  const role = () => { try{return String(profile?.role||'')}catch(_){return ''} };
+  const db = () => { try{return typeof sb!=='undefined'&&sb?.from?sb:null}catch(_){return null} };
+  const state={items:[],purchases:[],movements:[],ledger:[],errors:[],loading:false};
+  function style(){
+    if(q('#gmuV114Style'))return;
+    const s=document.createElement('style');s.id='gmuV114Style';s.textContent=`
+      .g114{margin-top:12px}.g114-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.g114-head h3{margin:0;color:var(--gd)}.g114-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.g114-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;min-width:0}.g114-card small{font-size:9px;color:var(--muted)}.g114-card b{display:block;color:var(--gd);font-size:16px;margin:4px 0}.g114-card p{font-size:9px;color:var(--muted);margin:4px 0}.g114-table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;margin-top:10px}.g114-table{width:100%;border-collapse:collapse;font-size:10px;min-width:650px}.g114-table th,.g114-table td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.g114-table th{font-size:9px;color:var(--muted);white-space:nowrap}.g114-table tr:last-child td{border-bottom:0}.g114-tag{display:inline-block;padding:4px 7px;border:1px solid var(--line);border-radius:999px;font-size:8px;background:#f5faf7}.g114-error{padding:10px;border:1px solid #efc5c5;background:#fff4f4;color:#963434;border-radius:10px;font-size:9px;margin-top:8px}.g114-empty{padding:14px;text-align:center;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:10px;margin-top:8px}.g114-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:8px 10px;font:inherit;font-size:9px;cursor:pointer}.g114-btn.primary{background:var(--g);color:#fff;border-color:var(--g)}
+      @media(max-width:800px){.g114-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:500px){.g114-grid{grid-template-columns:1fr}}
+    `;document.head.appendChild(s);
+  }
+  function ensurePage(){
+    let page=q('#inventoryCashControl');if(page)return page;
+    const host=q('.content')||q('main')||document.body;
+    page=document.createElement('section');page.id='inventoryCashControl';page.className='page';
+    page.innerHTML='<div class="page-head"><div><h2>Kas Keluar & Master Barang</h2><p>Stok mainan, pembelian, dan arus kas keluar</p></div></div>';
+    host.appendChild(page);return page;
+  }
+  function ensureNav(){
+    if(!ALLOWED.has(role()))return;
+    const nav=q('#nav');if(!nav||q('#nav [data-page="inventoryCashControl"]'))return;
+    const b=document.createElement('button');b.type='button';b.dataset.page='inventoryCashControl';b.textContent='Kas & Inventaris';
+    b.addEventListener('click',()=>showPage());nav.appendChild(b);
+  }
+  function showPage(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    ensurePage().classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='inventoryCashControl'));
+    const title=q('#title');if(title)title.textContent='Kas & Inventaris';
+    refresh();
+  }
+  async function select(table,cols,orderCol){
+    let query=db().from(table).select(cols);
+    if(orderCol)query=query.order(orderCol,{ascending:false}).limit(300);
+    const {data,error}=await query;if(error)throw error;return Array.isArray(data)?data:[];
+  }
+  async function refresh(){
+    if(state.loading||!db()||!ALLOWED.has(role()))return;
+    state.loading=true;state.errors=[];
+    const jobs=[
+      ['items',()=>select('inventory_items','id,sku,item_name,category,unit,current_stock,average_cost,is_active,notes','updated_at')],
+      ['purchases',()=>select('inventory_purchases','purchase_date,vendor_name,receipt_reference,payment_method,payment_status,total_amount,notes','purchase_date')],
+      ['movements',()=>select('inventory_movements','item_id,movement_type,quantity,unit_cost,total_cost,movement_date,reference_no,source_type,notes','movement_date')],
+      ['ledger',()=>select('treasury_ledger','id,transaction_date,direction,amount,description,status,source_type,source_id,created_at','transaction_date')]
+    ];
+    await Promise.all(jobs.map(async([key,fn])=>{try{state[key]=await fn()}catch(e){state[key]=[];state.errors.push(key+': '+(e?.message||String(e)))}}));
+    state.loading=false;render();
+  }
+  function table(title,headers,rows){
+    return '<div class="g114-table-wrap"><table class="g114-table"><thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+
+      (rows.length?rows.join(''):'<tr><td colspan="'+headers.length+'">Belum ada data yang dapat ditampilkan.</td></tr>')+
+      '</tbody></table></div>';
+  }
+  function render(){
+    if(!ALLOWED.has(role()))return;
+    style();const page=ensurePage();ensureNav();
+    const items=state.items.filter(x=>x.is_active!==false);
+    const totalStock=items.reduce((a,x)=>a+Number(x.current_stock||0),0);
+    const stockValue=items.reduce((a,x)=>a+Number(x.current_stock||0)*Number(x.average_cost||0),0);
+    const cashOut=state.ledger.filter(x=>String(x.direction).toUpperCase()==='OUTFLOW'&&String(x.status).toUpperCase()==='POSTED');
+    const inventoryCash=cashOut.filter(x=>String(x.source_type).toUpperCase()==='MANUAL'&&/ALDI-TOYS-20261103-197000|pembelian stok mainan aldi toys/i.test(String(x.description||'')+' '+String(x.source_id||'')));
+    const movementRows=state.movements.slice(0,100).map(m=>{
+      const item=state.items.find(x=>String(x.id)===String(m.item_id))||{};
+      return '<tr><td>'+esc(date(m.movement_date))+'</td><td><strong>'+esc(item.item_name||'Barang')+'</strong><br><small>'+esc(item.sku||'')+'</small></td><td>'+esc(m.movement_type)+'</td><td>'+Number(m.quantity||0).toLocaleString('id-ID')+' '+esc(item.unit||'unit')+'</td><td>'+money(m.unit_cost)+'</td><td>'+money(m.total_cost)+'</td><td>'+esc(m.reference_no||'—')+'</td></tr>';
+    });
+    const itemRows=items.map(x=>'<tr><td><strong>'+esc(x.item_name)+'</strong><br><small>'+esc(x.sku)+'</small></td><td>'+esc(x.category||'—')+'</td><td>'+Number(x.current_stock||0).toLocaleString('id-ID')+' '+esc(x.unit||'unit')+'</td><td>'+money(x.average_cost)+'</td><td>'+money(Number(x.current_stock||0)*Number(x.average_cost||0))+'</td><td>'+esc(x.notes||'—')+'</td></tr>');
+    const purchaseRows=state.purchases.slice(0,60).map(x=>'<tr><td>'+esc(date(x.purchase_date))+'</td><td>'+esc(x.vendor_name)+'</td><td>'+esc(x.receipt_reference)+'</td><td>'+esc(x.payment_method)+'</td><td><span class="g114-tag">'+esc(x.payment_status)+'</span></td><td>'+money(x.total_amount)+'</td></tr>');
+    const cashRows=cashOut.slice(0,100).map(x=>'<tr><td>'+esc(date(x.transaction_date))+'</td><td>'+esc(x.description||'—')+'</td><td>'+esc(x.source_type||'—')+'</td><td>'+esc(x.status||'—')+'</td><td>'+money(x.amount)+'</td></tr>');
+    page.innerHTML='<div class="page-head"><div><h2>Kas Keluar & Master Barang</h2><p>ERP production • '+VERSION+' • Data realtime dari Supabase</p></div></div>'+
+      '<div class="g114"><div class="g114-head"><div><h3>Ringkasan Persediaan & Kas</h3><small>Stok dan transaksi POSTED</small></div><button class="g114-btn primary" data-g114-refresh>Muat Ulang</button></div>'+
+      '<div class="g114-grid"><div class="g114-card"><small>Jenis barang aktif</small><b>'+items.length+'</b></div><div class="g114-card"><small>Total unit stok</small><b>'+totalStock.toLocaleString('id-ID')+'</b></div><div class="g114-card"><small>Nilai estimasi stok</small><b>'+money(stockValue)+'</b></div><div class="g114-card"><small>Total Kas Keluar POSTED (termuat)</small><b>'+money(cashOut.reduce((a,x)=>a+Number(x.amount||0),0))+'</b><p>'+cashOut.length+' transaksi</p></div></div>'+
+      '<div class="g114-card" style="margin-top:10px"><h3>Verifikasi pembelian mainan 3 Nov 2026</h3><p>Struk Aldi Toys • 33 unit • Rp197.000</p><div class="g114-grid"><div><small>Status kas keluar</small><b>'+ (inventoryCash.length?'Tercatat':'Belum ditemukan di ledger')+'</b></div><div><small>Transaksi terkait</small><b>'+inventoryCash.length+'</b></div><div><small>Nilai terdeteksi</small><b>'+money(inventoryCash.reduce((a,x)=>a+Number(x.amount||0),0))+'</b></div><div><small>Referensi</small><b style="font-size:10px">ALDI-TOYS-20261103-197000</b></div></div></div>'+
+      '<h3 style="margin-top:14px">Master Barang / Stok</h3>'+table('Barang',['Nama Barang / SKU','Kategori','Stok','Harga Rata-rata','Nilai Stok','Catatan'],itemRows)+
+      '<h3 style="margin-top:14px">Riwayat Pembelian Barang</h3>'+table('Pembelian',['Tanggal','Vendor','Referensi','Pembayaran','Status','Total'],purchaseRows)+
+      '<h3 style="margin-top:14px">Mutasi Stok</h3>'+table('Mutasi',['Tanggal','Barang','Jenis','Qty','Biaya/unit','Total biaya','Referensi'],movementRows)+
+      '<h3 style="margin-top:14px">Kas Keluar ERP (POSTED)</h3>'+table('Kas keluar',['Tanggal','Keterangan','Sumber','Status','Jumlah'],cashRows)+
+      state.errors.map(e=>'<div class="g114-error">'+esc(e)+'</div>').join('')+'</div>';
+  }
+  function init(){
+    if(window.GmuInventoryCashV114)return;
+    ensureNav();if(ALLOWED.has(role())){ensurePage();render();refresh();}
+    document.addEventListener('click',e=>{const b=e.target.closest?.('[data-g114-refresh]');if(b)refresh()});
+    const timer=setInterval(()=>{if(db()&&ALLOWED.has(role())){clearInterval(timer);ensurePage();ensureNav();refresh()}},500);
+    setTimeout(()=>clearInterval(timer),15000);
+    setInterval(()=>{if(db()&&ALLOWED.has(role())&&!document.hidden)refresh()},60000);
+    window.GmuInventoryCashV114=Object.freeze({version:VERSION,refresh,state});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+/* ===== customer-account-crm-v220.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v22.0-customer-account-crm';
+  const ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Admin','Sales']);
+  const MANAGERS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Admin']);
+  const q = (s, r = document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const dt = v => v ? new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}) : '—';
+  const state = { accounts: [], sales: [], loading: false, error: null };
+
+  function role(){ try { return String(profile?.role || ''); } catch (_) { return ''; } }
+  function uid(){ try { return String(profile?.id || user?.id || ''); } catch (_) { return ''; } }
+  function db(){ try { return typeof sb !== 'undefined' && sb?.from ? sb : null; } catch (_) { return null; } }
+  function allowed(){ return ROLES.has(role()); }
+  function canManage(){ return MANAGERS.has(role()); }
+
+  function installStyle(){
+    if(q('#gmuCustomerAccountStyle')) return;
+    const s=document.createElement('style'); s.id='gmuCustomerAccountStyle'; s.textContent=`
+      .gca{margin-top:12px}.gca-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}.gca-head h3{margin:0;color:var(--gd)}
+      .gca-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:10px}.gca-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px}.gca-card small{display:block;color:var(--muted);font-size:8px}.gca-card b{display:block;color:var(--gd);font-size:17px;margin-top:3px}
+      .gca-list{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}.gca-row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(120px,.8fr) minmax(125px,.9fr) minmax(130px,1fr) minmax(150px,1fr);gap:8px;padding:10px;border-bottom:1px solid var(--line);align-items:center;font-size:9px}.gca-row:last-child{border-bottom:0}.gca-row strong{color:var(--gd)}.gca-row small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.gca-pill{display:inline-flex;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:#f7faf8;font-size:8px}.gca-warn{background:#fff8e9}.gca-ok{background:#eef9f1}.gca-bad{background:#fff1f1}.gca-actions{display:flex;gap:5px;flex-wrap:wrap}.gca-btn,.gca-select{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:8px;padding:6px 7px;font:inherit;font-size:8px}.gca-btn{cursor:pointer}.gca-btn:disabled{opacity:.45;cursor:not-allowed}.gca-empty{padding:14px;text-align:center;color:var(--muted);font-size:9px}
+      @media(max-width:980px){.gca-grid{grid-template-columns:repeat(2,1fr)}.gca-row{grid-template-columns:1fr 1fr}.gca-row>div:last-child{grid-column:1/-1}}
+      @media(max-width:620px){.gca-grid,.gca-row{grid-template-columns:1fr}.gca-row>div:last-child{grid-column:auto}}
+    `; document.head.appendChild(s);
+  }
+
+  async function load(){
+    if(!allowed() || !db() || state.loading) return;
+    state.loading=true; state.error=null;
+    try{
+      let query=db().from('customer_accounts').select('user_id,email,full_name,whatsapp,institution_name,city,source,account_status,lead_stage,followup_consent,assigned_sales,last_interest_program,last_interest_package,first_registered_at,last_seen_at,last_interest_at,last_contact_at,next_follow_up_at,booking_request_count,last_booking_at,updated_at').order('first_registered_at',{ascending:false}).limit(300);
+      const [{data:accounts,error:aerr},{data:sales,error:serr}]=await Promise.all([
+        query,
+        canManage()?db().from('profiles').select('id,full_name,role,is_active').eq('role','Sales').eq('is_active',true).order('full_name'):Promise.resolve({data:[],error:null})
+      ]);
+      if(aerr) throw aerr; if(serr) throw serr;
+      state.accounts=Array.isArray(accounts)?accounts:[];
+      state.sales=Array.isArray(sales)?sales:[];
+    }catch(e){ state.error=e?.message||String(e); }
+    finally{ state.loading=false; render(); }
+  }
+
+  function salesName(id){ return state.sales.find(x=>String(x.id)===String(id))?.full_name || (id?'Sales':'Belum ditugaskan'); }
+  function consentClass(a){ return a.followup_consent?'gca-ok':'gca-warn'; }
+  function stageClass(stage){ return ['BOOKED'].includes(stage)?'gca-ok':['LOST'].includes(stage)?'gca-bad':'gca-warn'; }
+
+  function assignOptions(a){
+    if(!canManage()) return `<span class="gca-pill">${h(salesName(a.assigned_sales))}</span>`;
+    const opts=[`<option value="">Belum ditugaskan</option>`,...state.sales.map(s=>`<option value="${h(s.id)}" ${String(s.id)===String(a.assigned_sales)?'selected':''}>${h(s.full_name||'Sales')}</option>`)];
+    return `<select class="gca-select" data-gca-assign="${h(a.user_id)}">${opts.join('')}</select>`;
+  }
+
+  function row(a){
+    const name=a.full_name||a.institution_name||a.email||a.whatsapp||'Customer';
+    const contact=[a.whatsapp,a.email].filter(Boolean).join(' • ');
+    const interest=[a.last_interest_program,a.last_interest_package].filter(Boolean).join(' / ')||'Belum memilih paket';
+    const canContact=!!a.followup_consent;
+    return `<div class="gca-row">
+      <div><strong>${h(name)}</strong><small>${h(a.institution_name||'')} ${a.city?'• '+h(a.city):''}</small><small>${h(contact||'Kontak belum lengkap')}</small></div>
+      <div><span class="gca-pill ${stageClass(a.lead_stage)}">${h(a.lead_stage)}</span><small>Daftar ${dt(a.first_registered_at)}</small><small>${Number(a.booking_request_count||0)} booking request</small></div>
+      <div><strong>${h(interest)}</strong><small>Minat terakhir ${dt(a.last_interest_at)}</small></div>
+      <div>${assignOptions(a)}<small class="gca-pill ${consentClass(a)}" style="margin-top:5px">${canContact?'Boleh follow-up':'Belum beri izin follow-up'}</small><small>Next: ${dt(a.next_follow_up_at)}</small></div>
+      <div class="gca-actions">
+        <button class="gca-btn" data-gca-contact="${h(a.user_id)}" ${canContact?'':'disabled'}>Sudah dihubungi</button>
+        <button class="gca-btn" data-gca-nurture="${h(a.user_id)}" ${canContact?'':'disabled'}>Nurture 7 hari</button>
+      </div>
+    </div>`;
+  }
+
+  function render(){
+    if(!allowed()) return;
+    const anchor=q('#salesTargetControl')||q('#gmuSales200Target')||q('[data-g112="crm"]')||q('.content');
+    if(!anchor) return;
+    let box=q('#gmuCustomerAccountCrm');
+    if(!box){box=document.createElement('section');box.id='gmuCustomerAccountCrm';box.className='card section gca';anchor.insertAdjacentElement('afterend',box);}
+    if(state.error){box.innerHTML=`<div class="gca-head"><div><h3>Customer Account & Prospek Web</h3><p>Signup customer masuk ERP sebelum booking.</p></div></div><div class="gca-empty">Belum dapat memuat customer_accounts: ${h(state.error)}</div>`;return;}
+    const total=state.accounts.length;
+    const noBooking=state.accounts.filter(a=>Number(a.booking_request_count||0)===0).length;
+    const followup=state.accounts.filter(a=>a.followup_consent && !['BOOKED','LOST'].includes(a.lead_stage)).length;
+    const sevenDays=Date.now()-7*864e5;
+    const new7=state.accounts.filter(a=>new Date(a.first_registered_at).getTime()>=sevenDays).length;
+    box.innerHTML=`
+      <div class="gca-head"><div><h3>Customer Account & Prospek Web</h3><p>Orang yang mendaftar akun terlihat di ERP walau belum order. Booking tetap dibuat hanya saat customer benar-benar mengirim pesanan.</p></div><span class="badge ok">ACCOUNT → LEAD</span></div>
+      <div class="gca-grid">
+        <div class="gca-card"><small>Total akun terdaftar</small><b>${total.toLocaleString('id-ID')}</b></div>
+        <div class="gca-card"><small>Belum buat booking</small><b>${noBooking.toLocaleString('id-ID')}</b></div>
+        <div class="gca-card"><small>Boleh difollow-up</small><b>${followup.toLocaleString('id-ID')}</b></div>
+        <div class="gca-card"><small>Signup 7 hari terakhir</small><b>${new7.toLocaleString('id-ID')}</b></div>
+      </div>
+      <div class="gca-list">${total?state.accounts.map(row).join(''):'<div class="gca-empty">Belum ada akun customer yang terdaftar.</div>'}</div>`;
+    wire();
+  }
+
+  async function updateAccount(id, values){
+    const {error}=await db().from('customer_accounts').update(values).eq('user_id',id);
+    if(error) throw error;
+  }
+
+  function wire(){
+    q('#gmuCustomerAccountCrm')?.querySelectorAll('[data-gca-assign]').forEach(el=>el.addEventListener('change',async()=>{
+      try{await updateAccount(el.dataset.gcaAssign,{assigned_sales:el.value||null});await load();}catch(e){alert(e?.message||e);}
+    }));
+    q('#gmuCustomerAccountCrm')?.querySelectorAll('[data-gca-contact]').forEach(el=>el.addEventListener('click',async()=>{
+      try{const tomorrow=new Date(Date.now()+864e5).toISOString();await updateAccount(el.dataset.gcaContact,{lead_stage:'CONTACTED',last_contact_at:new Date().toISOString(),next_follow_up_at:tomorrow});await load();}catch(e){alert(e?.message||e);}
+    }));
+    q('#gmuCustomerAccountCrm')?.querySelectorAll('[data-gca-nurture]').forEach(el=>el.addEventListener('click',async()=>{
+      try{const next=new Date(Date.now()+7*864e5).toISOString();await updateAccount(el.dataset.gcaNurture,{lead_stage:'NURTURE',account_status:'NURTURE',next_follow_up_at:next});await load();}catch(e){alert(e?.message||e);}
+    }));
+  }
+
+  function init(){
+    if(!allowed()) return;
+    installStyle(); render(); load();
+    const observer=new MutationObserver(()=>{ if(!q('#gmuCustomerAccountCrm')) render(); });
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.GmuCustomerAccountCrmV220=Object.freeze({version:VERSION,refresh:load});
+  }
+
+  const timer=setInterval(()=>{
+    if(typeof profile==='undefined'||!profile) return;
+    clearInterval(timer); init();
+  },250);
+})();
+
+
+/* ===== enterprise-os-v200.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v20-enterprise-operating-system';
+  const LEADERS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const HR_ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Admin']);
+  const FINANCE_ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Finance']);
+  const q=(s,r=document)=>r.querySelector(s);
+  const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID');
+  const dt=v=>v?new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}):'—';
+  const d=v=>v?new Date(v).toLocaleDateString('id-ID',{dateStyle:'medium'}):'—';
+  const state={tower:null,exceptions:[],policies:[],probation:[],leaveBalances:[],contracts:[],kpis:[],reviews:[],training:[],warnings:[],offboarding:[],comp:null,payrollPeriods:[],assetAccess:[],error:null,loading:false};
+
+  function role(){try{return String(profile?.role||'')}catch(_){return ''}}
+  function uid(){try{return String(profile?.id||user?.id||'')}catch(_){return ''}}
+  function db(){try{return typeof sb!=='undefined'&&sb?.from?sb:null}catch(_){return null}}
+  function leader(){return LEADERS.has(role())}
+  function hr(){return HR_ROLES.has(role())}
+  function finance(){return FINANCE_ROLES.has(role())}
+
+  function installStyle(){
+    if(q('#gmuV200Style')) return;
+    const s=document.createElement('style'); s.id='gmuV200Style'; s.textContent=`
+      .g200{margin-top:12px}.g200-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.g200-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.g200-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.g200-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}.g200-card small{display:block;font-size:8px;color:var(--muted)}.g200-card b{display:block;font-size:16px;color:var(--gd);margin:3px 0}.g200-card h4{margin:0 0 8px;color:var(--gd)}.g200-card p,.g200-card li{font-size:9px;color:var(--muted);line-height:1.5}.g200-card ul,.g200-card ol{margin:6px 0;padding-left:18px}.g200-kicker{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.g200-health{display:flex;align-items:center;gap:8px}.g200-dot{width:9px;height:9px;border-radius:50%;background:#2d8b57}.g200-dot.warn{background:#d3a522}.g200-dot.bad{background:#c94848}.g200-list{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.g200-row{display:grid;grid-template-columns:minmax(170px,1.5fr) minmax(100px,.8fr) minmax(110px,.8fr) minmax(120px,1fr) auto;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center;font-size:9px}.g200-row:last-child{border-bottom:0}.g200-row strong{color:var(--gd)}.g200-row small{display:block;font-size:8px;color:var(--muted);margin-top:2px}.g200-pill{display:inline-flex;padding:4px 7px;border:1px solid var(--line);border-radius:999px;font-size:8px;background:#f7faf8}.g200-pill.high{background:#fff7e6;border-color:#ead7a6}.g200-pill.critical{background:#fff0f0;border-color:#efc5c5}.g200-actions{display:flex;flex-wrap:wrap;gap:6px}.g200-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 9px;font:inherit;font-size:8px;cursor:pointer}.g200-btn.primary{background:var(--g);border-color:var(--g);color:#fff}.g200-table{width:100%;border-collapse:collapse;font-size:9px}.g200-table th,.g200-table td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.g200-table th{font-size:8px;color:var(--muted)}.g200-empty{padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:9px;text-align:center}.g200-error{padding:10px;border:1px solid #efc5c5;background:#fff4f4;color:#963434;border-radius:11px;font-size:9px}
+      @media(max-width:1000px){.g200-grid{grid-template-columns:repeat(2,1fr)}.g200-3,.g200-2{grid-template-columns:1fr 1fr}.g200-row{grid-template-columns:1.4fr .8fr .8fr}.g200-row .g200-actions{grid-column:1/-1}}
+      @media(max-width:620px){.g200-grid,.g200-3,.g200-2,.g200-row{grid-template-columns:1fr}}
+    `; document.head.appendChild(s);
+  }
+
+  function ensurePage(id,title,subtitle='GMU EduTrans Enterprise Operating System'){
+    if(q(`#${CSS.escape(id)}`)) return q(`#${CSS.escape(id)}`);
+    const host=q('.content')||q('main')||document.body; const el=document.createElement('section'); el.id=id; el.className='page';
+    el.innerHTML=`<div class="page-head"><div><h2>${h(title)}</h2><p>${h(subtitle)}</p></div></div>`; host.appendChild(el); return el;
+  }
+  function ensureNav(id,label,allowed){if(!allowed)return;const nav=q('#nav');if(!nav||q(`#nav [data-page="${id}"]`))return;const b=document.createElement('button');b.type='button';b.dataset.page=id;b.textContent=label;b.addEventListener('click',()=>showPage(id,label));nav.appendChild(b)}
+  function showPage(id,label){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));q(`#${CSS.escape(id)}`)?.classList.add('active');document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(q('#title'))q('#title').textContent=label;refresh()}
+  function mount(pageId,key,html){const p=q(`#${CSS.escape(pageId)}`);if(!p)return;let box=q(`[data-g200="${key}"]`,p);if(!box){box=document.createElement('div');box.className='g200';box.dataset.g200=key;p.appendChild(box)}box.innerHTML=html}
+  function btn(label,attrs='',cls=''){return `<button type="button" class="g200-btn ${cls}" ${attrs}>${h(label)}</button>`}
+  async function select(table,cols='*',builder){let r=db().from(table).select(cols);if(builder)r=builder(r);const {data,error}=await r;if(error)throw error;return Array.isArray(data)?data:[]}
+  async function rpc(fn,args={}){const {data,error}=await db().rpc(fn,args);if(error)throw error;return data}
+
+  async function load(){
+    if(!db()||!role()) return; state.loading=true; state.error=null;
+    try{
+      const self=uid(); const requests=[];
+      if(leader()) requests.push(rpc('internal_enterprise_control_tower').then(x=>state.tower=x));
+      if(leader()||finance()||role()==='Admin') requests.push(select('enterprise_exception_queue','id,exception_key,domain,exception_type,severity,title,description,entity_type,entity_id,assigned_role,assigned_to,due_at,status,resolution,resolved_at,created_at,updated_at',r=>r.order('created_at',{ascending:false}).limit(150)).then(x=>state.exceptions=x));
+      if(leader()) requests.push(select('enterprise_automation_policies','policy_code,domain,trigger_event,action_type,assigned_role,sla_hours,requires_approval,active,severity,description,updated_at',r=>r.eq('active',true).order('domain').order('policy_code')).then(x=>state.policies=x));
+      requests.push(select('staff_probation_checkpoints','id,staff_id,contract_id,checkpoint_day,due_date,status,score,decision,notes,reviewed_at',r=>hr()?r.order('due_date').limit(200):r.eq('staff_id',self).order('due_date')).then(x=>state.probation=x));
+      requests.push(select('staff_leave_balances','id,staff_id,year,leave_type,opening_balance,accrued,used,adjustment,notes,updated_at',r=>hr()?r.eq('year',new Date().getFullYear()).limit(300):r.eq('staff_id',self).eq('year',new Date().getFullYear())).then(x=>state.leaveBalances=x));
+      requests.push(select('staff_contracts','id,staff_id,employment_status,start_date,end_date,position_title,notes,created_at',r=>hr()?r.order('created_at',{ascending:false}).limit(300):r.eq('staff_id',self).order('created_at',{ascending:false})).then(x=>state.contracts=x));
+      requests.push(select('staff_kpis','id,staff_id,period,metric_name,target,actual,unit,score,notes,created_at',r=>hr()?r.order('created_at',{ascending:false}).limit(300):r.eq('staff_id',self).order('created_at',{ascending:false}).limit(100)).then(x=>state.kpis=x));
+      requests.push(select('staff_reviews','id,staff_id,review_period,discipline,quality,communication,responsibility,teamwork,sop_compliance,overall_score,grade,notes,reviewed_at',r=>hr()?r.order('reviewed_at',{ascending:false}).limit(200):r.eq('staff_id',self).order('reviewed_at',{ascending:false}).limit(50)).then(x=>state.reviews=x));
+      requests.push(select('staff_training','id,staff_id,title,provider,training_date,certificate_no,expiry_date,notes,created_at',r=>hr()?r.order('training_date',{ascending:false}).limit(250):r.eq('staff_id',self).order('training_date',{ascending:false})).then(x=>state.training=x));
+      requests.push(select('staff_warnings','id,staff_id,warning_level,incident_date,reason,action_plan,status,created_at',r=>hr()?r.order('created_at',{ascending:false}).limit(150):r.eq('staff_id',self).order('created_at',{ascending:false})).then(x=>state.warnings=x));
+      requests.push(select('staff_offboarding','id,staff_id,last_working_date,handover_complete,access_revoked,notes,created_at',r=>hr()?r.order('created_at',{ascending:false}).limit(100):r.eq('staff_id',self).order('created_at',{ascending:false})).then(x=>state.offboarding=x));
+      requests.push(select('staff_asset_access_handover','id,staff_id,item_type,item_name,reference,lifecycle_stage,status,assigned_at,completed_at,notes,updated_at',r=>hr()?r.order('updated_at',{ascending:false}).limit(250):r.eq('staff_id',self).order('updated_at',{ascending:false})).then(x=>state.assetAccess=x));
+      if(finance()||leader()) requests.push(select('payroll_periods','id,period_start,period_end,status,calculated_at,approved_at,locked_at,paid_at,notes,updated_at',r=>r.order('period_start',{ascending:false}).limit(24)).then(x=>state.payrollPeriods=x));
+      requests.push(select('staff_compensation_profiles','staff_id,compensation_type,base_monthly,transport_per_attendance_day,effective_from,effective_to,status,notes,approved_at,updated_at',r=>r.eq('staff_id',self).limit(1)).then(x=>state.comp=x[0]||null));
+      await Promise.allSettled(requests);
+    }catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}
+  }
+
+  function healthLevel(t){if(!t)return['warn','Menunggu data'];const critical=Number(t.governance?.critical_exceptions||0)+Number(t.quality?.critical_risks||0);const overdue=Number(t.operations?.overdue_tasks||0)+Number(t.sales?.overdue_followups||0);if(critical>0)return['bad','Kritis'];if(overdue>0)return['warn','Perlu Perhatian'];return['','Sehat']}
+  function renderTower(){
+    if(!leader())return; const t=state.tower||{}; const [cls,label]=healthLevel(t);
+    ensurePage('enterpriseControlTower','Enterprise Control Tower','Direktur & Manager • satu layar kesehatan perusahaan');
+    mount('enterpriseControlTower','tower',`${state.error?`<div class="g200-error">${h(state.error)}</div>`:''}<div class="g200-grid">
+      <div class="g200-card"><small>Kesehatan Perusahaan</small><div class="g200-health"><span class="g200-dot ${cls}"></span><b>${h(label)}</b></div><p>Berbasis exception, overdue, risk dan control data.</p></div>
+      <div class="g200-card"><small>Open Lead</small><b>${Number(t.sales?.open_leads||0)}</b><p>${Number(t.sales?.unassigned_leads||0)} belum punya PIC • ${Number(t.sales?.overdue_followups||0)} follow-up terlambat</p></div>
+      <div class="g200-card"><small>Weighted Pipeline</small><b>${money(t.sales?.weighted_pipeline)}</b><p>Nilai pipeline × probability.</p></div>
+      <div class="g200-card"><small>Tugas Operasional</small><b>${Number(t.operations?.open_tasks||0)}</b><p>${Number(t.operations?.overdue_tasks||0)} overdue • ${Number(t.operations?.unresolved_incidents||0)} insiden belum selesai</p></div>
+      <div class="g200-card"><small>SDM Aktif</small><b>${Number(t.people?.active_staff||0)}</b><p>${Number(t.people?.probation_due||0)} probation due • ${Number(t.people?.contracts_expiring_30d||0)} kontrak ≤30 hari</p></div>
+      <div class="g200-card"><small>Mutu & Risiko</small><b>${Number(t.quality?.open_capa||0)} CAPA</b><p>${Number(t.quality?.open_tickets||0)} tiket terbuka • ${Number(t.quality?.critical_risks||0)} risiko kritis</p></div>
+      <div class="g200-card"><small>Payroll & Closing</small><b>${Number(t.finance?.open_payroll_entries||0)}</b><p>${Number(t.finance?.open_payroll_periods||0)} periode payroll terbuka • ${Number(t.finance?.unclosed_finance_periods||0)} periode finance belum lock</p></div>
+      <div class="g200-card"><small>Governance</small><b>${Number(t.governance?.open_exceptions||0)} exception</b><p>${Number(t.governance?.critical_exceptions||0)} critical • ${Number(t.governance?.pending_approvals||0)} approval pending</p></div>
+    </div><div class="g200-3" style="margin-top:10px"><div class="g200-card"><h4>Revenue Engine</h4><p>Lead → Quote → DP → Booking → Repeat Order. Fokus pada unassigned, overdue, conversion dan pipeline gap.</p><div class="g200-actions">${btn('CRM & Target','data-g200-go="salesTargetControl"')}</div></div><div class="g200-card"><h4>Delivery Engine</h4><p>Booking → H-7/H-3/H-1 → Trip → Actual Cost → Closing. Exception menjadi tugas, bukan chat tercecer.</p><div class="g200-actions">${btn('Tugas Otomatis','data-g200-go="taskAutomationControl"')}</div></div><div class="g200-card"><h4>People Engine</h4><p>Recruitment → Contract → Probation → KPI → Payroll → Development → Offboarding.</p><div class="g200-actions">${btn('People OS','data-g200-go="enterprisePeopleOS"')}</div></div></div>`);
+  }
+
+  function renderExceptions(){
+    if(!(leader()||finance()||role()==='Admin'))return; ensurePage('enterpriseExceptionCenter','Exception Center','Masalah penting yang membutuhkan tindakan manusia');
+    const open=state.exceptions.filter(x=>!['RESOLVED','DISMISSED'].includes(String(x.status)));
+    const rows=open.slice(0,100).map(x=>`<div class="g200-row"><div><strong>${h(x.title)}</strong><small>${h(x.domain)} • ${h(x.description||x.exception_type)}</small></div><div><span class="g200-pill ${String(x.severity).toLowerCase()}">${h(x.severity)}</span></div><div>${h(x.assigned_role||'—')}</div><div>${dt(x.due_at)}</div><div class="g200-actions">${leader()?btn('Proses',`data-g200-ex-status="IN_PROGRESS" data-id="${h(x.id)}"`):''}${leader()?btn('Selesaikan',`data-g200-ex-status="RESOLVED" data-id="${h(x.id)}"`,'primary'):''}</div></div>`).join('');
+    mount('enterpriseExceptionCenter','exceptions',`<div class="g200-grid"><div class="g200-card"><small>Exception terbuka</small><b>${open.length}</b></div><div class="g200-card"><small>Critical</small><b>${open.filter(x=>x.severity==='CRITICAL').length}</b></div><div class="g200-card"><small>Overdue</small><b>${open.filter(x=>x.due_at&&new Date(x.due_at)<new Date()).length}</b></div><div class="g200-card"><small>Prinsip</small><b>Exception Only</b><p>Direktur fokus pada penyimpangan strategis, bukan rutinitas.</p></div></div><div class="g200-list" style="margin-top:10px">${rows||'<div class="g200-empty">Tidak ada exception aktif.</div>'}</div>`);
+  }
+
+  function renderPeople(){
+    ensurePage('enterprisePeopleOS',hr()?'People OS — Seluruh SDM':'People OS Saya',hr()?'HRIS lifecycle & workforce control':'Kontrak, KPI, pengembangan, kompensasi dan akses saya');
+    const selfOnly=!hr(); const cp=state.comp; const pendingProb=state.probation.filter(x=>['PENDING','DUE'].includes(x.status)); const activeWarnings=state.warnings.filter(x=>!['CLOSED','RESOLVED'].includes(String(x.status).toUpperCase()));
+    const avgKpi=state.kpis.length?state.kpis.reduce((a,x)=>a+Number(x.score||0),0)/state.kpis.length:null; const latestReview=state.reviews[0];
+    const cards=`<div class="g200-grid"><div class="g200-card"><small>${selfOnly?'Kontrak Saya':'Kontrak tercatat'}</small><b>${state.contracts.length}</b><p>${selfOnly&&state.contracts[0]?`${h(state.contracts[0].position_title||'')} • ${h(state.contracts[0].employment_status||'')}`:'Lifecycle kontrak & masa kerja.'}</p></div><div class="g200-card"><small>Probation / Checkpoint</small><b>${pendingProb.length}</b><p>30/60/90 hari yang belum selesai.</p></div><div class="g200-card"><small>KPI</small><b>${avgKpi===null?'—':avgKpi.toFixed(1)}</b><p>${state.kpis.length} metric tercatat.</p></div><div class="g200-card"><small>Review Terakhir</small><b>${latestReview?.overall_score??'—'}</b><p>${h(latestReview?.grade||'Belum ada review')}</p></div><div class="g200-card"><small>Training</small><b>${state.training.length}</b><p>Sertifikasi & pengembangan kompetensi.</p></div><div class="g200-card"><small>Warning Aktif</small><b>${activeWarnings.length}</b><p>Coaching/PIP/discipline harus terdokumentasi.</p></div><div class="g200-card"><small>Asset & Access</small><b>${state.assetAccess.filter(x=>!['RETURNED','REVOKED','CLOSED'].includes(x.status)).length}</b><p>Onboarding/offboarding handover.</p></div><div class="g200-card"><small>Kompensasi</small><b>${cp?h(cp.compensation_type):'—'}</b><p>${cp?`${money(cp.base_monthly)} + transport ${money(cp.transport_per_attendance_day)}/hari hadir`:'Belum ada profil kompensasi aktif.'}</p></div></div>`;
+    const probationRows=state.probation.slice(0,30).map(x=>`<tr><td>${x.checkpoint_day} hari</td><td>${d(x.due_date)}</td><td>${h(x.status)}</td><td>${x.score??'—'}</td><td>${h(x.decision||'—')}</td></tr>`).join('');
+    const kpiRows=state.kpis.slice(0,30).map(x=>`<tr><td>${h(x.period)}</td><td>${h(x.metric_name)}</td><td>${x.actual??'—'} / ${x.target??'—'} ${h(x.unit||'')}</td><td>${x.score??'—'}</td></tr>`).join('');
+    mount('enterprisePeopleOS','people',`${cards}<div class="g200-2" style="margin-top:10px"><div class="g200-card"><h4>Probation 30/60/90</h4><table class="g200-table"><thead><tr><th>Checkpoint</th><th>Jatuh tempo</th><th>Status</th><th>Score</th><th>Keputusan</th></tr></thead><tbody>${probationRows||'<tr><td colspan="5">Belum ada checkpoint.</td></tr>'}</tbody></table></div><div class="g200-card"><h4>KPI & Performance</h4><table class="g200-table"><thead><tr><th>Periode</th><th>Metric</th><th>Aktual/Target</th><th>Score</th></tr></thead><tbody>${kpiRows||'<tr><td colspan="4">Belum ada KPI.</td></tr>'}</tbody></table></div></div><div class="g200-3" style="margin-top:10px"><div class="g200-card"><h4>Lifecycle</h4><ol><li>Recruitment & approval</li><li>Contract & onboarding</li><li>Probation 30/60/90</li><li>Attendance, leave & assignment</li><li>KPI & performance review</li><li>Payroll/fee & development</li><li>Warning/PIP bila perlu</li><li>Offboarding + revoke access</li></ol></div><div class="g200-card"><h4>My Employee Experience</h4><ul><li>Jobdesk & SOP</li><li>Tugas hari ini</li><li>KPI & target</li><li>Cuti & kehadiran</li><li>Payroll/fee</li><li>Training & review</li><li>Kontrak & akses</li></ul></div><div class="g200-card"><h4>Aturan</h4><p>AI boleh memberi rekomendasi staffing, coaching dan risiko. Keputusan kontrak, disiplin, kompensasi dan PHK tetap manusia serta mengikuti hukum yang berlaku.</p><div class="g200-actions">${btn('Jobdesk & SOP','data-g200-go="rolePlaybook"')}${btn('Tugas Saya','data-g200-go="myTasksHub"')}</div></div></div>`);
+  }
+
+  function renderAutomation(){
+    if(!leader())return; ensurePage('enterpriseAutomationMap','Automation Map','Policy lintas divisi • trigger → action → owner → SLA');
+    const rows=state.policies.map(x=>`<tr><td>${h(x.domain)}</td><td>${h(x.trigger_event)}</td><td>${h(x.action_type)}</td><td>${h(x.assigned_role||'—')}</td><td>${Number(x.sla_hours||0)} jam</td><td>${x.requires_approval?'Ya':'Tidak'}</td><td><span class="g200-pill ${String(x.severity).toLowerCase()}">${h(x.severity)}</span></td></tr>`).join('');
+    mount('enterpriseAutomationMap','map',`<div class="g200-card"><h4>Enterprise Flow</h4><p><b>Lead → Quote → DP → Booking → Ops → Crew/Vendor → Trip → Actual Cost → Payroll → Closing → Feedback/CAPA → Repeat Order.</b></p><p>Perubahan bisnis menghasilkan event, task, approval, notification atau exception. Aksi sensitif tetap membutuhkan manusia.</p></div><div class="g200-card" style="margin-top:10px;overflow:auto"><table class="g200-table"><thead><tr><th>Domain</th><th>Trigger</th><th>Aksi</th><th>Owner</th><th>SLA</th><th>Approval</th><th>Severity</th></tr></thead><tbody>${rows||'<tr><td colspan="7">Policy belum tersedia.</td></tr>'}</tbody></table></div>`);
+  }
+
+  function render(){installStyle();renderTower();renderExceptions();renderPeople();renderAutomation()}
+
+  async function updateException(id,status){
+    if(!leader())return; const values={status,updated_at:new Date().toISOString()}; if(status==='RESOLVED'){values.resolved_by=uid();values.resolved_at=new Date().toISOString();values.resolution='Diselesaikan melalui Enterprise Exception Center';}
+    const {error}=await db().from('enterprise_exception_queue').update(values).eq('id',id); if(error)throw error; await load();
+  }
+
+  function nav(){const r=role();ensureNav('enterpriseControlTower','Enterprise Control Tower',LEADERS.has(r));ensureNav('enterprisePeopleOS',HR_ROLES.has(r)?'People OS':'People OS Saya',!!r);ensureNav('enterpriseExceptionCenter','Exception Center',LEADERS.has(r)||FINANCE_ROLES.has(r)||r==='Admin');ensureNav('enterpriseAutomationMap','Automation Map',LEADERS.has(r))}
+  function go(id){const b=q(`#nav [data-page="${CSS.escape(id)}"]`);if(b){b.click();return}const labels={enterprisePeopleOS:'People OS',salesTargetControl:'Target & Kinerja',taskAutomationControl:'Tugas Otomatis',rolePlaybook:'Jobdesk & SOP Saya',myTasksHub:'Tugas Saya'};showPage(id,labels[id]||id)}
+
+  function init(){
+    let tries=0; const timer=setInterval(()=>{tries++;if(role()&&q('#nav')){clearInterval(timer);nav();render();load()}if(tries>60)clearInterval(timer)},250);
+    document.addEventListener('click',async e=>{const g=e.target.closest('[data-g200-go]');if(g){go(g.dataset.g200Go);return}const x=e.target.closest('[data-g200-ex-status]');if(x){x.disabled=true;try{await updateException(x.dataset.id,x.dataset.g200ExStatus)}catch(err){alert(err?.message||String(err))}finally{x.disabled=false}}});
+    setInterval(()=>{if(role())load()},60000);
+  }
+
+  window.GmuEnterpriseOS=Object.freeze({version:VERSION,refresh:load,show:id=>go(id)});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+
+/* ===== business-priority-v201.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v20.1-business-priority-command';
+  const ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const q = (s,r=document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money = v => v == null ? '—' : 'Rp ' + Number(v || 0).toLocaleString('id-ID');
+  const num = v => Number(v || 0).toLocaleString('id-ID',{maximumFractionDigits:1});
+  let state = null;
+  let loading = false;
+  let error = null;
+
+  function role(){ try{return String(profile?.role||'')}catch(_){return ''} }
+  function db(){ try{return typeof sb!=='undefined'&&sb?.rpc?sb:null}catch(_){return null} }
+  function allowed(){ return ROLES.has(role()); }
+
+  function style(){
+    if(q('#gmuPriority201Style')) return;
+    const s=document.createElement('style'); s.id='gmuPriority201Style'; s.textContent=`
+      .gp201-hero{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.gp201-hero h2{margin:0;color:var(--gd)}.gp201-hero p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:760px;line-height:1.55}
+      .gp201-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.gp201-card{border:1px solid var(--line);border-radius:15px;background:#fff;padding:13px;min-width:0}.gp201-card h4{margin:5px 0 8px;color:var(--gd)}.gp201-card p{font-size:9px;line-height:1.55;color:var(--muted);margin:5px 0}.gp201-kicker{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.gp201-status{display:inline-flex;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:900;border:1px solid var(--line)}.gp201-ok{background:#eef9f1;color:#25643a}.gp201-warn{background:#fff8e9;color:#895d14}.gp201-bad{background:#fff1f1;color:#a33434}.gp201-neutral{background:#f5f7f6;color:#66746d}
+      .gp201-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px}.gp201-metric{background:#f8fbf9;border-radius:10px;padding:8px}.gp201-metric small{display:block;font-size:7px;color:var(--muted)}.gp201-metric b{display:block;font-size:13px;color:var(--gd);margin-top:2px}.gp201-progress{height:7px;background:#edf1ef;border-radius:999px;overflow:hidden;margin-top:5px}.gp201-progress span{display:block;height:100%;background:var(--g);border-radius:999px}.gp201-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.gp201-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 9px;font:inherit;font-size:8px;cursor:pointer}.gp201-btn.primary{background:var(--g);border-color:var(--g);color:#fff}.gp201-order{display:flex;gap:6px;flex-wrap:wrap}.gp201-order span{font-size:8px;padding:5px 7px;border-radius:999px;background:#f4f8f6;border:1px solid var(--line)}.gp201-note{margin-top:12px;border-radius:13px;padding:11px;background:#f4f8f6;font-size:9px;line-height:1.6}.gp201-error{border:1px solid #efc5c5;background:#fff4f4;color:#963434;padding:10px;border-radius:12px;font-size:9px}
+      @media(max-width:980px){.gp201-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.gp201-grid{grid-template-columns:1fr}.gp201-metrics{grid-template-columns:1fr}}
+    `; document.head.appendChild(s);
+  }
+
+  function badge(text,kind='neutral'){return `<span class="gp201-status gp201-${kind}">${h(text)}</span>`}
+  function progress(actual,target){const p=target?Math.max(0,Math.min(100,Number(actual||0)/Number(target)*100)):0;return `<div class="gp201-progress"><span style="width:${p}%"></span></div>`}
+  function metric(label,value,sub=''){return `<div class="gp201-metric"><small>${h(label)}</small><b>${h(value)}</b>${sub?`<small>${h(sub)}</small>`:''}</div>`}
+
+  function statusSales(s){const a=s?.actual||{},p=s?.prorated||{}; if((a.prospects||0)<Math.max(1,(p.prospects||0)*.5)||s?.unassigned>0)return ['KRITIS','bad']; if((a.prospects||0)<(p.prospects||0)||s?.overdue_followups>0)return ['PERLU AKSI','warn']; return ['TERKENDALI','ok']}
+  function statusProfit(p){if(!p?.data_ready)return ['DATA BELUM SIAP','neutral']; if((p.low_margin_trips||0)>0||(p.avg_margin_pct||0)<20)return ['KRITIS','bad']; if((p.avg_margin_pct||0)<25)return ['REVIEW','warn']; return ['SEHAT','ok']}
+  function statusFinance(f){if(!f?.period_ready)return ['PERIODE BELUM SIAP','bad']; if((f.overdue_invoice_count||0)>0)return ['PIUTANG OVERDUE','warn']; return ['TERKENDALI','ok']}
+  function statusPackage(p){return p?.ready?['SIAP JUAL','ok']:['BELUM SIAP','warn']}
+  function statusAI(a){if((a?.critical_exceptions||0)>0)return ['ESKALASI','bad']; if((a?.open_exceptions||0)>0)return ['TINDAKAN','warn']; return ['NORMAL','ok']}
+
+  function cardSales(s){const st=statusSales(s),a=s?.actual||{},p=s?.prorated||{};return `<div class="gp201-card"><div class="gp201-kicker">1 • Sales Engine</div><h4>Aktivitas → Pipeline → Booking</h4>${badge(st[0],st[1])}<div class="gp201-metrics">${metric('Prospek bulan ini',`${a.prospects||0} / ${p.prospects||0}`,'aktual / target prorata')}${metric('Peluang potensial',`${a.qualified||0} / ${p.qualified||0}`)}${metric('Penawaran',`${a.quotations||0} / ${p.quotations||0}`)}${metric('Booking sehat',`${a.bookings||0} / ${p.bookings||0}`)}${metric('Lead tanpa PIC',s?.unassigned||0)}${metric('Follow-up overdue',s?.overdue_followups||0)}</div>${progress(a.prospects,p.prospects)}<p>Weighted pipeline: <b>${money(s?.weighted_pipeline)}</b>. Sistem memprioritaskan pembagian PIC, follow-up, dan recovery sebelum ekspansi.</p><div class="gp201-actions"><button class="gp201-btn primary" data-jump="Target & Kinerja">Buka Sales</button></div></div>`}
+  function cardProfit(p){const st=statusProfit(p);return `<div class="gp201-card"><div class="gp201-kicker">2 • Profitability</div><h4>Omzet bukan tujuan tanpa laba</h4>${badge(st[0],st[1])}<div class="gp201-metrics">${metric('Target laba bersih',money(p?.target_net_profit))}${metric('Laba bulan ini',money(p?.month_net_profit))}${metric('Gap laba',money(p?.profit_gap))}${metric('Margin rata-rata',p?.avg_margin_pct==null?'—':`${num(p.avg_margin_pct)}%`)}${metric('Required booking',p?.required_bookings==null?'—':p.required_bookings)}${metric('Required revenue',p?.required_revenue==null?'—':money(p.required_revenue))}</div><p>${p?.data_ready?'Perhitungan required booking/revenue memakai histori closing nyata.':'Belum ada histori closing profit yang cukup. ERP tidak mengarang required booking/revenue; Finance wajib membangun baseline dari Trip Closing.'}</p><div class="gp201-actions"><button class="gp201-btn" data-jump="Keuangan">Buka Keuangan</button></div></div>`}
+  function cardFinance(f){const st=statusFinance(f);return `<div class="gp201-card"><div class="gp201-kicker">3 • Finance Closing</div><h4>Kas, piutang & periode</h4>${badge(st[0],st[1])}<div class="gp201-metrics">${metric('Periode bulan ini',f?.current_period_status||'MISSING')}${metric('Invoice overdue',f?.overdue_invoice_count||0)}${metric('Piutang overdue',money(f?.overdue_ar_amount))}${metric('Period ready',f?.period_ready?'YA':'TIDAK')}</div><p>Periode bulanan dibuka otomatis. Closing tetap membutuhkan data biaya aktual, pembayaran, rekonsiliasi, dan approval yang benar.</p><div class="gp201-actions"><button class="gp201-btn" data-jump="Accounting">Buka Accounting</button><button class="gp201-btn" data-jump="Kas & Likuiditas">Kas</button></div></div>`}
+  function cardPackage(p){const st=statusPackage(p);return `<div class="gp201-card"><div class="gp201-kicker">4 • Master Paket</div><h4>Satu sumber harga & biaya</h4>${badge(st[0],st[1])}<div class="gp201-metrics">${metric('Paket aktif',p?.active_packages||0)}${metric('Belum approved',p?.unapproved_packages||0)}${metric('Belum punya cost template',p?.uncosted_packages||0)}${metric('Siap dijual',p?.ready?'YA':'BELUM')}</div><p>Paket hanya dianggap siap bila aktif, approved, dan mempunyai cost template internal aktif.</p><div class="gp201-actions"><button class="gp201-btn primary" data-jump="Master Paket">Master Paket</button></div></div>`}
+  function cardAI(a){const st=statusAI(a);return `<div class="gp201-card"><div class="gp201-kicker">5 • Manager AI</div><h4>Exception → Recovery Plan</h4>${badge(st[0],st[1])}<div class="gp201-metrics">${metric('Draft tindakan AI',a?.open_action_drafts||0)}${metric('Exception terbuka',a?.open_exceptions||0)}${metric('Exception kritis',a?.critical_exceptions||0)}${metric('Approval manusia','WAJIB','untuk aksi sensitif')}</div><p>AI menyusun recovery plan dari masalah nyata. Pengeluaran, refund, payroll, perubahan harga, margin kritis, dan keputusan irreversible tetap melalui manusia.</p><div class="gp201-actions"><button class="gp201-btn" data-jump="Pusat AI">Pusat AI</button><button class="gp201-btn" data-jump="Exception Center">Exception</button></div></div>`}
+  function cardExecutive(e){const kind=e?.status==='CRITICAL'?'bad':e?.status==='ACTION_REQUIRED'?'warn':'ok';return `<div class="gp201-card"><div class="gp201-kicker">6 • Executive Control Tower</div><h4>Direktur fokus exception & hasil</h4>${badge(e?.status||'—',kind)}<div class="gp201-metrics">${metric('Target laba bersih',money(e?.net_profit_target))}${metric('Critical exception',e?.critical_exceptions||0)}</div><p>Urutan pemulihan dikunci agar perusahaan tidak sibuk di banyak hal sekaligus.</p><div class="gp201-order">${(e?.priority_order||[]).map((x,i)=>`<span>${i+1}. ${h(x)}</span>`).join('')}</div><div class="gp201-actions"><button class="gp201-btn primary" data-jump="Enterprise Control Tower">Control Tower</button></div></div>`}
+
+  function render(){
+    const host=q('#businessPriority201'); if(!host)return;
+    const body=q('[data-priority-body]',host); if(!body)return;
+    if(loading){body.innerHTML='<div class="gp201-note">Memuat prioritas bisnis aktual…</div>';return}
+    if(error){body.innerHTML=`<div class="gp201-error">${h(error)}</div>`;return}
+    if(!state){body.innerHTML='<div class="gp201-note">Data prioritas belum tersedia.</div>';return}
+    body.innerHTML=`<div class="gp201-grid">${cardSales(state.sales)}${cardProfit(state.profitability)}${cardFinance(state.finance_closing)}${cardPackage(state.master_package)}${cardAI(state.manager_ai)}${cardExecutive(state.executive)}</div><div class="gp201-note"><b>Prinsip v20.1:</b> Sales Engine → Profitability → Finance Closing → Master Paket → Manager AI → Executive Control Tower. Required revenue/booking hanya dihitung jika histori profitability nyata tersedia.</div>`;
+    body.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>jump(b.dataset.jump)));
+  }
+
+  async function load(){
+    if(!allowed()||!db()||loading)return; loading=true;error=null;render();
+    try{const {data,error:e}=await db().rpc('internal_gmu_priority_command',{p_as_of:new Date().toISOString().slice(0,10)});if(e)throw e;state=data||null}catch(e){error=e?.message||String(e)}finally{loading=false;render()}
+  }
+
+  function jump(text){
+    const btn=[...document.querySelectorAll('#nav [data-page]')].find(x=>String(x.textContent||'').toLowerCase().includes(String(text||'').toLowerCase()));
+    if(btn){btn.click();return true} return false;
+  }
+
+  function show(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));q('#businessPriority201')?.classList.add('active');document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='businessPriority201'));const t=q('#title');if(t)t.textContent='Prioritas Bisnis';load();
+  }
+
+  function install(){
+    if(!allowed()||q('#businessPriority201'))return;style();const content=q('.content');const nav=q('#nav');if(!content||!nav)return;
+    const page=document.createElement('section');page.id='businessPriority201';page.className='page';page.innerHTML=`<div class="card section"><div class="gp201-hero"><div><div class="gp201-kicker">GMU EduTrans • ${VERSION}</div><h2>Prioritas Bisnis</h2><p>Enam kontrol yang paling menentukan pemulihan GMU. Halaman ini sengaja ringkas: angka aktual, gap, status, dan jalur tindakan.</p></div><button type="button" class="gp201-btn" data-refresh>Refresh</button></div><div data-priority-body></div></div>`;content.appendChild(page);
+    q('[data-refresh]',page)?.addEventListener('click',load);
+    const b=document.createElement('button');b.type='button';b.dataset.page='businessPriority201';b.textContent='◆  Prioritas Bisnis';b.addEventListener('click',show);nav.prepend(b);
+    load();
+  }
+
+  function init(){
+    const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,60000)},250);
+    window.GmuBusinessPriority=Object.freeze({version:VERSION,show,load,jump});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+/* ===== recovery-command-v202.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v20.2-recovery-accountability-command';
+  const ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const OPEN_EXCEPTION = new Set(['OPEN','IN_PROGRESS','WAITING']);
+  const q = (s,r=document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const dt = v => v ? new Date(v).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}) : '—';
+  const todayKey = () => new Date().toISOString().slice(0,10);
+  const state = {exceptions:[],tasks:[],loading:false,error:null,syncing:false};
+
+  function role(){ try{return String(profile?.role||'')}catch(_){return ''} }
+  function uid(){ try{return String(profile?.id||user?.id||'')}catch(_){return ''} }
+  function db(){ try{return typeof sb!=='undefined'&&sb?.from?sb:null}catch(_){return null} }
+  function allowed(){ return ROLES.has(role()); }
+
+  function recoverySpec(e){
+    const type=String(e?.exception_type||'').toUpperCase();
+    const domain=String(e?.domain||'').toUpperCase();
+    if(type==='SALES_TARGET_GAP') return {action:'Susun recovery prospek harian, bagi target ke Sales, dan pastikan aktivitas tercatat setiap hari.',target:'Aktivitas Sales kembali minimal sesuai target prorata.',check:'Bandingkan prospek aktual dengan target prorata pada Prioritas Bisnis.'};
+    if(type==='FOLLOWUP_OVERDUE') return {action:'Tuntaskan seluruh follow-up overdue, tetapkan next action dan tanggal tindak lanjut baru untuk setiap lead.',target:'Follow-up overdue = 0.',check:'Cek CRM dan daftar follow-up yang melewati jadwal.'};
+    if(type==='AR_OVERDUE') return {action:'Validasi saldo piutang, hubungi customer, catat komitmen bayar, dan eskalasi hambatan pembayaran.',target:'Piutang overdue turun dan setiap invoice memiliki tindak lanjut yang jelas.',check:'Cek AR Aging dan pembayaran terverifikasi.'};
+    if(type==='TRIP_PROFIT_NOT_CLOSED') return {action:'Lengkapi biaya aktual, pendapatan, fee/payroll terkait kegiatan, lalu selesaikan Trip Closing.',target:'Seluruh kegiatan Closed memiliki profitability closing.',check:'Cek Trip Closing dan laporan laba kegiatan.'};
+    if(type==='LOW_MARGIN') return {action:'Analisis penyebab margin rendah, pisahkan cost overrun vs pricing issue, lalu buat tindakan koreksi sebelum paket dijual kembali.',target:'Tidak ada kegiatan/paket berulang dengan margin di bawah standar tanpa approval.',check:'Margin sehat minimal 25%; margin <20% wajib eskalasi Direktur.'};
+    if(type==='PACKAGE_NOT_READY') return {action:'Lengkapi approval paket, cost template aktif, harga minimum, dan validasi margin sebelum paket dijual.',target:'Semua paket aktif siap dijual secara komersial.',check:'Cek Master Paket: aktif + approved + cost template aktif.'};
+    if(domain==='SALES') return {action:'Pulihkan gap Sales dan dokumentasikan next action.',target:'KPI Sales kembali sesuai target berjalan.',check:'Cek Sales Engine dan CRM.'};
+    if(domain==='FINANCE') return {action:'Selesaikan exception Finance dan bukti closing/rekonsiliasinya.',target:'Tidak ada exception Finance prioritas yang terbuka.',check:'Cek Finance Closing, AR/AP dan periode.'};
+    return {action:'Analisis akar masalah, tetapkan tindakan koreksi, PIC dan deadline, lalu dokumentasikan bukti hasil.',target:'Exception prioritas tidak lagi aktif.',check:'Status exception harus pulih dari data sumber, bukan ditutup manual.'};
+  }
+
+  function taskKey(e){ return `v202-recovery:${e.id}:${todayKey()}`; }
+  function priority(e){ return String(e?.severity||'HIGH').toUpperCase()==='CRITICAL'?'CRITICAL':'HIGH'; }
+
+  async function selectExceptions(){
+    const {data,error}=await db().from('enterprise_exception_queue')
+      .select('id,exception_key,domain,exception_type,severity,title,description,assigned_role,assigned_to,due_at,status,created_at,updated_at')
+      .in('status',[...OPEN_EXCEPTION]).in('severity',['HIGH','CRITICAL'])
+      .order('severity',{ascending:true}).order('due_at',{ascending:true}).limit(150);
+    if(error) throw error; return Array.isArray(data)?data:[];
+  }
+
+  async function selectTasks(){
+    const {data,error}=await db().from('automation_tasks')
+      .select('id,task_key,assigned_to,assigned_role,task_type,title,description,due_at,priority,status,evidence_required,evidence,completed_at,created_at,updated_at')
+      .eq('task_type','RECOVERY_ACTION').like('task_key','v202-recovery:%')
+      .order('created_at',{ascending:false}).limit(250);
+    if(error) throw error; return Array.isArray(data)?data:[];
+  }
+
+  async function ensureRecoveryTasks(exceptions,tasks){
+    if(state.syncing||!exceptions.length) return;
+    const keys=new Set(tasks.map(x=>x.task_key));
+    const missing=exceptions.filter(e=>!keys.has(taskKey(e)));
+    if(!missing.length) return;
+    state.syncing=true;
+    try{
+      const rows=missing.map(e=>{
+        const s=recoverySpec(e);
+        return {
+          task_key:taskKey(e), assigned_to:e.assigned_to||null, assigned_role:e.assigned_role||'Manager',
+          task_type:'RECOVERY_ACTION', title:`Recovery: ${e.title}`,
+          description:`MASALAH: ${e.description||e.title}\nTINDAKAN: ${s.action}\nTARGET HASIL: ${s.target}\nEVALUASI: ${s.check}\nSUMBER EXCEPTION: ${e.exception_key}`,
+          due_at:e.due_at||new Date(Date.now()+4*3600000).toISOString(), priority:priority(e), status:'OPEN',
+          evidence_required:true, approval_required:false,
+          evidence:{source:'GMU v20.2 Recovery Command',exception_id:e.id,exception_key:e.exception_key,generated_on:todayKey()}
+        };
+      });
+      const {error}=await db().from('automation_tasks').insert(rows);
+      if(error && !String(error.code||'').includes('23505')) throw error;
+    } finally { state.syncing=false; }
+  }
+
+  async function load(){
+    if(!allowed()||!db()||state.loading) return;
+    state.loading=true; state.error=null; render();
+    try{
+      let [exceptions,tasks]=await Promise.all([selectExceptions(),selectTasks()]);
+      await ensureRecoveryTasks(exceptions,tasks);
+      tasks=await selectTasks();
+      state.exceptions=exceptions; state.tasks=tasks;
+    }catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}
+  }
+
+  function activeTaskFor(e){
+    const prefix=`v202-recovery:${e.id}:`;
+    return state.tasks.find(t=>String(t.task_key||'').startsWith(prefix) && t.task_key===taskKey(e)) || state.tasks.find(t=>String(t.task_key||'').startsWith(prefix));
+  }
+  function overdue(t){return t?.due_at && new Date(t.due_at)<new Date() && !['DONE','CANCELLED'].includes(t.status)}
+  function badge(text,kind='neutral'){return `<span class="gr202-pill ${kind}">${h(text)}</span>`}
+
+  function row(e){
+    const t=activeTaskFor(e), s=recoverySpec(e); const critical=e.severity==='CRITICAL';
+    const taskStatus=t?.status||'BELUM DIBUAT'; const due=t?.due_at||e.due_at;
+    const kind=critical?'bad':overdue(t)?'bad':taskStatus==='DONE'?'ok':'warn';
+    return `<div class="gr202-row">
+      <div><div class="gr202-kicker">${h(e.domain)} • ${h(e.exception_type)}</div><strong>${h(e.title)}</strong><p>${h(e.description||'')}</p></div>
+      <div>${badge(e.severity,critical?'bad':'warn')}<small>PIC: ${h(t?.assigned_role||e.assigned_role||'Manager')}</small><small>Deadline: ${h(dt(due))}</small></div>
+      <div><b>${h(s.action)}</b><small>Target: ${h(s.target)}</small><small>Evaluasi: ${h(s.check)}</small></div>
+      <div>${badge(taskStatus,kind)}<div class="gr202-actions">${t&&['OPEN','OVERDUE'].includes(t.status)?`<button data-start="${h(t.id)}">Mulai</button>`:''}${t&&['OPEN','IN_PROGRESS','OVERDUE','WAITING_APPROVAL'].includes(t.status)?`<button class="primary" data-done="${h(t.id)}">Selesai + Bukti</button>`:''}</div></div>
+    </div>`;
+  }
+
+  function render(){
+    const body=q('[data-recovery-body]'); if(!body)return;
+    if(state.loading){body.innerHTML='<div class="gr202-note">Menyusun Recovery Command dari exception aktual…</div>';return}
+    if(state.error){body.innerHTML=`<div class="gr202-error">${h(state.error)}</div>`;return}
+    const open=state.exceptions.length, critical=state.exceptions.filter(x=>x.severity==='CRITICAL').length;
+    const active=state.tasks.filter(x=>['OPEN','IN_PROGRESS','OVERDUE','WAITING_APPROVAL'].includes(x.status)).length;
+    const late=state.tasks.filter(overdue).length;
+    const director=state.exceptions.filter(x=>['Director','Direktur','Owner'].includes(x.assigned_role)).length;
+    body.innerHTML=`<div class="gr202-metrics">
+      <div><small>Exception Prioritas</small><b>${open}</b></div><div><small>Kritis</small><b>${critical}</b></div><div><small>Tugas Recovery Aktif</small><b>${active}</b></div><div><small>Terlambat</small><b>${late}</b></div>
+    </div>
+    <div class="gr202-director ${director?'warn':''}"><b>${director?`${director} tindakan membutuhkan Direktur`:'TIDAK ADA TINDAKAN DIREKTUR'}</b><span>${director?'Hanya exception strategis/kritis yang dinaikkan.':'Operasional tetap menjadi tanggung jawab Manager dan tim.'}</span></div>
+    <div class="gr202-note"><b>Formula v20.2:</b> MASALAH → PENYEBAB/DATA → PIC → TINDAKAN → DEADLINE → TARGET HASIL → BUKTI → EVALUASI. Task selesai tidak otomatis menutup exception; exception hanya pulih jika angka/data sumber sudah sehat.</div>
+    <div class="gr202-list">${open?state.exceptions.map(row).join(''):'<div class="gr202-empty">Tidak ada exception HIGH/CRITICAL. Sistem dalam kondisi terkendali.</div>'}</div>`;
+    body.querySelectorAll('[data-start]').forEach(b=>b.addEventListener('click',()=>setStatus(b.dataset.start,'IN_PROGRESS')));
+    body.querySelectorAll('[data-done]').forEach(b=>b.addEventListener('click',()=>complete(b.dataset.done)));
+  }
+
+  async function setStatus(id,status){
+    const {error}=await db().from('automation_tasks').update({status,updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){alert(`Gagal memperbarui tugas: ${error.message||error}`);return} await load();
+  }
+  async function complete(id){
+    const summary=prompt('Bukti/hasil tindakan yang sudah dilakukan:'); if(!summary||!summary.trim())return;
+    const task=state.tasks.find(x=>x.id===id); const evidence={...(task?.evidence||{}),completion_summary:summary.trim(),completed_via:VERSION,completed_at:new Date().toISOString()};
+    const {error}=await db().from('automation_tasks').update({status:'DONE',evidence,completed_by:uid()||null,completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){alert(`Gagal menyelesaikan tugas: ${error.message||error}`);return} await load();
+  }
+
+  function style(){
+    if(q('#gmuRecovery202Style'))return; const s=document.createElement('style');s.id='gmuRecovery202Style';s.textContent=`
+      .gr202-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.gr202-head h2{margin:0;color:var(--gd)}.gr202-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:760px}.gr202-head button,.gr202-actions button{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 9px;font:inherit;font-size:8px;cursor:pointer}.gr202-actions button.primary{background:var(--g);border-color:var(--g);color:#fff}.gr202-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.gr202-metrics>div{padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}.gr202-metrics small{display:block;font-size:7px;color:var(--muted)}.gr202-metrics b{font-size:17px;color:var(--gd)}.gr202-director{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;background:#eef9f1;border:1px solid #cce8d5;border-radius:12px;font-size:9px;margin-bottom:9px}.gr202-director.warn{background:#fff4f1;border-color:#efc5c5}.gr202-director span{color:var(--muted)}.gr202-note{padding:10px 12px;border-radius:12px;background:#f4f8f6;font-size:9px;line-height:1.55;margin:9px 0}.gr202-list{display:grid;gap:8px}.gr202-row{display:grid;grid-template-columns:1.5fr .7fr 1.35fr .7fr;gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff;align-items:start}.gr202-row strong{display:block;color:var(--gd);font-size:10px;margin:3px 0}.gr202-row b{font-size:9px;color:var(--gd)}.gr202-row p,.gr202-row small{display:block;font-size:8px;color:var(--muted);line-height:1.5;margin:4px 0}.gr202-kicker{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.gr202-pill{display:inline-flex;padding:4px 7px;border-radius:999px;border:1px solid var(--line);font-size:7px;font-weight:900;margin-bottom:5px}.gr202-pill.ok{background:#eef9f1;color:#25643a}.gr202-pill.warn{background:#fff8e9;color:#895d14}.gr202-pill.bad{background:#fff1f1;color:#a33434}.gr202-pill.neutral{background:#f5f7f6;color:#66746d}.gr202-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.gr202-empty{text-align:center;padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:9px}.gr202-error{padding:10px;border:1px solid #efc5c5;background:#fff4f4;color:#963434;border-radius:12px;font-size:9px}
+      @media(max-width:980px){.gr202-row{grid-template-columns:1fr 1fr}.gr202-metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.gr202-row,.gr202-metrics{grid-template-columns:1fr}.gr202-director{align-items:flex-start;flex-direction:column}}
+    `;document.head.appendChild(s);
+  }
+
+  function show(){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));q('#recoveryCommand202')?.classList.add('active');document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='recoveryCommand202'));if(q('#title'))q('#title').textContent='Pusat Pemulihan';load()}
+  function install(){
+    if(!allowed()||q('#recoveryCommand202'))return; style(); const content=q('.content'),nav=q('#nav');if(!content||!nav)return;
+    const page=document.createElement('section');page.id='recoveryCommand202';page.className='page';page.innerHTML=`<div class="card section"><div class="gr202-head"><div><div class="gr202-kicker">GMU EduTrans • ${VERSION}</div><h2>Recovery Command & Accountability</h2><p>Setiap gap HIGH/CRITICAL otomatis menjadi tugas recovery harian dengan PIC, deadline, target hasil dan bukti penyelesaian.</p></div><button data-refresh>Refresh</button></div><div data-recovery-body></div></div>`;content.appendChild(page);q('[data-refresh]',page)?.addEventListener('click',load);
+    const b=document.createElement('button');b.type='button';b.dataset.page='recoveryCommand202';b.textContent='◆  Pusat Pemulihan';b.addEventListener('click',show);nav.prepend(b);load();
+  }
+  function init(){const timer=setInterval(()=>{if(!role())return;clearInterval(timer);install();if(allowed())setInterval(load,60000)},250);window.GmuRecoveryCommand=Object.freeze({version:VERSION,show,load})}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+/* ===== company-autopilot-v210.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v21-company-autopilot';
+  const ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const q = (s,r=document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const state = {data:null,loading:false,error:null};
+
+  function role(){ try{return String(profile?.role||'')}catch(_){return ''} }
+  function db(){ try{return typeof sb!=='undefined'&&sb?.rpc?sb:null}catch(_){return null} }
+  function allowed(){ return ROLES.has(role()); }
+
+  function ensureStyle(){
+    if(q('#gmuAutopilotV21Style')) return;
+    const s=document.createElement('style'); s.id='gmuAutopilotV21Style'; s.textContent=`
+      .ga21-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.ga21-head h2{margin:0;color:var(--gd)}.ga21-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:820px}.ga21-head button{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.ga21-banner{margin:12px 0;padding:12px 14px;border-radius:14px;background:#eef9f1;border:1px solid #cce8d5;display:flex;justify-content:space-between;gap:12px;align-items:center}.ga21-banner.warn{background:#fff2ef;border-color:#efc7bf}.ga21-banner b{font-size:12px;color:var(--gd)}.ga21-banner span{font-size:8px;color:var(--muted)}.ga21-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.ga21-card{border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px}.ga21-card small{display:block;font-size:8px;color:var(--muted)}.ga21-card strong{display:block;font-size:20px;color:var(--gd);margin:4px 0}.ga21-card p{font-size:8px;color:var(--muted);line-height:1.5;margin:0}.ga21-flow{margin-top:10px;padding:12px;border-radius:14px;background:#f5f8f6;border:1px solid var(--line);font-size:9px;line-height:1.6;color:var(--gd)}.ga21-section{margin-top:11px}.ga21-section h4{margin:0 0 7px;color:var(--gd)}.ga21-error{padding:10px;border:1px solid #efc5c5;background:#fff4f4;color:#963434;border-radius:12px;font-size:9px}.ga21-loading{padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:9px;text-align:center}@media(max-width:900px){.ga21-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.ga21-grid{grid-template-columns:1fr}.ga21-banner{align-items:flex-start;flex-direction:column}}
+    `; document.head.appendChild(s);
+  }
+
+  function ensurePage(){
+    if(!allowed()) return null;
+    let page=q('#companyAutopilotV21');
+    if(!page){
+      page=document.createElement('section'); page.id='companyAutopilotV21'; page.className='page';
+      page.innerHTML=`<div class="ga21-head"><div><div class="ga21-kicker">GMU EduTrans • Enterprise Automation</div><h2>Company Autopilot v21</h2><p>Lead → Follow-up → Quotation → Payment → Booking → Operasional → Crew/Vendor → Trip → Finance → Payroll → Feedback → Repeat Order. Aksi sensitif tetap melalui approval manusia.</p></div><button type="button" data-ga21-refresh>Refresh</button></div><div data-ga21-body></div>`;
+      (q('.content')||q('main')||document.body).appendChild(page);
+      q('[data-ga21-refresh]',page)?.addEventListener('click',load);
+    }
+    const nav=q('#nav');
+    if(nav&&!q('#nav [data-page="companyAutopilotV21"]')){
+      const b=document.createElement('button'); b.type='button'; b.dataset.page='companyAutopilotV21'; b.textContent='Company Autopilot';
+      b.addEventListener('click',show); nav.appendChild(b);
+    }
+    return page;
+  }
+
+  function show(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    q('#companyAutopilotV21')?.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='companyAutopilotV21'));
+    if(q('#title')) q('#title').textContent='Company Autopilot';
+    load();
+  }
+
+  function card(label,value,desc){return `<div class="ga21-card"><small>${h(label)}</small><strong>${h(value)}</strong><p>${h(desc)}</p></div>`}
+
+  function render(){
+    const body=q('[data-ga21-body]'); if(!body) return;
+    if(state.loading&&!state.data){body.innerHTML='<div class="ga21-loading">Membaca status otomatisasi perusahaan…</div>';return}
+    if(state.error){body.innerHTML=`<div class="ga21-error">${h(state.error)}</div>`;return}
+    const d=state.data||{}, a=d.automation||{}, m=d.manager_score||{}, x=d.director||{};
+    body.innerHTML=`
+      <div class="ga21-banner ${x.action_required?'warn':''}"><div><b>${x.action_required?'TINDAKAN DIREKTUR DIPERLUKAN':'TIDAK ADA TINDAKAN DIREKTUR'}</b><span>${x.action_required?'Ada exception kritis strategis yang membutuhkan keputusan Owner/Direktur.':'Operasional tetap ditangani Manager, tim, ERP dan automation engine.'}</span></div><strong>${Number(x.critical_exceptions||0)} critical</strong></div>
+      <div class="ga21-section"><h4>Automation Coverage Aktual</h4><div class="ga21-grid">
+        ${card('Sequence Follow-up Aktif',Number(a.active_followup_sequences||0),'D+1, D+3, D+7, D+14; berhenti otomatis saat WON/LOST/booking.')}
+        ${card('Follow-up Jatuh Tempo',Number(a.followup_due||0),'Antrian yang siap dikirim melalui notification delivery.')}
+        ${card('Resource Request Terbuka',Number(a.resource_requests_open||0),'Crew, vendor, dokumen, customer info dan kebutuhan finance.')}
+        ${card('Retention Aktif',Number(a.retention_active||0),'Terima kasih → feedback → testimonial → repeat order → nurture.')}
+        ${card('Notifikasi Menunggu/Retry',Number(a.notifications_queued||0),'Delivery Center menangani kanal, retry dan kegagalan provider.')}
+        ${card('Payment Pending',Number(a.payment_orders_pending||0),'Payment gateway order yang belum terminal.')}
+      </div></div>
+      <div class="ga21-section"><h4>Manager Accountability</h4><div class="ga21-grid">
+        ${card('Recovery Terbuka',Number(m.open_recovery||0),'Recovery task HIGH/CRITICAL yang belum selesai.')}
+        ${card('Tugas Terlambat',Number(m.overdue_tasks||0),'Tugas otomatis melewati deadline.')}
+        ${card('Exception Terbuka',Number(m.open_exceptions||0),'Exception hanya ditutup bila data sumber kembali sehat.')}
+      </div></div>
+      <div class="ga21-flow"><b>Operating model v21:</b> Sistem mendeteksi → AI/Rule Engine menentukan next action → tugas/notifikasi dibuat → PIC mengeksekusi → deadline dipantau → data sumber diverifikasi → exception ditutup otomatis bila benar-benar pulih → Direktur hanya menerima keputusan strategis. Transfer uang, refund, payroll payment, perubahan harga strategis, margin &lt;20%, reserve, hiring/firing, legal dan safety tetap memakai approval manusia.</div>`;
+  }
+
+  async function load(){
+    if(!allowed()||!db()||state.loading) return;
+    state.loading=true; state.error=null; render();
+    try{
+      const {data,error}=await db().rpc('internal_company_autopilot_v21');
+      if(error) throw error; state.data=data||{};
+    }catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}
+  }
+
+  function boot(){
+    if(!allowed()) return;
+    ensureStyle(); ensurePage(); load();
+    setInterval(()=>{if(allowed()) load()},60000);
+    window.__GMU_COMPANY_AUTOPILOT_V21__={version:VERSION,show,load};
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
