@@ -1,0 +1,27 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-GMU-ERP-Release",
+          "value": "v23.3-recruitment-system"
+        },
+        {
+          "key": "X-GMU-ERP-Inventory-Cash",
+          "value": "v11.4-inventory-cash-visibility"
+        },
+        {
+          "key": "X-GMU-ERP-Performance-Payroll-Layer",
+          "value": "v21.4-performance-payroll-workforce-capacity-layer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    }
+  ]
+}
