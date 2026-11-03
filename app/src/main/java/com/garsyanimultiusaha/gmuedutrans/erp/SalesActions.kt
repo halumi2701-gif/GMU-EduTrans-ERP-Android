@@ -88,44 +88,10 @@ fun MainViewModel.updateBookingStatus(
             val saved = api.updateBookingStatus(session.accessToken, bookingId, status)
             var message = "Status booking berhasil diperbarui menjadi " + saved + "."
 
-            // GMU policy: Confirmed means paid in full. Record the missing
-            // settlement as a dated payment transaction so Kas Masuk increases
-            // on the confirmation/receipt date and DP is never counted twice.
-            if (saved.equals("Confirmed", ignoreCase = true) &&
-                FinancialAccess.canView(session.profile.role)
-            ) {
-                val booking = bookings.firstOrNull { it.id == bookingId }
-                if (booking != null) {
-                    val netReceived = table("payments")
-                        .filter { it.text("booking_id") == bookingId }
-                        .sumOf { row ->
-                            val amount = row.number("amount")
-                            if (row.text("payment_type").equals("Refund", ignoreCase = true)) -amount else amount
-                        }
-                    val remaining = (booking.omzet - netReceived).coerceAtLeast(0.0)
-                    if (remaining > 0.009) {
-                        val now = java.util.Date()
-                        val paymentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(now)
-                        val verifiedAt = java.text.SimpleDateFormat(
-                            "yyyy-MM-dd'T'HH:mm:ssXXX",
-                            java.util.Locale.US
-                        ).format(now)
-                        api.insertRow(
-                            session.accessToken,
-                            "payments",
-                            mapOf(
-                                "booking_id" to bookingId,
-                                "payment_type" to "Pelunasan",
-                                "amount" to remaining,
-                                "payment_date" to paymentDate,
-                                "method" to "Auto - Status Confirmed",
-                                "verified_by" to session.userId,
-                                "verified_at" to verifiedAt
-                            )
-                        )
-                        message += " Kas masuk otomatis tercatat sebesar " + rupiah(remaining) + "."
-                    }
-                }
+            // Settlement is handled by the Supabase bookings trigger, so every
+            // client (ERP web and Android) records the outstanding amount once.
+            if (saved.equals("Confirmed", ignoreCase = true)) {
+                message += " Pelunasan otomatis diproses oleh sistem keuangan."
             }
 
             done(true, message)
