@@ -157,19 +157,27 @@ object BookingPdfActions {
         return File(dir, name).also { it.writeBytes(bytes) }
     }
 
-    fun shareVisualPng(context: Context, booking: Booking, bytes: ByteArray) {
-        val file = cacheFile(context, "booking-visual", "${safeName(booking)}.png", bytes)
-        val uri: Uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    private fun shareFile(context: Context, booking: Booking, bytes: ByteArray, folder: String, extension: String, mimeType: String, chooserTitle: String) {
+        require(bytes.isNotEmpty()) { "File dokumen kosong. Silakan coba buat ulang." }
+        val file = cacheFile(context, folder, "\${safeName(booking)}.\$extension", bytes)
+        val uri: Uri = FileProvider.getUriForFile(context, "\${context.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "image/png"
+            type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "Booking GMU EduTrans ${booking.bookingNo}")
-            putExtra(Intent.EXTRA_TEXT, "Ringkasan booking GMU EduTrans ${booking.bookingNo}")
-            clipData = ClipData.newUri(context.contentResolver, "Visual booking GMU", uri)
+            putExtra(Intent.EXTRA_SUBJECT, "GMU EduTrans \${booking.bookingNo}")
+            putExtra(Intent.EXTRA_TEXT, "Dokumen booking GMU EduTrans \${booking.bookingNo}")
+            clipData = ClipData.newUri(context.contentResolver, "Dokumen booking GMU", uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Bagikan visual PNG"))
+        val chooser = Intent.createChooser(intent, chooserTitle).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(chooser)
     }
+
+    fun shareVisualPng(context: Context, booking: Booking, bytes: ByteArray) =
+        shareFile(context, booking, bytes, "booking-visual", "png", "image/png", "Bagikan visual booking PNG")
+
+    fun sharePdf(context: Context, booking: Booking, bytes: ByteArray) =
+        shareFile(context, booking, bytes, "booking-pdf", "pdf", "application/pdf", "Bagikan PDF booking")
 
     fun print(context: Context, booking: Booking, bytes: ByteArray) {
         val manager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
@@ -204,7 +212,7 @@ object BookingPdfActions {
                     return
                 }
                 try {
-                    FileOutputStream(destination.fileDescriptor).use { it.write(bytes) }
+                    android.os.ParcelFileDescriptor.AutoCloseOutputStream(destination).use { output -> output.write(bytes); output.flush() }
                     callback.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
                 } catch (e: Exception) {
                     callback.onWriteFailed(e.message ?: "Gagal menyiapkan PDF untuk cetak.")
@@ -224,10 +232,15 @@ fun BookingPdfActionRow(booking: Booking) {
     ) { uri ->
         if (uri != null) {
             runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { it.write(pdfBytes) }
-                    ?: throw IllegalStateException("Tidak dapat membuka lokasi penyimpanan PDF.")
+                require(pdfBytes.isNotEmpty()) { "PDF kosong. Silakan coba ulang." }
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.write(pdfBytes)
+                    output.flush()
+                } ?: throw IllegalStateException("Tidak dapat membuka lokasi penyimpanan PDF.")
+            }.onSuccess {
+                android.widget.Toast.makeText(context, "PDF booking berhasil disimpan.", android.widget.Toast.LENGTH_SHORT).show()
             }.onFailure {
-                android.widget.Toast.makeText(context, it.message ?: "Gagal menyimpan PDF", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, "Gagal menyimpan PDF: \${it.message ?: "Kesalahan tidak diketahui"}", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -235,11 +248,19 @@ fun BookingPdfActionRow(booking: Booking) {
         Button(
             onClick = {
                 runCatching { BookingPdfActions.shareVisualPng(context, booking, pngBytes) }.onFailure {
-                    android.widget.Toast.makeText(context, it.message ?: "Gagal membagikan visual PNG", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, "Gagal membagikan PNG: \${it.message ?: "Kesalahan tidak diketahui"}", android.widget.Toast.LENGTH_LONG).show()
                 }
             },
             modifier = androidx.compose.ui.Modifier.fillMaxWidth()
         ) { Text("Bagikan Visual PNG") }
+        OutlinedButton(
+            onClick = {
+                runCatching { BookingPdfActions.sharePdf(context, booking, pdfBytes) }.onFailure {
+                    android.widget.Toast.makeText(context, "Gagal membagikan PDF: \${it.message ?: "Kesalahan tidak diketahui"}", android.widget.Toast.LENGTH_LONG).show()
+                }
+            },
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+        ) { Text("Bagikan PDF") }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { saveLauncher.launch("${booking.bookingNo}.pdf") },
