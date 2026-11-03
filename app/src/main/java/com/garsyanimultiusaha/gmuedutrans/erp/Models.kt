@@ -72,6 +72,7 @@ data class DashboardStats(
     val pax: Int = 0,
     val omzet: Double = 0.0,
     val paid: Double = 0.0,
+    val cashOut: Double = 0.0,
     val receivable: Double = 0.0,
     val actualCost: Double = 0.0,
     val profit: Double = 0.0,
