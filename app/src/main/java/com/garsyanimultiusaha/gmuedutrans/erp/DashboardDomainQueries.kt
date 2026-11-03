@@ -12,11 +12,13 @@ import java.util.Locale
 private fun MainViewModel.cashInForMonth(month: String): Double {
     val bookingById = bookings.associateBy { it.id }
     return table("payments").filter { row ->
-        val paymentDate = row.text("payment_date").ifBlank {
-            row.text("verified_at").take(10)
-        }
         val dpConfirmedByBooking = row.text("payment_type").equals("DP", ignoreCase = true) &&
             bookingById[row.text("booking_id")]?.status.equals("Confirmed", ignoreCase = true)
+        val paymentDate = row.text("payment_date").ifBlank {
+            row.text("verified_at").take(10)
+        }.ifBlank {
+            if (dpConfirmedByBooking) month else ""
+        }
         paymentDate.startsWith(month) &&
             (row.text("verified_at").isNotBlank() || dpConfirmedByBooking)
     }.sumOf { row ->
@@ -51,7 +53,6 @@ fun MainViewModel.dashboardStats(): DashboardStats {
         )
     }
 
-    val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     val monthBookings = bookings.filter { it.tripDate.startsWith(month) }
     val omzet = monthBookings.sumOf { it.omzet }
