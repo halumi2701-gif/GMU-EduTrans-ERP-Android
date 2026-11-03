@@ -4,30 +4,15 @@
   "headers": [
     {
       "source": "/index.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        }
-      ]
+      "headers": []
     },
     {
       "source": "/production-bundle-v114.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=180, stale-while-revalidate=86400"
-        }
-      ]
+      "headers": []
     },
     {
       "source": "/(.*\\.(css|js|svg|png|jpg|jpeg|webp|woff2))",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=300, stale-while-revalidate=86400"
-        }
-      ]
+      "headers": []
     },
     {
       "source": "/(.*)",
@@ -43,10 +28,6 @@
         {
           "key": "X-GMU-ERP-Performance-Payroll-Layer",
           "value": "v21.4-performance-payroll-workforce-capacity-layer"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
         }
       ]
     }
