@@ -9,29 +9,21 @@ import java.util.Locale
  * Keeping these calculations outside MainViewModel prevents the session/action
  * coordinator from becoming the owner of presentation analytics as well.
  */
-private fun MainViewModel.cashInForMonth(month: String): Double {
-    // Kas masuk is based on real payment transactions and their receipt date.
-    // Confirmed bookings are settled by creating a Pelunasan payment row when
-    // the status is changed; do not count the booking omzet separately here.
-    // This avoids both the missing-cash issue and DP + booking-total duplication.
-    return table("payments")
-        .filter { row ->
-            val paymentDate = row.text("payment_date").ifBlank {
-                row.text("verified_at").take(10)
-            }
-            paymentDate.startsWith(month) &&
-                (row.text("verified_at").isNotBlank() || row.text("payment_date").isNotBlank())
-        }
-        .sumOf { row ->
-            val amount = row.number("amount")
-            if (row.text("payment_type").equals("Refund", ignoreCase = true)) -amount else amount
-        }
+private fun MainViewModel.cashFlowForMonth(month: String): Pair<Double, Double> {
+    // Treasury ledger is the single source of truth for real cash movement.
+    // Booking revenue and trip costs are not cash movements by themselves.
+    val rows = table("treasury_ledger").filter { row ->
+        row.text("status") == "POSTED" && row.text("transaction_date").startsWith(month)
+    }
+    val cashIn = rows.filter { it.text("direction") == "INFLOW" }.sumOf { it.number("amount") }
+    val cashOut = rows.filter { it.text("direction") == "OUTFLOW" }.sumOf { it.number("amount") }
+    return cashIn to cashOut
 }
 
 fun MainViewModel.dashboardStats(): DashboardStats {
     val management = managementDashboard
     val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
-    val cashInThisMonth = cashInForMonth(month)
+    val (cashInThisMonth, cashOutThisMonth) = cashFlowForMonth(month)
     if (management != null) {
         val k = management.kpi
         return DashboardStats(
@@ -40,6 +32,7 @@ fun MainViewModel.dashboardStats(): DashboardStats {
             pax = k.paxTotal,
             omzet = k.revenue,
             paid = cashInThisMonth,
+            cashOut = cashOutThisMonth,
             receivable = k.receivable,
             actualCost = k.actualCost,
             profit = k.grossProfit,
@@ -101,6 +94,7 @@ fun MainViewModel.dashboardStats(): DashboardStats {
         pax = pax,
         omzet = omzet,
         paid = paid,
+        cashOut = cashOutThisMonth,
         receivable = receivable,
         actualCost = actual,
         profit = profit,
