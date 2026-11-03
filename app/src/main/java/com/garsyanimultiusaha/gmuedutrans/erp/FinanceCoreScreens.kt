@@ -56,6 +56,11 @@ fun FinanceScreen(vm: MainViewModel, session: SessionState, onNotice: (String) -
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MetricCard("Kas Keluar", rupiah(stats.cashOut), Modifier.weight(1f))
+            MetricCard("Arus Kas Bersih", rupiah(stats.paid - stats.cashOut), Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MetricCard("Net Profit", rupiah(stats.profit), Modifier.weight(1f))
             MetricCard("Receivable", rupiah(stats.receivable), Modifier.weight(1f))
         }
