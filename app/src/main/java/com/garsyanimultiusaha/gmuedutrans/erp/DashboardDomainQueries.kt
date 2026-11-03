@@ -9,8 +9,26 @@ import java.util.Locale
  * Keeping these calculations outside MainViewModel prevents the session/action
  * coordinator from becoming the owner of presentation analytics as well.
  */
+private fun MainViewModel.cashInForMonth(month: String): Double {
+    val bookingById = bookings.associateBy { it.id }
+    return table("payments").filter { row ->
+        val paymentDate = row.text("payment_date").ifBlank {
+            row.text("verified_at").take(10)
+        }
+        val dpConfirmedByBooking = row.text("payment_type").equals("DP", ignoreCase = true) &&
+            bookingById[row.text("booking_id")]?.status.equals("Confirmed", ignoreCase = true)
+        paymentDate.startsWith(month) &&
+            (row.text("verified_at").isNotBlank() || dpConfirmedByBooking)
+    }.sumOf { row ->
+        val amount = row.number("amount")
+        if (row.text("payment_type").equals("Refund", ignoreCase = true)) -amount else amount
+    }
+}
+
 fun MainViewModel.dashboardStats(): DashboardStats {
     val management = managementDashboard
+    val month = SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+    val cashInThisMonth = cashInForMonth(month)
     if (management != null) {
         val k = management.kpi
         return DashboardStats(
@@ -18,7 +36,7 @@ fun MainViewModel.dashboardStats(): DashboardStats {
             customers = customers.size,
             pax = k.paxTotal,
             omzet = k.revenue,
-            paid = k.cashCollected,
+            paid = cashInThisMonth,
             receivable = k.receivable,
             actualCost = k.actualCost,
             profit = k.grossProfit,
@@ -46,8 +64,9 @@ fun MainViewModel.dashboardStats(): DashboardStats {
             if (row.text("payment_type") == "Refund") -amount else amount
         }
     }
-    val paid = monthBookings.sumOf { paidByBooking[it.id] ?: 0.0 }
-    val receivable = (omzet - paid).coerceAtLeast(0.0)
+    val paid = cashInThisMonth
+    val paidForTripBookings = monthBookings.sumOf { paidByBooking[it.id] ?: 0.0 }
+    val receivable = (omzet - paidForTripBookings).coerceAtLeast(0.0)
 
     val costs = table("trip_costs")
     val actualByBooking = costs.groupBy { it.text("booking_id") }
