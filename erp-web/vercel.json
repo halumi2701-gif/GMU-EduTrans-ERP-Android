@@ -3,12 +3,13 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/index.html",
-      "headers": []
-    },
-    {
       "source": "/production-bundle-v114.js",
-      "headers": []
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=180, stale-while-revalidate=86400"
+        }
+      ]
     },
     {
       "source": "/(.*)",
