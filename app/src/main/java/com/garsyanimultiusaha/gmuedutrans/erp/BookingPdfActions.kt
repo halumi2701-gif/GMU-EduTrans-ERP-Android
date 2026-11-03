@@ -20,7 +20,9 @@ import android.print.PageRange
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -228,17 +230,28 @@ fun BookingPdfActionRow(booking: Booking) {
             }
         }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Button(onClick = {
-            runCatching { BookingPdfActions.shareVisualPng(context, booking, pngBytes) }.onFailure {
-                android.widget.Toast.makeText(context, it.message ?: "Gagal membagikan visual PNG", android.widget.Toast.LENGTH_LONG).show()
-            }
-        }) { Text("Bagikan Visual PNG") }
-        OutlinedButton(onClick = { saveLauncher.launch("${booking.bookingNo}.pdf") }) { Text("Simpan PDF") }
-        OutlinedButton(onClick = {
-            runCatching { BookingPdfActions.print(context, booking, pdfBytes) }.onFailure {
-                android.widget.Toast.makeText(context, it.message ?: "Gagal mencetak PDF", android.widget.Toast.LENGTH_LONG).show()
-            }
-        }) { Text("Cetak PDF") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = androidx.compose.ui.Modifier.fillMaxWidth()) {
+        Button(
+            onClick = {
+                runCatching { BookingPdfActions.shareVisualPng(context, booking, pngBytes) }.onFailure {
+                    android.widget.Toast.makeText(context, it.message ?: "Gagal membagikan visual PNG", android.widget.Toast.LENGTH_LONG).show()
+                }
+            },
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+        ) { Text("Bagikan Visual PNG") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                onClick = { saveLauncher.launch("${booking.bookingNo}.pdf") },
+                modifier = androidx.compose.ui.Modifier.weight(1f)
+            ) { Text("Simpan PDF") }
+            OutlinedButton(
+                onClick = {
+                    runCatching { BookingPdfActions.print(context, booking, pdfBytes) }.onFailure {
+                        android.widget.Toast.makeText(context, it.message ?: "Gagal mencetak PDF", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                },
+                modifier = androidx.compose.ui.Modifier.weight(1f)
+            ) { Text("Cetak PDF") }
+        }
     }
 }
