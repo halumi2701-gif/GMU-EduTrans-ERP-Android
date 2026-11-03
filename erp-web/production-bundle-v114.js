@@ -4712,3 +4712,1011 @@
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
+/* ===== target-cascade-v212.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v21.2-target-cascade-workforce-autopilot';
+  const MANAGEMENT = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const DIRECTOR = new Set(['Owner','Director','Direktur']);
+  const q=(s,r=document)=>r.querySelector(s);
+  const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v||0));
+  const pct=(a,b)=>b>0?Math.max(0,Math.min(100,(Number(a||0)/Number(b))*100)):0;
+  const state={data:null,loading:false,error:null};
+
+  function role(){try{return String(profile?.role||'')}catch(_){return ''}}
+  function db(){try{return typeof sb!=='undefined'&&sb?.rpc?sb:null}catch(_){return null}}
+  function allowed(){return MANAGEMENT.has(role())}
+  function canSet(){return DIRECTOR.has(role())}
+
+  function ensureStyle(){
+    if(q('#gmuV212Style')) return;
+    const s=document.createElement('style');s.id='gmuV212Style';s.textContent=`
+      .v212-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v212-head h2{margin:0;color:var(--gd)}.v212-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:840px}.v212-actions{display:flex;gap:6px;flex-wrap:wrap}.v212-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.v212-btn.primary{background:var(--gd);color:#fff}.v212-banner{margin:12px 0;padding:13px;border-radius:14px;background:#eef9f1;border:1px solid #cce8d5}.v212-banner.warn{background:#fff5ed;border-color:#efd2b8}.v212-banner b{display:block;color:var(--gd);font-size:13px}.v212-banner span{font-size:8px;color:var(--muted)}.v212-progress{height:9px;border-radius:999px;background:#e8eeea;overflow:hidden;margin-top:9px}.v212-progress i{display:block;height:100%;background:var(--gd);border-radius:999px}.v212-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v212-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px}.v212-card small{display:block;color:var(--muted);font-size:8px}.v212-card strong{display:block;color:var(--gd);font-size:17px;margin:4px 0}.v212-card p{font-size:8px;color:var(--muted);margin:0;line-height:1.45}.v212-section{margin-top:12px}.v212-section h4{margin:0 0 7px;color:var(--gd)}.v212-row{display:grid;grid-template-columns:115px 1fr 110px;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 2px;font-size:8px}.v212-row:first-child{border-top:0}.v212-role{font-weight:700;color:var(--gd)}.v212-muted{color:var(--muted)}.v212-error{padding:10px;border-radius:12px;background:#fff4f4;border:1px solid #efc5c5;color:#963434;font-size:9px}.v212-note{padding:10px 12px;border-radius:12px;background:#f5f8f6;border:1px solid var(--line);font-size:8px;line-height:1.55;color:var(--gd)}@media(max-width:900px){.v212-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v212-grid{grid-template-columns:1fr}.v212-row{grid-template-columns:1fr}.v212-actions{width:100%}}
+    `;document.head.appendChild(s);
+  }
+
+  function ensurePage(){
+    if(!allowed()) return null;
+    let page=q('#targetCascadeV212');
+    if(!page){
+      page=document.createElement('section');page.id='targetCascadeV212';page.className='page';
+      page.innerHTML=`<div class="v212-head"><div><div class="v212-muted">GMU EduTrans • Director Command → Workforce Execution</div><h2>Target Cascade & Workforce Autopilot v21.2</h2><p>Target laba Direktur otomatis diterjemahkan menjadi target omzet, gap forecast, target Manager/Sales, SLA Admin/Ops/Finance, guardrail SDM dan tugas recovery.</p></div><div class="v212-actions">${canSet()?'<button type="button" class="v212-btn primary" data-v212-set>Set Target Laba</button>':''}<button type="button" class="v212-btn" data-v212-refresh>Refresh</button></div></div><div data-v212-body></div>`;
+      (q('.content')||q('main')||document.body).appendChild(page);
+      q('[data-v212-refresh]',page)?.addEventListener('click',load);
+      q('[data-v212-set]',page)?.addEventListener('click',setTarget);
+    }
+    const nav=q('#nav');
+    if(nav&&!q('#nav [data-page="targetCascadeV212"]')){
+      const b=document.createElement('button');b.type='button';b.dataset.page='targetCascadeV212';b.textContent='Target Cascade';b.addEventListener('click',show);nav.appendChild(b);
+    }
+    return page;
+  }
+
+  function show(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    q('#targetCascadeV212')?.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='targetCascadeV212'));
+    if(q('#title')) q('#title').textContent='Target Cascade';
+    load();
+  }
+
+  function card(label,value,desc){return `<div class="v212-card"><small>${h(label)}</small><strong>${h(value)}</strong><p>${h(desc)}</p></div>`}
+
+  function render(){
+    const body=q('[data-v212-body]');if(!body)return;
+    if(state.loading&&!state.data){body.innerHTML='<div class="v212-note">Menghitung target, forecast, payroll guardrail dan pembagian kerja…</div>';return}
+    if(state.error){body.innerHTML=`<div class="v212-error">${h(state.error)}</div>`;return}
+    const d=state.data||{},t=d.target||{},s=d.snapshot||{},detail=s.detail||{},cg=detail.compensation_guardrail||{};
+    const progress=pct(Math.max(0,Number(t.target_amount||0)-Number(s.recovery_gap||0)),Number(t.target_amount||0));
+    const assignments=Array.isArray(d.assignments)?d.assignments:[];
+    body.innerHTML=`
+      <div class="v212-banner ${Number(s.forecast_gap||0)>0?'warn':''}"><b>Recovery ${money(t.target_amount)} • Progress ${progress.toFixed(1)}%</b><span>Sisa recovery ${money(s.recovery_gap)}. Direktur menetapkan hasil; Manager dan sistem menggerakkan pekerjaan harian.</span><div class="v212-progress"><i style="width:${progress}%"></i></div></div>
+      <div class="v212-grid">
+        ${card('Target Laba Bulanan',money(s.target_profit_month),'Floor operasional selama recovery mode.')}
+        ${card('Target Omzet Bulanan',money(s.target_revenue_month),'Sudah mempertimbangkan margin target, payroll tetap aktif dan overhead terencana.')}
+        ${card('Forecast Gap',money(s.forecast_gap),'Jika >0, recovery task otomatis tetap aktif.')}
+        ${card('Pipeline Tertimbang',money(s.weighted_pipeline),'Nilai pipeline dikalikan probabilitas closing.')}
+        ${card('Omzet Sisa Bulan Ini',money(s.required_revenue_month),'Kebutuhan berdasarkan gap laba saat ini.')}
+        ${card('Omzet Recovery Total',money(s.required_revenue_recovery),'Estimasi pada margin target saat ini.')}
+        ${card('Sales Aktif',Number(s.active_sales_count||0),'Jika 0, fungsi Sales otomatis fallback ke Manager.')}
+        ${card('Confidence Data',s.data_confidence||'LOW',s.avg_profit_per_trip?`Rata-rata laba/trip ${money(s.avg_profit_per_trip)}.`:'Belum cukup histori closing; ERP tidak mengarang jumlah booking.')}
+      </div>
+      <div class="v212-section"><h4>Workforce & Compensation Guardrail</h4><div class="v212-grid">
+        ${card('Fixed Payroll Aktif',money(s.fixed_payroll),'Gaji/retainer aktif yang sudah tercatat.')}
+        ${card('Overhead Terencana',money(s.planned_overhead),'Budget fixed/operating bulan berjalan.')}
+        ${card('Headroom Fixed Payroll',money(s.additional_fixed_payroll_headroom),'Batas tambahan berbasis weighted pipeline saat ini; bukan izin otomatis menaikkan gaji.')}
+        ${card('Rekomendasi',cg.recommendation==='KEEP_FIXED_PAYROLL_LEAN_USE_VARIABLE_FEE'?'LEAN + VARIABLE':'REVIEW OWNER','Perubahan gaji/retainer tetap melalui approval Owner.')}
+      </div></div>
+      <div class="v212-section"><h4>Target Turun ke SDM</h4>${assignments.length?assignments.map(a=>`<div class="v212-row"><div class="v212-role">${h(a.assigned_role)}</div><div><b>${h(a.objective)}</b><div class="v212-muted">Target asal: ${h(a.payload?.desired_role||a.assigned_role)}${a.payload?.fallback_used?' • fallback sementara':''}</div></div><div>${a.target_value==null?'—':(String(a.target_unit||'').toLowerCase().includes('rp')?money(a.target_value):h(a.target_value+' '+(a.target_unit||'')))}</div></div>`).join(''):'<div class="v212-note">Belum ada assignment aktif.</div>'}</div>
+      <div class="v212-section"><div class="v212-note"><b>Aturan:</b> target tidak dianggap tercapai karena task dicentang. Actual laba berasal dari data keuangan/closing. Transfer, payroll payment, refund, perubahan harga strategis, margin &lt;20%, reserve, hiring/firing, legal dan safety tetap membutuhkan approval manusia.</div></div>`;
+  }
+
+  async function load(){
+    if(!allowed()||!db()||state.loading)return;
+    state.loading=true;state.error=null;render();
+    try{const {data,error}=await db().rpc('internal_target_cascade_status');if(error)throw error;state.data=data||{};}catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}
+  }
+
+  async function setTarget(){
+    if(!canSet()||!db())return;
+    const current=Number(state.data?.target?.target_amount||50000000);
+    const raw=prompt('Target laba/recovery (Rp):',String(Math.round(current)));
+    if(raw==null)return;
+    const amount=Number(String(raw).replace(/[^0-9.-]/g,''));
+    if(!Number.isFinite(amount)||amount<=0){alert('Target harus lebih dari 0.');return}
+    const mode=confirm('OK = Recovery Kumulatif. Cancel = Target Laba Bulanan.')?'RECOVERY_CUMULATIVE':'MONTHLY_NET_PROFIT';
+    const {error}=await db().rpc('internal_set_executive_profit_target',{p_target_amount:amount,p_target_mode:mode,p_monthly_profit_floor:15000000,p_target_margin_pct:25,p_recovery_start_date:new Date().toISOString().slice(0,10),p_notes:'Target ditetapkan dari ERP Target Cascade v21.2'});
+    if(error){alert(error.message||String(error));return}await load();
+  }
+
+  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},60000);window.__GMU_TARGET_CASCADE_V212__={version:VERSION,show,load};}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+/* ===== compensation-autopilot-v213.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION='v21.3-compensation-capacity-autopilot';
+  const ROLES=new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const q=(s,r=document)=>r.querySelector(s);
+  const h=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v||0));
+  const state={data:null,loading:false,error:null};
+  function role(){try{return String(profile?.role||'')}catch(_){return ''}}
+  function db(){try{return typeof sb!=='undefined'&&sb?.rpc?sb:null}catch(_){return null}}
+  function allowed(){return ROLES.has(role())}
+  function ensureStyle(){if(q('#gmuV213Style'))return;const s=document.createElement('style');s.id='gmuV213Style';s.textContent=`
+    .v213-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v213-head h2{margin:0;color:var(--gd)}.v213-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:850px}.v213-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.v213-banner{margin:12px 0;padding:13px;border-radius:14px;border:1px solid #efd2b8;background:#fff5ed}.v213-banner.ok{border-color:#cce8d5;background:#eef9f1}.v213-banner b{display:block;font-size:13px;color:var(--gd)}.v213-banner span{font-size:8px;color:var(--muted)}.v213-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.v213-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.v213-card small{display:block;color:var(--muted);font-size:8px}.v213-card strong{display:block;color:var(--gd);font-size:16px;margin:4px 0}.v213-card p{font-size:8px;color:var(--muted);margin:0;line-height:1.45}.v213-section{margin-top:12px}.v213-section h4{margin:0 0 7px;color:var(--gd)}.v213-row{display:grid;grid-template-columns:90px 115px 120px 1fr;gap:8px;align-items:start;padding:9px 2px;border-top:1px solid var(--line);font-size:8px}.v213-row:first-child{border-top:0}.v213-role{font-weight:800;color:var(--gd)}.v213-mode{font-weight:700}.v213-muted{color:var(--muted)}.v213-note{padding:10px 12px;border:1px solid var(--line);background:#f5f8f6;border-radius:12px;color:var(--gd);font-size:8px;line-height:1.55}.v213-error{padding:10px;border-radius:12px;background:#fff4f4;border:1px solid #efc5c5;color:#963434;font-size:9px}@media(max-width:900px){.v213-grid{grid-template-columns:1fr 1fr}.v213-row{grid-template-columns:80px 100px 1fr}}@media(max-width:620px){.v213-grid{grid-template-columns:1fr}.v213-row{grid-template-columns:1fr}}
+  `;document.head.appendChild(s)}
+  function ensurePage(){if(!allowed())return null;let p=q('#compensationAutopilotV213');if(!p){p=document.createElement('section');p.id='compensationAutopilotV213';p.className='page';p.innerHTML=`<div class="v213-head"><div><div class="v213-muted">GMU EduTrans • Profit-Protected People Cost</div><h2>Compensation Autopilot v21.3</h2><p>ERP menghitung kapasitas biaya SDM dari target laba, recovery, forecast, pipeline, fixed payroll dan histori fee trip sehat. Sistem memberi rekomendasi; perubahan gaji/fee tetap membutuhkan approval.</p></div><button type="button" class="v213-btn" data-v213-refresh>Refresh</button></div><div data-v213-body></div>`;(q('.content')||q('main')||document.body).appendChild(p);q('[data-v213-refresh]',p)?.addEventListener('click',load)}const nav=q('#nav');if(nav&&!q('#nav [data-page="compensationAutopilotV213"]')){const b=document.createElement('button');b.type='button';b.dataset.page='compensationAutopilotV213';b.textContent='Kompensasi Sehat';b.addEventListener('click',show);nav.appendChild(b)}return p}
+  function show(){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));q('#compensationAutopilotV213')?.classList.add('active');document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='compensationAutopilotV213'));if(q('#title'))q('#title').textContent='Kompensasi Sehat';load()}
+  function card(label,value,desc){return `<div class="v213-card"><small>${h(label)}</small><strong>${h(value)}</strong><p>${h(desc)}</p></div>`}
+  function modeLabel(m){return ({VARIABLE_ONLY:'Variabel / berbasis hasil',HOLD_CURRENT:'Tahan struktur saat ini',REVIEW_FIXED:'Review fixed payroll',REVIEW_VARIABLE:'Review fee variabel',HEALTHY:'Sehat'})[m]||m||'—'}
+  function render(){const body=q('[data-v213-body]');if(!body)return;if(state.loading&&!state.data){body.innerHTML='<div class="v213-note">Menghitung kapasitas kompensasi yang aman…</div>';return}if(state.error){body.innerHTML=`<div class="v213-error">${h(state.error)}</div>`;return}const d=state.data||{},c=d.capacity||{},rows=Array.isArray(d.recommendations)?d.recommendations:[];const healthy=['HEALTHY','REVIEW'].includes(c.health_status);body.innerHTML=`
+    <div class="v213-banner ${healthy?'ok':''}"><b>Status biaya SDM: ${h(c.health_status||'BELUM ADA DATA')}</b><span>Target laba didahulukan. Safe tambahan fixed payroll saat ini: ${money(c.safe_additional_fixed_payroll_pool)}.</span></div>
+    <div class="v213-grid">${card('Recovery Gap',money(c.recovery_gap),'Sisa laba bersih kumulatif yang harus dipulihkan.')}${card('Target Laba Bulanan',money(c.monthly_profit_target),'Profit floor yang harus dilindungi.')}${card('Fixed Payroll Aktif',money(c.current_fixed_payroll),'Komitmen gaji/retainer aktif yang tercatat.')}${card('People Cost Variabel',money(c.current_variable_people_cost),'Fee/komisi/payroll earned bulan berjalan.')}${card('Fixed Payroll Headroom',money(c.safe_additional_fixed_payroll_pool),'Batas tambahan berdasarkan kondisi target/pipeline, bukan izin pembayaran.')}${card('Forecast Gap',money(c.forecast_gap),'Kekurangan forecast terhadap target laba.')}${card('Pipeline Tertimbang',money(c.weighted_pipeline),'Pipeline setelah probabilitas closing.')}${card('Target Omzet',money(c.target_revenue),'Omzet target yang menopang target laba.')}</div>
+    <div class="v213-section"><h4>Rekomendasi per Fungsi</h4>${rows.length?rows.map(r=>`<div class="v213-row"><div class="v213-role">${h(r.role_name)}</div><div class="v213-mode">${h(modeLabel(r.recommendation_mode))}<div class="v213-muted">Confidence ${h(r.confidence)}</div></div><div>${r.recommended_fee_low!=null?`${money(r.recommended_fee_low)} – ${money(r.recommended_fee_high)}`:'Belum ada nominal'}<div class="v213-muted">sample trip sehat: ${Number(r.healthy_trip_fee_sample_count||0)}</div></div><div>${h(r.rationale)}</div></div>`).join(''):'<div class="v213-note">Belum ada rekomendasi aktif.</div>'}</div>
+    <div class="v213-section"><div class="v213-note"><b>Guardrail:</b> ERP tidak mengarang gaji atau fee. Nominal fee baru keluar setelah ada histori payroll pada minimal 3 trip dengan margin ≥25%. Kapasitas anggaran bukan pengganti ketentuan upah/ketenagakerjaan yang berlaku. Transfer, payroll payment dan perubahan kompensasi tetap membutuhkan approval manusia.</div></div>`}
+  async function load(){if(!allowed()||!db()||state.loading)return;state.loading=true;state.error=null;render();try{const {data,error}=await db().rpc('internal_compensation_autopilot_status');if(error)throw error;state.data=data||{}}catch(e){state.error=e?.message||String(e)}finally{state.loading=false;render()}}
+  function boot(){if(!allowed())return;ensureStyle();ensurePage();load();setInterval(()=>{if(allowed())load()},60000);window.__GMU_COMPENSATION_AUTOPILOT_V213__={version:VERSION,show,load}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+/* ===== company-control-v214.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v21.4-performance-payroll-workforce-capacity';
+  const MANAGEMENT = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const FINANCE = new Set(['Finance']);
+  const PAYMENT_CREATORS = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Finance','Admin','Operation']);
+  const q = (s,r=document) => r.querySelector(s);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'})[c]);
+  const money = v => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v||0));
+  const fmtDate = v => v ? new Date(v).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  const state = { summary:null, performance:null, payments:[], accruals:[], recruitments:[], loading:false, error:null };
+
+  function role(){ try { return String(profile?.role || ''); } catch (_) { return ''; } }
+  function db(){ try { return typeof sb !== 'undefined' && sb?.from ? sb : null; } catch (_) { return null; } }
+  function allowed(){ return MANAGEMENT.has(role()) || FINANCE.has(role()) || PAYMENT_CREATORS.has(role()); }
+  function canManage(){ return MANAGEMENT.has(role()) || FINANCE.has(role()); }
+  function canCreatePayment(){ return PAYMENT_CREATORS.has(role()); }
+
+  function ensureStyle(){
+    if(q('#gmuV214Style')) return;
+    const s=document.createElement('style'); s.id='gmuV214Style'; s.textContent=`
+      .v214-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.v214-head h2{margin:0;color:var(--gd)}.v214-head p{margin:5px 0 0;font-size:9px;color:var(--muted);max-width:850px}.v214-actions{display:flex;gap:6px;flex-wrap:wrap}.v214-btn{border:1px solid var(--line);background:#fff;color:var(--gd);border-radius:9px;padding:7px 10px;font:inherit;font-size:8px;cursor:pointer}.v214-btn.primary{background:var(--gd);color:#fff}.v214-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:12px}.v214-flow div{border:1px solid var(--line);border-radius:11px;padding:8px;background:#f8faf8;font-size:8px;color:var(--gd);font-weight:700;text-align:center}.v214-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.v214-card{border:1px solid var(--line);background:#fff;border-radius:13px;padding:11px}.v214-card small{display:block;color:var(--muted);font-size:8px}.v214-card strong{display:block;color:var(--gd);font-size:16px;margin:4px 0}.v214-card p{font-size:8px;color:var(--muted);margin:0;line-height:1.45}.v214-section{margin-top:14px}.v214-section h4{margin:0 0 7px;color:var(--gd)}.v214-table{width:100%;border-collapse:collapse;font-size:8px}.v214-table th,.v214-table td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}.v214-table th{color:var(--muted);font-weight:600}.v214-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#f1f5f2;color:var(--gd);font-size:7px;font-weight:700}.v214-pill.bad{background:#fff0f0;color:#9c3434}.v214-pill.warn{background:#fff5e8;color:#945d12}.v214-note{padding:10px 12px;border-radius:12px;background:#f5f8f6;border:1px solid var(--line);font-size:8px;line-height:1.55;color:var(--gd)}.v214-error{padding:10px 12px;border-radius:12px;background:#fff4f4;border:1px solid #efc5c5;color:#963434;font-size:9px}.v214-scroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}@media(max-width:900px){.v214-grid{grid-template-columns:1fr 1fr}.v214-flow{grid-template-columns:1fr 1fr}}@media(max-width:620px){.v214-grid,.v214-flow{grid-template-columns:1fr}.v214-actions{width:100%}.v214-table{min-width:760px}}
+    `; document.head.appendChild(s);
+  }
+
+  function ensurePage(){
+    if(!allowed()) return null;
+    let page=q('#companyControlV214');
+    if(!page){
+      page=document.createElement('section'); page.id='companyControlV214'; page.className='page';
+      page.innerHTML=`<div class="v214-head"><div><div style="font-size:8px;color:var(--muted)">GMU EduTrans • Performance-Based Payroll & Workforce Capacity</div><h2>Company Control v21.4</h2><p>Target Direktur mengalir sampai pekerjaan SDM, closing, laba aktual, recovery gap, fee earned, payroll approval, dan keputusan kapasitas rekrutmen. Ini lapisan tambahan; seluruh fitur ERP sebelumnya tetap aktif.</p></div><div class="v214-actions">${canCreatePayment()?'<button type="button" class="v214-btn primary" data-v214-new-payment>+ Payment Request</button>':''}<button type="button" class="v214-btn" data-v214-refresh>Refresh</button></div></div><div data-v214-body></div>`;
+      (q('.content')||q('main')||document.body).appendChild(page);
+      q('[data-v214-refresh]',page)?.addEventListener('click',load);
+      q('[data-v214-new-payment]',page)?.addEventListener('click',newPaymentRequest);
+    }
+    const nav=q('#nav');
+    if(nav&&!q('#nav [data-page="companyControlV214"]')){
+      const b=document.createElement('button'); b.type='button'; b.dataset.page='companyControlV214'; b.textContent='Payroll & Workforce'; b.addEventListener('click',show); nav.appendChild(b);
+    }
+    return page;
+  }
+
+  function show(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    q('#companyControlV214')?.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='companyControlV214'));
+    if(q('#title')) q('#title').textContent='Payroll & Workforce';
+    load();
+  }
+
+  function card(label,value,desc){ return `<div class="v214-card"><small>${esc(label)}</small><strong>${esc(value)}</strong><p>${esc(desc)}</p></div>`; }
+  function pill(value){ const v=String(value||'—'); const bad=['OVERDUE','ON_HOLD','REJECTED','FAILED','OPTIMIZE_EXISTING'].includes(v); const warn=['SUBMITTED','UNPAID','NEED_REVIEW','SOURCING','INTERVIEW','OFFER','ONBOARDING','FREELANCE_POOL','RECRUIT_REVIEW','HOLD'].includes(v); return `<span class="v214-pill ${bad?'bad':warn?'warn':''}">${esc(v)}</span>`; }
+
+  function render(){
+    const body=q('[data-v214-body]'); if(!body) return;
+    if(state.loading&&!state.summary){ body.innerHTML='<div class="v214-note">Menghitung target, KPI, fee, payroll dan kapasitas SDM…</div>'; return; }
+    if(state.error){ body.innerHTML=`<div class="v214-error">${esc(state.error)}</div>`; return; }
+    const s=state.summary||{};
+    const perf=state.performance||{}, cascade=perf.cascade||{}, comp=perf.compensation||{};
+    const revenueTarget=Number(s.revenue_target||50000000), revenue=Number(s.revenue_realized||0), cash=Number(s.cash_collected||0), pipeline=Number(s.pipeline_value||cascade.weighted_pipeline||0);
+    const progress=revenueTarget>0?Math.min(100,(revenue/revenueTarget)*100):0;
+    body.innerHTML=`
+      <div class="v214-flow"><div>Target Direktur Rp50 jt</div><div>Target Laba Bulanan</div><div>Kebutuhan Omzet</div><div>Target SDM + Task Otomatis</div><div>Sales / Ops / Finance</div><div>Closing</div><div>Laba Aktual</div><div>Recovery Gap</div><div>Recalculate Target</div><div>Recalculate Gaji / Fee</div></div>
+      <div class="v214-grid">
+        ${card('Target Omzet',money(revenueTarget),`Realisasi ${progress.toFixed(1)}% bulan berjalan.`)}
+        ${card('Target Laba Bulanan',money(cascade.target_profit_month),'Target laba yang dilindungi sebelum menambah biaya tetap.')}
+        ${card('Laba Aktual',money(cascade.actual_profit),'Berasal dari closing/GL, bukan task yang dicentang.')}
+        ${card('Recovery Gap',money(cascade.recovery_gap),'Sisa recovery yang otomatis memicu recalculation.')}
+        ${card('Kebutuhan Omzet Bulan Ini',money(cascade.required_revenue_month),'Dihitung ulang dari gap laba + payroll + overhead + margin.')}
+        ${card('Pipeline Tertimbang',money(pipeline),'Pipeline setelah probabilitas closing.')}
+        ${card('Fixed Payroll Headroom',money(comp.safe_additional_fixed_payroll_pool),'Kapasitas tambahan gaji tetap; bukan izin otomatis merekrut.')}
+        ${card('Payroll Menunggu Approval',String(perf.payroll_waiting_approval||0),'Fee/komisi sudah earned tetapi belum disetujui.')}
+      </div>
+      <div class="v214-section"><h4>Performance-Based Payroll</h4>${renderPerformance()}</div>
+      <div class="v214-section"><h4>Workforce Capacity</h4>${renderWorkforce()}</div>
+      <div class="v214-section"><h4>Payment Requests</h4>${renderPayments()}</div>
+      <div class="v214-section"><h4>Compensation Accrual</h4>${renderAccruals()}</div>
+      <div class="v214-section"><h4>Recruitment Pipeline</h4>${renderRecruitments()}</div>
+      <div class="v214-section"><div class="v214-note"><b>Aturan v21.4:</b> KPI tidak otomatis mengubah gaji pokok. Fee/komisi variabel hanya menjadi earned jika syarat KPI, cash collection dan margin lolos. Bonus perusahaan bisa ditahan bila recovery/laba belum sehat. Tambah SDM hanya direkomendasikan jika tim existing sudah berkinerja kuat tetapi kapasitas nyata kurang dan payroll headroom tersedia. WhatsApp automation tetap dilewati.</div></div>`;
+  }
+
+  function renderPerformance(){
+    const rows=Array.isArray(state.performance?.staff)?state.performance.staff:[];
+    if(!rows.length) return '<div class="v214-note">Belum ada snapshot KPI bulan berjalan.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Role</th><th>KPI</th><th>Task</th><th>Sales Won</th><th>Accrued</th><th>Payable</th><th>Hold</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.role_name)}</td><td>${Number(x.kpi_score||0).toFixed(1)}%</td><td>${Number(x.tasks_done||0)}/${Number(x.tasks_total||0)} • overdue ${Number(x.tasks_overdue||0)}</td><td>${money(x.sales_won_value)}</td><td>${money(x.accrued_variable_pay)}</td><td>${money(x.payable_variable_pay)}</td><td>${money(x.held_variable_pay)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderWorkforce(){
+    const rows=Array.isArray(state.performance?.workforce)?state.performance.workforce:[];
+    if(!rows.length) return '<div class="v214-note">Belum ada review kapasitas SDM.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Role</th><th>SDM Aktif</th><th>Completion</th><th>Overdue</th><th>Payroll Headroom</th><th>Keputusan</th><th>Alasan</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.role_name)}</td><td>${Number(x.active_staff||0)}</td><td>${Number(x.completion_pct||0).toFixed(1)}%</td><td>${Number(x.overdue_pct||0).toFixed(1)}%</td><td>${money(x.fixed_payroll_headroom)}</td><td>${pill(x.recommendation)}</td><td>${esc(x.rationale)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderPayments(){
+    if(!state.payments.length) return '<div class="v214-note">Belum ada payment request yang terlihat untuk role ini.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>No.</th><th>Kategori</th><th>Penerima</th><th>Tujuan</th><th>Nominal</th><th>Jatuh Tempo</th><th>Approval</th><th>Payment</th></tr></thead><tbody>${state.payments.map(x=>`<tr><td>${esc(x.request_no)}</td><td>${esc(x.category)}</td><td>${esc(x.payee_name)}</td><td>${esc(x.purpose)}</td><td>${money(x.amount)}</td><td>${fmtDate(x.due_date)}</td><td>${pill(x.approval_state)}</td><td>${pill(x.payment_state)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderAccruals(){
+    if(!canManage()) return '<div class="v214-note">Detail fee hanya terlihat sesuai hak akses.</div>';
+    if(!state.accruals.length) return '<div class="v214-note">Belum ada accrual fee/bonus.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Policy</th><th>Booking</th><th>Source</th><th>Calculated</th><th>Collection</th><th>Margin</th><th>Status</th></tr></thead><tbody>${state.accruals.map(x=>`<tr><td>${esc(x.policy_code||'—')}</td><td>${esc(x.booking_id||'—')}</td><td>${money(x.source_amount)}</td><td>${money(x.calculated_amount)}</td><td>${(Number(x.collection_ratio||0)*100).toFixed(0)}%</td><td>${x.margin_pct==null?'—':Number(x.margin_pct).toFixed(1)+'%'}</td><td>${pill(x.state)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderRecruitments(){
+    if(!MANAGEMENT.has(role())) return '<div class="v214-note">Recruitment dikelola Owner/Director/Manager.</div>';
+    if(!state.recruitments.length) return '<div class="v214-note">Tidak ada recruitment case aktif.</div>';
+    return `<div class="v214-scroll"><table class="v214-table"><thead><tr><th>Posisi</th><th>Tipe</th><th>Alasan</th><th>Need By</th><th>Status</th><th>Kandidat</th></tr></thead><tbody>${state.recruitments.map(x=>`<tr><td>${esc(x.position_title)}</td><td>${esc(x.employment_type)}</td><td>${esc(x.reason)}</td><td>${fmtDate(x.need_by)}</td><td>${pill(x.status)}</td><td>${esc(x.candidate_name||'—')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  async function load(){
+    if(!allowed()||!db()||state.loading) return;
+    state.loading=true; state.error=null; render();
+    try{
+      const summaryQ=await db().from('v_company_command_center').select('*').maybeSingle();
+      if(summaryQ.error) throw summaryQ.error; state.summary=summaryQ.data||{};
+      if(canManage()){
+        const perfQ=await db().rpc('internal_performance_payroll_v214_status');
+        if(perfQ.error) throw perfQ.error; state.performance=perfQ.data||{};
+      }
+      const p=await db().from('payment_requests').select('request_no,category,payee_name,purpose,amount,due_date,approval_state,payment_state,requested_at').order('requested_at',{ascending:false}).limit(12);
+      if(p.error) throw p.error; state.payments=p.data||[];
+      if(canManage()){
+        const a=await db().from('compensation_accruals').select('policy_code,booking_id,source_amount,calculated_amount,collection_ratio,margin_pct,state,created_at').order('created_at',{ascending:false}).limit(12);
+        if(a.error) throw a.error; state.accruals=a.data||[];
+      }
+      if(MANAGEMENT.has(role())){
+        const r=await db().from('recruitment_cases').select('position_title,employment_type,reason,need_by,status,candidate_name,created_at').in('status',['NEED_REVIEW','APPROVED','SOURCING','INTERVIEW','OFFER','ONBOARDING']).order('created_at',{ascending:false}).limit(12);
+        if(r.error) throw r.error; state.recruitments=r.data||[];
+      }
+    }catch(e){ state.error=e?.message||String(e); }
+    finally{ state.loading=false; render(); }
+  }
+
+  async function currentUserId(){
+    try { const {data}=await db().auth.getUser(); return data?.user?.id || profile?.id || null; } catch (_) { return profile?.id || null; }
+  }
+
+  async function newPaymentRequest(){
+    if(!canCreatePayment()||!db()) return;
+    const categories=['VENDOR','CREW','PAYROLL','COMMISSION','BONUS','REFUND','REIMBURSEMENT','OFFICE','TAX','OTHER'];
+    const category=String(prompt(`Kategori (${categories.join(', ')}):`,'VENDOR')||'').trim().toUpperCase();
+    if(!categories.includes(category)){ alert('Kategori tidak valid.'); return; }
+    const payee=String(prompt('Nama penerima pembayaran:','')||'').trim(); if(!payee) return;
+    const purpose=String(prompt('Tujuan pembayaran:','')||'').trim(); if(!purpose) return;
+    const amount=Number(String(prompt('Nominal (Rp):','0')||'').replace(/[^0-9.-]/g,'')); if(!Number.isFinite(amount)||amount<=0){ alert('Nominal harus lebih dari 0.'); return; }
+    const booking=String(prompt('Booking ID (boleh kosong):','')||'').trim()||null;
+    const due=String(prompt('Jatuh tempo YYYY-MM-DD (boleh kosong):','')||'').trim()||null;
+    if(!confirm(`Buat Payment Request ${category} sebesar ${money(amount)} untuk ${payee}? Ini belum membayar uang; hanya membuat permintaan approval.`)) return;
+    const uid=await currentUserId();
+    const requestNo=`PAY-${new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)}-${Math.floor(Math.random()*900+100)}`;
+    const {error}=await db().from('payment_requests').insert({request_no:requestNo,category,booking_id:booking,payee_name:payee,amount,purpose,due_date:due,requested_by:uid,approval_state:'SUBMITTED',payment_state:'UNPAID'});
+    if(error){ alert(error.message||String(error)); return; }
+    alert(`Payment Request ${requestNo} dibuat dan menunggu approval.`); await load();
+  }
+
+  function boot(){ if(!allowed()) return; ensureStyle(); ensurePage(); load(); window.__GMU_COMPANY_CONTROL_V214__={version:VERSION,show,load}; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
+
+/* ===== profit-allocation-v228.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v22.8-profit-allocation-recovery';
+  const ALLOWED = new Set(['Owner','Director','Direktur','Finance']);
+  const KEYS = [
+    'MONTHLY_PAX_TARGET','MONTHLY_UTILITY_BUDGET','LOSS_RECOVERY_TARGET','LOSS_RECOVERY_PAID_TO_DATE',
+    'PROFIT_SPLIT_RECOVERY_PCT','PROFIT_SPLIT_COMPANY_CASH_PCT','PROFIT_SPLIT_OWNER_PCT',
+    'FIELD_CREW_MEAL_PER_PERSON','INTERNAL_MANAGER_FEE_PER_TRIP','INTERNAL_TL_MC_FEE_PER_TRIP',
+    'INTERNAL_OPS_DOC_FEE_PER_TRIP','SALES_FIXED_MONTHLY','SALES_COMMISSION_PER_PAX','SALES_COMMISSION_PER_20_PAX',
+    'ADMIN_PART_TIME_MONTHLY','FINANCE_PART_TIME_MONTHLY','OWNER_FIXED_SALARY'
+  ];
+  const state = { settings:{}, pnl:null, sales:null, loading:false, error:null };
+  const q = (s,r=document) => r.querySelector(s);
+  const h = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[c]);
+  const money = v => 'Rp ' + Math.round(Number(v||0)).toLocaleString('id-ID');
+  const integer = v => Math.round(Number(v||0)).toLocaleString('id-ID');
+
+  function role(){ try{return String(profile?.role||'')}catch(_){return ''} }
+  function allowed(){ return ALLOWED.has(role()); }
+  function db(){ try{return typeof sb!=='undefined'&&sb?.from&&sb?.rpc?sb:null}catch(_){return null} }
+  function periodMonth(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
+  function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+  function setting(k,fallback=0){return Number(state.settings[k] ?? fallback)}
+
+  function values(){
+    const netProfit=Number(state.pnl?.net_profit||0);
+    const distributable=Math.max(netProfit,0);
+    const recoveryPct=setting('PROFIT_SPLIT_RECOVERY_PCT',50);
+    const cashPct=setting('PROFIT_SPLIT_COMPANY_CASH_PCT',30);
+    const ownerPct=setting('PROFIT_SPLIT_OWNER_PCT',20);
+    const recoveryTarget=setting('LOSS_RECOVERY_TARGET',50000000);
+    const recoveryPaid=setting('LOSS_RECOVERY_PAID_TO_DATE',0);
+    const recoveryAllocation=distributable*recoveryPct/100;
+    const companyCash=distributable*cashPct/100;
+    const owner=distributable*ownerPct/100;
+    const remaining=Math.max(recoveryTarget-recoveryPaid,0);
+    const sales=Array.isArray(state.sales)?(state.sales[0]||{}):(state.sales||{});
+    return {
+      netProfit,distributable,recoveryPct,cashPct,ownerPct,recoveryTarget,recoveryPaid,recoveryAllocation,companyCash,owner,remaining,
+      targetPax:Number(sales.target_paid_pax||setting('MONTHLY_PAX_TARGET',400)),
+      paidPax:Number(sales.paid_pax||0),
+      utility:setting('MONTHLY_UTILITY_BUDGET',1755000)
+    };
+  }
+
+  function style(){
+    if(q('#gmuProfitAllocation228Style'))return;
+    const s=document.createElement('style');s.id='gmuProfitAllocation228Style';s.textContent=`
+      .pa228-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+      .pa228-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+      .pa228-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+      .pa228-card small{display:block;color:var(--muted);font-size:8px}.pa228-card b{display:block;color:var(--gd);font-size:17px;margin:4px 0}
+      .pa228-card span{font-size:8px;color:var(--muted);line-height:1.45}.pa228-section{margin-top:12px}
+      .pa228-row{display:grid;grid-template-columns:1.6fr .8fr;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:9px}
+      .pa228-row:last-child{border-bottom:0}.pa228-row strong{color:var(--gd)}.pa228-note{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#f8fbf9;font-size:9px;line-height:1.5;color:var(--muted)}
+      .pa228-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;font-size:9px;cursor:pointer}
+      @media(max-width:900px){.pa228-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.pa228-grid{grid-template-columns:1fr}.pa228-row{grid-template-columns:1fr}}
+    `;document.head.appendChild(s);
+  }
+
+  function ensurePage(){
+    let page=q('#profitAllocation228');
+    if(page)return page;
+    const host=q('.content')||q('main')||document.body;
+    page=document.createElement('section');page.id='profitAllocation228';page.className='page';
+    page.innerHTML='<div class="card section"><div data-pa228-body></div></div>';
+    host.appendChild(page);
+    const nav=q('#nav');
+    if(nav&&!q('#nav [data-page="profitAllocation228"]')){
+      const b=document.createElement('button');b.type='button';b.dataset.page='profitAllocation228';b.textContent='▣  Pembagian Laba';
+      b.addEventListener('click',()=>show());nav.appendChild(b);
+    }
+    return page;
+  }
+
+  function show(){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    ensurePage().classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='profitAllocation228'));
+    if(q('#title'))q('#title').textContent='Pembagian Laba';
+    load();
+  }
+
+  function render(){
+    if(!allowed())return;
+    const page=ensurePage(),body=q('[data-pa228-body]',page);if(!body)return;
+    const v=values();
+    const noProfit=v.distributable<=0?'<div class="pa228-note"><b>Belum ada laba positif untuk dibagi.</b> Pembagian 50/30/20 hanya berlaku pada laba bersih positif setelah biaya dan overhead yang sudah dibukukan di GL.</div>':'';
+    body.innerHTML=`
+      <div class="pa228-head"><div><div style="font-size:8px;color:var(--muted)">GMU EduTrans • ${VERSION}</div><h2 style="margin:3px 0">Pembagian Laba & Recovery</h2><p style="margin:0;color:var(--muted);font-size:9px">Target ${integer(v.targetPax)} pax/bulan • utilitas plafon ${money(v.utility)} • pembagian otomatis dari laba bersih positif.</p></div><button class="pa228-btn" data-pa228-refresh>Muat Ulang</button></div>
+      <div class="pa228-grid">
+        <div class="pa228-card"><small>Target / aktual paid pax</small><b>${integer(v.targetPax)} / ${integer(v.paidPax)}</b><span>Gabungan seluruh program bulan berjalan.</span></div>
+        <div class="pa228-card"><small>Laba bersih GL bulan ini</small><b>${money(v.netProfit)}</b><span>Basis pembagian setelah biaya/overhead yang sudah dibukukan.</span></div>
+        <div class="pa228-card"><small>Bayar utang / recovery • ${v.recoveryPct}%</small><b>${money(v.recoveryAllocation)}</b><span>Alokasi bulan berjalan.</span></div>
+        <div class="pa228-card"><small>Kas perusahaan • ${v.cashPct}%</small><b>${money(v.companyCash)}</b><span>Ditahan di perusahaan, bukan untuk ditarik.</span></div>
+        <div class="pa228-card"><small>Hak Owner • ${v.ownerPct}%</small><b>${money(v.owner)}</b><span>Owner tidak memiliki gaji tetap.</span></div>
+        <div class="pa228-card"><small>Target recovery awal</small><b>${money(v.recoveryTarget)}</b><span>Kerugian/utang yang sedang dipulihkan.</span></div>
+        <div class="pa228-card"><small>Recovery sudah dibayar</small><b>${money(v.recoveryPaid)}</b><span>Akumulasi pembayaran yang telah dicatat.</span></div>
+        <div class="pa228-card"><small>Sisa recovery tercatat</small><b>${money(v.remaining)}</b><span>Sebelum alokasi bulan ini benar-benar dibayarkan.</span></div>
+      </div>
+      ${noProfit}
+      <div class="pa228-section pa228-card"><h3 style="margin:0 0 8px">Policy Biaya Internal</h3>
+        <div class="pa228-row"><strong>Manager EduTrans</strong><span>${money(setting('INTERNAL_MANAGER_FEE_PER_TRIP',130000))} / kegiatan</span></div>
+        <div class="pa228-row"><strong>TL / MC</strong><span>${money(setting('INTERNAL_TL_MC_FEE_PER_TRIP',110000))} / kegiatan</span></div>
+        <div class="pa228-row"><strong>Ops + Dokumentasi</strong><span>${money(setting('INTERNAL_OPS_DOC_FEE_PER_TRIP',55000))} / kegiatan</span></div>
+        <div class="pa228-row"><strong>Uang makan crew lapangan</strong><span>${money(setting('FIELD_CREW_MEAL_PER_PERSON',12000))} / orang hadir / kegiatan</span></div>
+        <div class="pa228-row"><strong>Sales</strong><span>${money(setting('SALES_FIXED_MONTHLY',600000))} / bulan + ${money(setting('SALES_COMMISSION_PER_PAX',5000))} / pax</span></div>
+        <div class="pa228-row"><strong>Admin part-time</strong><span>${money(setting('ADMIN_PART_TIME_MONTHLY',450000))} / bulan</span></div>
+        <div class="pa228-row"><strong>Finance part-time</strong><span>${money(setting('FINANCE_PART_TIME_MONTHLY',550000))} / bulan</span></div>
+        <div class="pa228-row"><strong>Owner fixed salary</strong><span>${money(setting('OWNER_FIXED_SALARY',0))} — memakai pembagian laba ${v.ownerPct}%</span></div>
+      </div>
+      <div class="pa228-note">Rumus: laba bersih positif × ${v.recoveryPct}% recovery + ${v.cashPct}% kas perusahaan + ${v.ownerPct}% Owner. Jika laba bersih ≤ 0, seluruh alokasi otomatis Rp0.</div>
+      ${state.error?`<div class="pa228-note" style="border-color:#efc5c5;color:#963434">Data belum lengkap: ${h(state.error)}</div>`:''}
+    `;
+    q('[data-pa228-refresh]',body)?.addEventListener('click',load);
+  }
+
+  async function load(){
+    if(!allowed()||!db()||state.loading)return;
+    state.loading=true;state.error=null;
+    try{
+      const [settingsRes,pnlRes,salesRes]=await Promise.all([
+        db().from('company_control_settings').select('setting_key,numeric_value,text_value').in('setting_key',KEYS),
+        db().rpc('internal_gl_profit_loss',{p_start:periodMonth(),p_end:today()}),
+        db().rpc('gmu_sales_portfolio_summary',{p_period_month:periodMonth()})
+      ]);
+      if(settingsRes.error)throw settingsRes.error;if(pnlRes.error)throw pnlRes.error;if(salesRes.error)throw salesRes.error;
+      state.settings={};(settingsRes.data||[]).forEach(x=>state.settings[x.setting_key]=Number(x.numeric_value||0));
+      state.pnl=Array.isArray(pnlRes.data)?(pnlRes.data[0]||{}):(pnlRes.data||{});
+      state.sales=Array.isArray(salesRes.data)?salesRes.data:(salesRes.data?[salesRes.data]:[]);
+    }catch(e){state.error=e?.message||String(e);}finally{state.loading=false;render();}
+  }
+
+  function init(){
+    const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);if(!allowed())return;style();ensurePage();load();setInterval(load,60_000);},250);
+    window.GmuProfitAllocationV228=Object.freeze({version:VERSION,show,refresh:load});
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+/* ===== drive-archive-v231.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v23.2-google-drive-owner-sync-test';
+  const SUPABASE_URL = 'https://gtgnwasijweewmaubvyg.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW';
+  const SYNC_TEST_ROLES = new Set(['Owner', 'Director', 'Direktur']);
+  const BUTTON_ID = 'gmuDriveSyncTestButton';
+  const STATUS_ID = 'gmuDriveSyncTestStatus';
+
+  function currentRole() {
+    const candidates = [
+      (() => { try { return profile?.role; } catch (_) { return ''; } })(),
+      window.__GMU_SESSION__?.role,
+      window.gmuSession?.role,
+      window.profile?.role,
+    ];
+    return String(candidates.find(Boolean) || '');
+  }
+
+  async function accessToken() {
+    const candidates = [
+      window.__GMU_SESSION__?.accessToken,
+      window.gmuSession?.accessToken,
+      localStorage.getItem('gmu_access_token'),
+      sessionStorage.getItem('gmu_access_token'),
+    ];
+    const direct = candidates.find(Boolean);
+    if (direct) return direct;
+
+    try {
+      if (typeof sb !== 'undefined' && sb?.auth?.getSession) {
+        const { data } = await sb.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) return token;
+      }
+    } catch (_) {}
+
+    try {
+      if (window.sb?.auth?.getSession) {
+        const { data } = await window.sb.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) return token;
+      }
+    } catch (_) {}
+
+    return '';
+  }
+
+  async function invoke(payload) {
+    const token = await accessToken();
+    if (!token) throw new Error('Sesi ERP belum aktif. Silakan login ulang.');
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/gmu-drive-archive`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.ok === false) {
+      throw new Error(body.error || `Google Drive HTTP ${response.status}`);
+    }
+    return body;
+  }
+
+  function ensureStatusStyle() {
+    if (document.getElementById('gmuDriveSyncTestStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'gmuDriveSyncTestStyle';
+    style.textContent = `
+      #${STATUS_ID}{
+        position:fixed;right:18px;bottom:18px;z-index:99999;
+        max-width:min(420px,calc(100vw - 36px));padding:11px 13px;
+        border-radius:12px;border:1px solid #d8e7dc;background:#f6fbf7;
+        color:#174d2f;font:600 12px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;
+        box-shadow:0 8px 28px rgba(18,64,38,.14);display:none
+      }
+      #${STATUS_ID}.bad{border-color:#efc5c5;background:#fff4f4;color:#963434}
+      #${STATUS_ID}.show{display:block}
+      #${BUTTON_ID}[data-state="ok"]{border-color:#acd6b9;background:#eef9f1;color:#1f6b3d}
+      #${BUTTON_ID}[data-state="bad"]{border-color:#efc5c5;background:#fff4f4;color:#963434}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showStatus(message, bad = false) {
+    ensureStatusStyle();
+    let box = document.getElementById(STATUS_ID);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = STATUS_ID;
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
+      document.body.appendChild(box);
+    }
+    box.textContent = message;
+    box.classList.toggle('bad', bad);
+    box.classList.add('show');
+    clearTimeout(box.__gmuHideTimer);
+    box.__gmuHideTimer = setTimeout(() => box.classList.remove('show'), 7000);
+  }
+
+  async function runSyncTest(button) {
+    if (!SYNC_TEST_ROLES.has(currentRole())) {
+      showStatus('Tes Sinkronisasi Drive hanya tersedia untuk Owner/Director.', true);
+      return;
+    }
+    if (button?.disabled) return;
+
+    const original = button?.textContent || 'Tes Sinkronisasi Drive';
+    if (button) {
+      button.disabled = true;
+      button.dataset.state = 'checking';
+      button.textContent = 'Mengecek Drive…';
+    }
+
+    try {
+      const result = await api.health();
+      const rootName = result?.folder?.name || result?.root?.name || 'arsip GMU';
+      if (button) {
+        button.dataset.state = 'ok';
+        button.textContent = 'Drive ✓ Terhubung';
+      }
+      showStatus(`Sinkronisasi Google Drive aktif. ERP berhasil mengakses ${rootName}.`);
+    } catch (error) {
+      if (button) {
+        button.dataset.state = 'bad';
+        button.textContent = 'Drive ✕ Periksa';
+      }
+      showStatus(`Tes Drive gagal: ${error?.message || String(error)}`, true);
+    } finally {
+      if (button) {
+        button.disabled = false;
+        setTimeout(() => {
+          if (!button.isConnected) return;
+          button.textContent = original;
+          delete button.dataset.state;
+        }, 6000);
+      }
+    }
+  }
+
+  function installSyncTestButton() {
+    const allowed = SYNC_TEST_ROLES.has(currentRole());
+    const existing = document.getElementById(BUTTON_ID);
+
+    if (!allowed) {
+      existing?.remove();
+      return false;
+    }
+    if (existing) return true;
+
+    const actions =
+      document.querySelector('#gmu110PageBar .gmu110-bar-actions') ||
+      document.querySelector('.gmu110-bar-actions');
+
+    if (!actions) return false;
+
+    const button = document.createElement('button');
+    button.id = BUTTON_ID;
+    button.type = 'button';
+    button.className = 'gmu110-action';
+    button.textContent = 'Tes Sinkronisasi Drive';
+    button.title = 'Cek koneksi ERP ke arsip Google Drive tanpa membuat booking atau folder baru.';
+    button.addEventListener('click', () => runSyncTest(button));
+    actions.appendChild(button);
+    return true;
+  }
+
+  const api = {
+    version: VERSION,
+    health: () => invoke({ action: 'health' }),
+    testSync: () => runSyncTest(document.getElementById(BUTTON_ID)),
+    installSyncTestButton,
+    ensureOrderFolder: ({ bookingNo, customerName, activityDate }) => invoke({
+      action: 'ensure_order_folder',
+      entity_id: bookingNo,
+      booking_code: bookingNo,
+      customer_name: customerName,
+      activity_date: activityDate,
+    }),
+    uploadDocument: ({
+      entityType = 'order',
+      entityId,
+      documentType,
+      fileName,
+      mimeType,
+      contentBase64,
+      targetSubfolder = '09 - DOKUMEN FINAL',
+      source = 'erp-web',
+    }) => invoke({
+      action: 'upload_document',
+      entity_type: entityType,
+      entity_id: entityId,
+      document_type: documentType,
+      file_name: fileName,
+      mime_type: mimeType,
+      content_base64: contentBase64,
+      target_subfolder: targetSubfolder,
+      source,
+    }),
+  };
+
+  window.GMUDriveArchive = api;
+
+  function boot() {
+    ensureStatusStyle();
+    installSyncTestButton();
+
+    let queued = false;
+    const observer = new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        installSyncTestButton();
+      });
+    });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
+
+    const timer = setInterval(installSyncTestButton, 750);
+    setTimeout(() => clearInterval(timer), 30000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+
+/* ===== recruitment-center-v233.js ===== */
+(() => {
+  'use strict';
+
+  const VERSION = 'v23.3-recruitment-system';
+  const VIEW_ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans','Admin']);
+  const WRITE_ROLES = new Set(['Owner','Director','Direktur','Manager','Manager EduTrans']);
+  const TRACKER_URL = 'https://docs.google.com/spreadsheets/d/1goJHZb0RwBJq8sCq3iNq34oo2EtpVEusnXdFDDpRuSw/edit';
+  const SCORECARD_URL = 'https://docs.google.com/spreadsheets/d/110zAMthV69H_7ko6RMFPe1zOhFV3qp9t0HLLGyNtyQk/edit';
+  const PIPELINE = ['APPLIED','SCREENING','INTERVIEW','PRACTICAL_TEST','SHORTLISTED','OFFERING','ONBOARDING','ACTIVE','TALENT_POOL','HOLD','REJECTED','INACTIVE'];
+  const POSITIONS = [
+    ['Admin Part Time','PART_TIME'],
+    ['Finance Part Time','PART_TIME'],
+    ['Marketing & Sales','TARGET_BASED'],
+    ['Operasional Freelance','FREELANCER'],
+    ['TL / MC / Edukator','FREELANCER'],
+    ['Dokumentasi Freelance','FREELANCER'],
+    ['Helper Freelance','ON_CALL'],
+  ];
+
+  const state = { rows: [], loading: false, error: null, filter: 'ALL' };
+  const q = (s,r=document) => r.querySelector(s);
+  const safe = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = v => v == null || v === '' ? '—' : String(v);
+  const role = () => { try { return String(profile?.role || ''); } catch (_) { return ''; } };
+  const uid = () => { try { return String(profile?.id || ''); } catch (_) { return ''; } };
+  const db = () => { try { return typeof sb !== 'undefined' && sb?.from ? sb : null; } catch (_) { return null; } };
+  const canView = () => VIEW_ROLES.has(role());
+  const canWrite = () => WRITE_ROLES.has(role());
+
+  function candidateCode(){
+    const d=new Date();
+    return 'CAND-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+String(Date.now()).slice(-6);
+  }
+
+  function recommendation(score, red){
+    if (String(red||'NO') !== 'NO') return 'REVIEW / RED FLAG';
+    const n=Number(score);
+    if (!Number.isFinite(n)) return '';
+    if (n>=85) return 'Sangat sesuai';
+    if (n>=75) return 'Sesuai';
+    if (n>=65) return 'Dipertimbangkan / Talent Pool';
+    return 'Tidak dilanjutkan';
+  }
+
+  function style(){
+    if(q('#gmuRecruitmentV233Style')) return;
+    const el=document.createElement('style');
+    el.id='gmuRecruitmentV233Style';
+    el.textContent=`
+      .gmu-rec-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:10px}
+      .gmu-rec-card{border:1px solid var(--line);background:#fff;border-radius:14px;padding:11px}
+      .gmu-rec-card small{display:block;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.04em}
+      .gmu-rec-card b{display:block;font-size:18px;color:var(--gd);margin-top:3px}
+      .gmu-rec-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:10px 0}
+      .gmu-rec-btn{border:1px solid #17830d;background:#17830d;color:#fff;border-radius:9px;padding:8px 11px;font-size:10px;font-weight:700;cursor:pointer}
+      .gmu-rec-btn.alt{background:#fff;color:#17830d}.gmu-rec-btn.gold{border-color:#d5a000;background:#d5a000}
+      .gmu-rec-filter{border:1px solid var(--line);border-radius:9px;padding:7px 8px;background:#fff;font-size:10px}
+      .gmu-rec-table{width:100%;border-collapse:separate;border-spacing:0;font-size:9px}
+      .gmu-rec-table th{background:#f6faf6;color:#315a2d;text-align:left;padding:8px;border-bottom:1px solid var(--line);position:sticky;top:0}
+      .gmu-rec-table td{padding:8px;border-bottom:1px solid #eef1ee;vertical-align:top}
+      .gmu-rec-table-wrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:12px}
+      .gmu-rec-status{display:inline-block;padding:4px 7px;border-radius:999px;background:#eef7ec;color:#286323;font-size:8px;font-weight:700}
+      .gmu-rec-status.REJECTED,.gmu-rec-status.INACTIVE{background:#fff0f0;color:#9f3434}
+      .gmu-rec-status.ACTIVE{background:#e7f7e5;color:#156c0d}.gmu-rec-status.TALENT_POOL{background:#fff6d8;color:#755600}
+      .gmu-rec-actions{display:flex;gap:4px;flex-wrap:wrap}.gmu-rec-actions button{font-size:8px;padding:5px 7px}
+      .gmu-rec-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .gmu-rec-form label{font-size:9px;color:var(--muted)}.gmu-rec-form input,.gmu-rec-form select,.gmu-rec-form textarea{width:100%;box-sizing:border-box;margin-top:3px;border:1px solid var(--line);border-radius:9px;padding:8px;font:inherit;background:#fff}
+      .gmu-rec-form .wide{grid-column:1/-1}.gmu-rec-modal{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px}
+      .gmu-rec-modal>div{width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:18px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+      @media(max-width:900px){.gmu-rec-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.gmu-rec-grid,.gmu-rec-form{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(el);
+  }
+
+  function stats(){
+    const all=state.rows;
+    const count=s=>all.filter(x=>x.pipeline_status===s).length;
+    return {
+      total:all.length,
+      process:all.filter(x=>!['ACTIVE','TALENT_POOL','REJECTED','INACTIVE'].includes(x.pipeline_status)).length,
+      active:count('ACTIVE'),
+      pool:count('TALENT_POOL'),
+      offering:count('OFFERING'),
+      review:all.filter(x=>x.red_flag_status && x.red_flag_status!=='NO').length
+    };
+  }
+
+  function filtered(){
+    if(state.filter==='ALL') return state.rows;
+    return state.rows.filter(x=>x.pipeline_status===state.filter);
+  }
+
+  function ensurePage(){
+    if(!canView()) return null;
+    let page=q('#recruitmentCenterV233');
+    if(!page){
+      page=document.createElement('section');
+      page.id='recruitmentCenterV233';
+      page.className='page';
+      page.innerHTML='<div id="gmuRecruitmentCenterV233" class="card section"></div>';
+      (q('.content')||q('main')||document.body).appendChild(page);
+
+      const nav=q('#nav');
+      if(nav&&!q('#nav [data-page="recruitmentCenterV233"]')){
+        const b=document.createElement('button');
+        b.type='button';
+        b.dataset.page='recruitmentCenterV233';
+        b.textContent='Recruitment';
+        b.addEventListener('click',show);
+        nav.appendChild(b);
+      }
+    }
+    return page;
+  }
+
+  function show(){
+    const page=ensurePage(); if(!page) return;
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    page.classList.add('active');
+    document.querySelectorAll('#nav [data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page==='recruitmentCenterV233'));
+    if(q('#title')) q('#title').textContent='Recruitment Center';
+    load();
+  }
+
+  function render(){
+    if(!canView()) return;
+    const page=ensurePage(); if(!page) return;
+    const root=q('#gmuRecruitmentCenterV233',page);
+    const s=stats();
+    const rows=filtered().map(x=>`
+      <tr>
+        <td><b>${safe(x.candidate_code)}</b><br><span style="color:var(--muted)">${safe(x.full_name)}</span></td>
+        <td>${safe(x.primary_position)}<br><small>${safe(x.employment_type)}</small></td>
+        <td><span class="gmu-rec-status ${safe(x.pipeline_status)}">${safe(x.pipeline_status)}</span></td>
+        <td>${fmt(x.final_score)}<br><small>${safe(x.recommendation||recommendation(x.final_score,x.red_flag_status))}</small></td>
+        <td>${safe(x.whatsapp||x.email||'—')}</td>
+        <td>${safe(x.next_action||'—')}<br><small>${safe(x.next_action_due||'')}</small></td>
+        <td><div class="gmu-rec-actions">
+          ${canWrite()?`<button class="gmu-rec-btn alt" data-edit="${safe(x.id)}">Edit</button>`:''}
+          <button class="gmu-rec-btn alt" data-score="${safe(x.primary_position)}">Scorecard</button>
+        </div></td>
+      </tr>`).join('');
+
+    root.innerHTML=`
+      <div class="head"><div><h3>Recruitment Center • GMU EduTrans</h3><p>Pipeline kandidat, interview, practical test, offering, onboarding, dan Talent Pool.</p></div><span class="badge neutral">v23.3</span></div>
+      <div class="gmu-rec-grid">
+        <div class="gmu-rec-card"><small>Total Kandidat</small><b>${s.total}</b></div>
+        <div class="gmu-rec-card"><small>Dalam Proses</small><b>${s.process}</b></div>
+        <div class="gmu-rec-card"><small>Active Staff</small><b>${s.active}</b></div>
+        <div class="gmu-rec-card"><small>Talent Pool</small><b>${s.pool}</b></div>
+        <div class="gmu-rec-card"><small>Offering</small><b>${s.offering}</b></div>
+        <div class="gmu-rec-card"><small>Red Flag Review</small><b>${s.review}</b></div>
+      </div>
+      <div class="gmu-rec-toolbar">
+        ${canWrite()?'<button class="gmu-rec-btn" id="gmuRecAdd">+ Kandidat</button>':''}
+        <button class="gmu-rec-btn alt" id="gmuRecRefresh">Refresh</button>
+        <a class="gmu-rec-btn alt" href="${TRACKER_URL}" target="_blank" rel="noopener">Recruitment Tracker</a>
+        <a class="gmu-rec-btn alt" href="${SCORECARD_URL}" target="_blank" rel="noopener">Form Interview</a>
+        <select class="gmu-rec-filter" id="gmuRecFilter">
+          <option value="ALL">Semua status</option>
+          ${PIPELINE.map(x=>`<option value="${x}" ${state.filter===x?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="gmu-rec-table-wrap"><table class="gmu-rec-table"><thead><tr><th>Kandidat</th><th>Posisi</th><th>Status</th><th>Skor</th><th>Kontak</th><th>Next Action</th><th>Aksi</th></tr></thead><tbody>
+        ${rows||'<tr><td colspan="7">Belum ada kandidat pada filter ini.</td></tr>'}
+      </tbody></table></div>
+      ${state.error?`<div class="gmu-target-note" style="margin-top:8px;color:var(--bad)">${safe(state.error)}</div>`:''}
+      ${!canWrite()?'<div class="gmu-target-note" style="margin-top:8px">Mode Admin: data kandidat dapat dilihat untuk kebutuhan administrasi; keputusan dan perubahan pipeline dilakukan Manager/Direktur.</div>':''}
+    `;
+    bind();
+  }
+
+  function form(candidate={}){
+    if(!canWrite()) return;
+    const old=q('#gmuRecModal'); if(old) old.remove();
+    const m=document.createElement('div');m.id='gmuRecModal';m.className='gmu-rec-modal';
+    m.innerHTML=`<div>
+      <div class="head"><div><h3>${candidate.id?'Edit Kandidat':'Tambah Kandidat'}</h3><p>Isi data inti; scorecard terstruktur tetap dapat dibuka dari tombol Form Interview.</p></div><button class="gmu-rec-btn alt" id="gmuRecClose">Tutup</button></div>
+      <form id="gmuRecForm" class="gmu-rec-form">
+        <label>Nama lengkap<input name="full_name" required value="${safe(candidate.full_name||'')}"></label>
+        <label>WhatsApp<input name="whatsapp" value="${safe(candidate.whatsapp||'')}"></label>
+        <label>Email<input name="email" type="email" value="${safe(candidate.email||'')}"></label>
+        <label>Domisili<input name="domicile" value="${safe(candidate.domicile||'')}"></label>
+        <label>Posisi<select name="primary_position">${POSITIONS.map(([p,t])=>`<option value="${safe(p)}" data-type="${t}" ${candidate.primary_position===p?'selected':''}>${safe(p)}</option>`).join('')}</select></label>
+        <label>Status<select name="pipeline_status">${PIPELINE.map(x=>`<option value="${x}" ${(candidate.pipeline_status||'APPLIED')===x?'selected':''}>${x}</option>`).join('')}</select></label>
+        <label>Screening Score<input name="screening_score" type="number" min="0" max="100" value="${candidate.screening_score??''}"></label>
+        <label>Interview Score<input name="interview_score" type="number" min="0" max="100" value="${candidate.interview_score??''}"></label>
+        <label>Practical Score<input name="practical_score" type="number" min="0" max="100" value="${candidate.practical_score??''}"></label>
+        <label>Red Flag<select name="red_flag_status"><option value="NO">No</option><option value="YES" ${candidate.red_flag_status==='YES'?'selected':''}>Yes</option><option value="NEEDS_REVIEW" ${candidate.red_flag_status==='NEEDS_REVIEW'?'selected':''}>Needs Review</option></select></label>
+        <label class="wide">Catatan Red Flag<textarea name="red_flag_notes">${safe(candidate.red_flag_notes||'')}</textarea></label>
+        <label class="wide">Next Action<input name="next_action" value="${safe(candidate.next_action||'')}"></label>
+        <label>Next Action Due<input name="next_action_due" type="date" value="${safe(candidate.next_action_due||'')}"></label>
+        <label>Final Decision<select name="final_decision"><option value="">—</option><option value="PROCEED">Proceed</option><option value="HOLD">Hold</option><option value="TALENT_POOL">Talent Pool</option><option value="REJECTED">Rejected</option><option value="NEED_DIRECTOR_REVIEW">Need Director Review</option></select></label>
+        <label class="wide">Catatan<textarea name="notes">${safe(candidate.notes||'')}</textarea></label>
+        <div class="wide"><button class="gmu-rec-btn gold" type="submit">Simpan</button></div>
+      </form>
+    </div>`;
+    document.body.appendChild(m);
+    q('#gmuRecClose').onclick=()=>m.remove();
+    q('#gmuRecForm').onsubmit=e=>save(e,candidate);
+  }
+
+  function caseEmployment(value){
+    return value==='PART_TIME'||value==='FULL_TIME'||value==='CONTRACT' ? value : 'FREELANCER';
+  }
+
+  async function ensureRecruitmentCase(position,employment,candidateName,contact){
+    const active=['NEED_REVIEW','APPROVED','SOURCING','INTERVIEW','OFFER','ONBOARDING'];
+    const existing=await db().from('recruitment_cases')
+      .select('id')
+      .eq('position_title',position)
+      .in('status',active)
+      .order('created_at',{ascending:false})
+      .limit(1);
+    if(existing.error) throw existing.error;
+    if(existing.data?.[0]?.id) return existing.data[0].id;
+
+    const created=await db().from('recruitment_cases').insert({
+      position_title:position,
+      employment_type:caseEmployment(employment),
+      reason:'Candidate intake via Recruitment Center v23.3',
+      status:'SOURCING',
+      candidate_name:candidateName||null,
+      candidate_contact:contact||null,
+      owner_id:uid()||null,
+      created_by:uid()||null
+    }).select('id').single();
+    if(created.error) throw created.error;
+    return created.data?.id;
+  }
+
+  async function save(e,candidate){
+    e.preventDefault();
+    if(!canWrite()||!db()) return;
+    const fd=new FormData(e.currentTarget);
+    const position=String(fd.get('primary_position')||'');
+    const employment=POSITIONS.find(x=>x[0]===position)?.[1]||'FREELANCER';
+    const num=v=>v===''||v==null?null:Number(v);
+    const payload={
+      full_name:String(fd.get('full_name')||'').trim(),
+      whatsapp:String(fd.get('whatsapp')||'').trim()||null,
+      email:String(fd.get('email')||'').trim()||null,
+      domicile:String(fd.get('domicile')||'').trim()||null,
+      primary_position:position,
+      employment_type:employment,
+      pipeline_status:String(fd.get('pipeline_status')||'APPLIED'),
+      screening_score:num(fd.get('screening_score')),
+      interview_score:num(fd.get('interview_score')),
+      practical_score:num(fd.get('practical_score')),
+      red_flag_status:String(fd.get('red_flag_status')||'NO'),
+      red_flag_notes:String(fd.get('red_flag_notes')||'').trim()||null,
+      next_action:String(fd.get('next_action')||'').trim()||null,
+      next_action_due:String(fd.get('next_action_due')||'')||null,
+      final_decision:String(fd.get('final_decision')||'')||null,
+      notes:String(fd.get('notes')||'').trim()||null,
+      updated_by:uid()||null
+    };
+    const scores=[payload.screening_score,payload.interview_score,payload.practical_score].filter(v=>v!=null);
+    const avg=scores.length?scores.reduce((a,v)=>a+v,0)/scores.length:null;
+    payload.recommendation=recommendation(avg,payload.red_flag_status)||null;
+
+    try{
+      let res;
+      if(candidate.id){
+        res=await db().from('recruitment_candidates').update(payload).eq('id',candidate.id);
+      }else{
+        const caseId=await ensureRecruitmentCase(position,employment,payload.full_name,payload.whatsapp||payload.email);
+        res=await db().from('recruitment_candidates').insert({
+          ...payload,
+          recruitment_case_id:caseId,
+          candidate_code:candidateCode(),
+          contact:payload.whatsapp||payload.email||null,
+          created_by:uid()||null
+        });
+      }
+      if(res.error) throw res.error;
+      q('#gmuRecModal')?.remove(); await load();
+    }catch(err){
+      state.error=err?.message||String(err); render();
+    }
+  }
+
+  function bind(){
+    q('#gmuRecAdd')?.addEventListener('click',()=>form());
+    q('#gmuRecRefresh')?.addEventListener('click',load);
+    q('#gmuRecFilter')?.addEventListener('change',e=>{state.filter=e.target.value;render();});
+    document.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{
+      const x=state.rows.find(r=>r.id===b.dataset.edit); if(x) form(x);
+    }));
+    document.querySelectorAll('[data-score]').forEach(b=>b.addEventListener('click',()=>{
+      const map={'Admin Part Time':'1048495667','Finance Part Time':'1585196625','Marketing & Sales':'37450216','Operasional Freelance':'1545924845','TL / MC / Edukator':'898637886','Dokumentasi Freelance':'711190487','Helper Freelance':'1797873980'};
+      window.open(SCORECARD_URL+'#gid='+(map[b.dataset.score]||''),'_blank','noopener');
+    }));
+  }
+
+  async function load(){
+    if(!canView()||!db()||state.loading) return;
+    state.loading=true;state.error=null;
+    try{
+      const res=await db().from('recruitment_candidates')
+        .select('id,candidate_code,full_name,whatsapp,email,domicile,primary_position,employment_type,pipeline_status,screening_score,interview_score,practical_score,final_score,recommendation,red_flag_status,red_flag_notes,final_decision,next_action,next_action_due,notes,created_at')
+        .order('created_at',{ascending:false})
+        .limit(500);
+      if(res.error) throw res.error;
+      state.rows=Array.isArray(res.data)?res.data:[];
+    }catch(e){state.error=e?.message||String(e);}finally{state.loading=false;render();}
+  }
+
+  function init(){
+    style();
+    const timer=setInterval(()=>{
+      if(typeof profile==='undefined'||!profile) return;
+      clearInterval(timer);
+      if(!canView()) return;
+      ensurePage(); render(); load();
+      const obs=new MutationObserver(()=>{
+        if(!q('#recruitmentCenterV233')) ensurePage();
+        if(!q('#gmuRecruitmentCenterV233')) render();
+      });
+      obs.observe(document.body,{childList:true,subtree:true});
+    },250);
+    window.GmuRecruitmentSystem=Object.freeze({version:VERSION,show,refresh:load,tracker:TRACKER_URL,scorecard:SCORECARD_URL});
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+  else init();
+})();
