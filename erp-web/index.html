@@ -489,7 +489,12 @@ async function loadAll(){
   }
 }
 async function loadAllRaw(){$('connection').textContent='SYNC...';const qs=await Promise.all([sb.from('profiles').select('*').order('full_name'),sb.from('customers').select('*').order('name'),sb.from('vendors').select('*').order('name'),sb.from('bookings').select('*').order('trip_date',{ascending:true}),sb.from('payments').select('*'),sb.from('trips').select('*'),sb.from('operation_sheets').select('*'),sb.from('approvals').select('*').order('requested_at',{ascending:false}),sb.from('sop_deadlines').select('*').eq('is_active',true).order('offset_days'),sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(100),sb.from('trip_costs').select('*'),sb.from('manifests').select('*'),sb.from('rundown_items').select('*'),sb.from('trip_reports').select('*'),sb.from('evaluations').select('*')]);const names=['profiles','customers','vendors','bookings','payments','trips','operationSheets','approvals','deadlines','audit','costs','manifests','rundownItems','tripReports','evaluations'];qs.forEach((r,i)=>{if(!r.error)data[names[i]]=r.data||[];else console.warn(names[i],r.error.message)});$('connection').textContent='ONLINE';renderAll();}function startRealtime(){
-  realtime=sb.channel('gmu-erp-v9').on('postgres_changes',{event:'*',schema:'public'},()=>debouncedReload()).subscribe();
+  // Subscribe only to ERP tables used by this web app. Listening to every public
+  // table caused unrelated DB writes to trigger a full 15-query reload + rerender.
+  const liveTables=['profiles','customers','vendors','bookings','payments','trips','operation_sheets','approvals','sop_deadlines','trip_costs','manifests','rundown_items','trip_reports','evaluations'];
+  let channel=sb.channel('gmu-erp-v10');
+  liveTables.forEach(table=>{channel=channel.on('postgres_changes',{event:'*',schema:'public',table},()=>debouncedReload());});
+  realtime=channel.subscribe();
   if(!visibilitySyncBound){
     visibilitySyncBound=true;
     document.addEventListener('visibilitychange',()=>{
