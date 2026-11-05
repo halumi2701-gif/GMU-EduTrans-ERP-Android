@@ -453,17 +453,19 @@ function gmuTranslateNode(node){
     node.childNodes.forEach(gmuTranslateNode);
   }
 }
-function applyLanguage(){
+function applyLanguage(translateExisting=false){
   document.documentElement.lang=currentLang==='su'?'su':currentLang;
   document.querySelectorAll('#langSelect').forEach(x=>x.value=currentLang);
-  gmuTranslateNode(document.body);
+  // Full-body translation is expensive on every sync. Translate existing DOM only
+  // when the user changes language; MutationObserver handles newly rendered nodes.
+  if(translateExisting)gmuTranslateNode(document.body);
   document.title=currentLang==='en'?'GMU EduTrans ERP v21 — Document Upload, Approval & Trip Archive':currentLang==='su'?'GMU EduTrans ERP v21 — Unggah Dokumén, Persetujuan & Arsip Perjalanan':'GMU EduTrans ERP v21 — Document Upload, Approval & Trip Archive';
   const t=$('today');if(t)t.textContent=new Date().toLocaleDateString(localeForLang(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
 }
 function setLanguage(lang){
   currentLang=['id','en','su'].includes(lang)?lang:'id';
   localStorage.setItem('gmu_erp_lang',currentLang);
-  applyLanguage();
+  applyLanguage(true);
   try{renderAll()}catch(_){}
   applyLanguage();
 }
