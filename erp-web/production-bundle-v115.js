@@ -1890,8 +1890,8 @@
       clearInterval(timer);
       if (!allowed()) return;
       loadPolicy().finally(renderSection);
-      const observer = new MutationObserver(renderSection);
-      observer.observe(document.body, { childList: true, subtree: true });
+      // Do not observe the whole body here: renderSection rewrites innerHTML,
+      // which itself emits childList mutations and can create a permanent render loop.
       renderSection();
     }, 1000);
     window.GmuStationTargetV216 = Object.freeze({ version: VERSION, policy: DEFAULT });
@@ -2333,9 +2333,9 @@
       if (typeof profile === 'undefined' || !profile) return;
       clearInterval(timer);
       if (!allowed()) return;
+      // This policy section is inserted once; a global body observer made
+      // every unrelated DOM update rerun policy work and caused UI churn.
       apply();
-      const observer = new MutationObserver(apply);
-      observer.observe(document.body, { childList: true, subtree: true });
     }, 1000);
 
     window.GmuStationOperatingPolicyV218 = Object.freeze({ version: VERSION, policy: POLICY });
