@@ -5916,8 +5916,8 @@
     if(!root){render();root=q('#gmuInv116Root',page);}
     if(root)bind(root);
     const nav=q('#nav');
-    if(nav&&!q('#nav [data-page="inventoryPurchaseV116"]')){
-      const b=document.createElement('button');b.type='button';b.dataset.page='inventoryPurchaseV116';b.textContent='Pembelian & Master Barang';
+    if(nav&&!q('#nav [data-g116-nav]')){
+      const b=document.createElement('button');b.type='button';b.dataset.page='inventoryCashControl';b.dataset.g116Nav='1';b.textContent='Pembelian & Master Barang';
       b.addEventListener('click',()=>{const base=window.GmuInventoryCashV114;if(base?.refresh)base.refresh();setTimeout(()=>{const p=q('#inventoryCashControl');if(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active');q('#gmuInv116Root',p)?.scrollIntoView({behavior:'smooth',block:'start'});}},150);});
       nav.appendChild(b);
     }
