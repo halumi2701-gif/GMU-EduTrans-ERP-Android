@@ -5734,7 +5734,7 @@
   const actor=()=>{try{return String(profile?.id||user?.id||'')}catch(_){return ''}};
   const ownerManager=()=>['Owner','Manager'].includes(role());
   const state={vendors:[],items:[],accounts:[],purchases:[],purchaseItems:[],loading:false,error:''};
-  const canUse=()=>['Owner','Manager','Admin','Finance','Operation','Manager EduTrans'].includes(role());
+  const canUse=()=>['Owner','Manager','Admin','Operation'].includes(role());
 
   function style(){
     if(q('#gmuInv116Style'))return;
