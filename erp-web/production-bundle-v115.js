@@ -5720,3 +5720,214 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
+
+
+/* ===== inventory-purchase-workflow-v116.js ===== */
+(() => {
+  'use strict';
+  const VERSION='v11.6-purchase-workflow';
+  const q=(s,r=document)=>r.querySelector(s);
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const money=v=>'Rp '+Number(v||0).toLocaleString('id-ID');
+  const db=()=>{try{return typeof sb!=='undefined'&&sb?.from?sb:null}catch(_){return null}};
+  const role=()=>{try{return String(profile?.role||'')}catch(_){return ''}};
+  const actor=()=>{try{return String(profile?.id||user?.id||'')}catch(_){return ''}};
+  const ownerManager=()=>['Owner','Manager'].includes(role());
+  const state={vendors:[],items:[],accounts:[],purchases:[],purchaseItems:[],loading:false,error:''};
+  const canUse=()=>['Owner','Manager','Admin','Finance','Operation','Manager EduTrans'].includes(role());
+
+  function style(){
+    if(q('#gmuInv116Style'))return;
+    const s=document.createElement('style');s.id='gmuInv116Style';s.textContent=
+      '.g116{margin:14px 0;padding:14px;border:1px solid #dce8df;border-radius:14px;background:#f8fcf9;color:#163e2d}.g116 h3{margin:0 0 10px;color:#155b3b}.g116-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.g116-field{display:flex;flex-direction:column;gap:4px;min-width:0}.g116-field label{font-size:11px;font-weight:700;color:#37584a}.g116 input,.g116 select,.g116 textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid #cddbd2;border-radius:8px;background:#fff;font:inherit;font-size:12px}.g116 textarea{min-height:56px}.g116 button{border:1px solid #cddbd2;border-radius:8px;padding:8px 11px;background:white;color:#155b3b;cursor:pointer;font:inherit;font-size:12px;font-weight:600}.g116 button.primary{background:#176b43;color:#fff;border-color:#176b43}.g116 button.danger{color:#a33;border-color:#e6c6c6}.g116 .g116-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.g116 .g116-lines{overflow:auto;margin-top:8px}.g116 .g116-line{display:grid;grid-template-columns:minmax(190px,2fr) minmax(80px,.7fr) minmax(120px,1fr) 70px;gap:7px;align-items:end;margin:8px 0}.g116 table{width:100%;border-collapse:collapse;font-size:11px;background:white}.g116 th,.g116 td{padding:8px;border-bottom:1px solid #e4eee7;text-align:left}.g116 .g116-status{display:inline-block;padding:3px 7px;border-radius:99px;background:#e9f5ed}.g116 .g116-note{font-size:11px;color:#567064}.g116 .g116-error{color:#a33;background:#fff0f0;padding:9px;border-radius:8px;margin:8px 0}.g116 details{margin-top:10px}.g116 summary{cursor:pointer;font-weight:700;padding:7px 0}.g116 .g116-listwrap{overflow:auto;margin-top:8px}.g116 .g116-items{max-height:240px;overflow:auto;border:1px solid #e4eee7;border-radius:8px;background:#fff}.g116 .g116-itemrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid #edf2ee;font-size:11px}.g116 .g116-itemrow:last-child{border-bottom:0}@media(max-width:760px){.g116-grid{grid-template-columns:1fr 1fr}.g116 .g116-line{grid-template-columns:1fr 1fr}.g116 .g116-line .g116-item-select{grid-column:1/-1}}@media(max-width:500px){.g116-grid{grid-template-columns:1fr}.g116 .g116-line{grid-template-columns:1fr}.g116 .g116-line .g116-item-select{grid-column:auto}}';
+    document.head.appendChild(s);
+  }
+
+  function today(){
+    const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function refNo(){
+    const d=new Date();const z=n=>String(n).padStart(2,'0');
+    return 'PUR-GMU-'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds());
+  }
+  async function loadData(){
+    if(!db()||!canUse()||state.loading)return;
+    state.loading=true;state.error='';
+    try{
+      const tasks=[
+        db().from('vendors').select('id,name,is_active').eq('is_active',true).order('name').limit(300),
+        db().from('inventory_items').select('id,sku,item_name,category,unit,current_stock,average_cost,is_active').eq('is_active',true).order('item_name').limit(500),
+        db().from('inventory_purchases').select('id,purchase_date,vendor_name,vendor_id,receipt_reference,payment_method,payment_status,total_amount,notes,created_at').order('purchase_date',{ascending:false}).limit(100)
+      ];
+      if(ownerManager())tasks.push(db().from('treasury_accounts').select('id,account_code,account_name,is_active').eq('is_active',true).order('account_code').limit(100));
+      const res=await Promise.all(tasks);
+      if(res[0].error)throw res[0].error;if(res[1].error)throw res[1].error;if(res[2].error)throw res[2].error;
+      state.vendors=res[0].data||[];state.items=res[1].data||[];state.purchases=res[2].data||[];
+      state.accounts=ownerManager()&&res[3]&&!res[3].error?(res[3].data||[]):[];
+      const ids=state.purchases.map(x=>x.id).filter(Boolean);
+      if(ids.length){
+        const det=await db().from('inventory_purchase_items').select('purchase_id,item_id,quantity,unit_cost,total_cost').in('purchase_id',ids);
+        if(!det.error)state.purchaseItems=det.data||[];
+      }else state.purchaseItems=[];
+    }catch(e){state.error=e?.message||String(e)}
+    finally{state.loading=false;render();}
+  }
+
+  function itemOptions(selected){
+    return '<option value="">Pilih barang…</option>'+state.items.map(x=>'<option value="'+esc(x.id)+'" '+(String(x.id)===String(selected)?'selected':'')+'>'+esc(x.sku)+' · '+esc(x.item_name)+'</option>').join('');
+  }
+  function vendorOptions(){
+    return '<option value="">Pilih vendor…</option>'+state.vendors.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');
+  }
+  function accountOptions(){
+    return '<option value="">Pilih akun kas/bank…</option>'+state.accounts.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.account_code)+' · '+esc(x.account_name)+'</option>').join('');
+  }
+  function lineHtml(){
+    return '<div class="g116-line"><div class="g116-field g116-item-select"><label>Barang</label><select required data-g116-item>'+itemOptions()+'</select></div><div class="g116-field"><label>Qty</label><input type="number" min="0.001" step="0.001" value="1" required data-g116-qty></div><div class="g116-field"><label>Harga satuan (Rp)</label><input type="number" min="0" step="1" value="0" required data-g116-cost></div><button type="button" class="danger" data-g116-remove-line>Hapus</button></div>';
+  }
+
+  function render(){
+    const page=q('#inventoryCashControl');if(!page||!canUse())return;
+    style();
+    let root=q('#gmuInv116Root',page);
+    if(!root){root=document.createElement('section');root.id='gmuInv116Root';root.className='g116';page.appendChild(root);}
+    const isOwner=ownerManager();
+    const accountsMarkup=isOwner?
+      '<div class="g116-field"><label>Akun Kas/Bank (untuk lunas)</label><select data-g116-account>'+accountOptions()+'</select></div>':
+      '<div class="g116-field"><label>Akun Kas/Bank</label><input disabled value="Posting pembayaran lunas hanya Owner/Manager"></div>';
+    root.innerHTML=
+      '<div class="g116-head"><h3>🧾 Pembelian Barang & Master Inventaris</h3><p class="g116-note">v11.6 • Pembelian baru akan menambah mutasi stok; pembayaran lunas masuk ke kas keluar dan jurnal.</p><button type="button" data-g116-refresh>Muat ulang data</button></div>'+
+      (state.error?'<div class="g116-error">'+esc(state.error)+'</div>':'')+
+      '<details open><summary>Master Barang — tambah / edit</summary>'+
+      '<form data-g116-form="item"><input type="hidden" data-g116-item-id>'+
+      '<div class="g116-grid"><div class="g116-field"><label>SKU / Kode Barang</label><input required maxlength="80" data-g116-sku placeholder="Contoh: EDU-001"></div>'+
+      '<div class="g116-field"><label>Nama Barang</label><input required maxlength="180" data-g116-name placeholder="Nama mainan / alat edukasi"></div>'+
+      '<div class="g116-field"><label>Kategori</label><input maxlength="100" data-g116-category value="Mainan Edukasi"></div>'+
+      '<div class="g116-field"><label>Satuan</label><input maxlength="30" data-g116-unit value="pcs"></div>'+
+      '<div class="g116-field"><label>Catatan</label><input maxlength="500" data-g116-notes></div></div>'+
+      '<div class="g116-actions"><button class="primary" type="submit" data-g116-item-save>Simpan Master Barang</button><button type="button" data-g116-item-reset>Reset</button></div></form>'+
+      '<div class="g116-items">'+(state.items.length?state.items.map(x=>'<div class="g116-itemrow"><span><b>'+esc(x.item_name)+'</b> <span class="g116-note">('+esc(x.sku)+')</span><br><span class="g116-note">Stok '+Number(x.current_stock||0).toLocaleString('id-ID')+' '+esc(x.unit||'pcs')+' · HPP '+money(x.average_cost)+'</span></span><button type="button" data-g116-edit-item="'+esc(x.id)+'">Edit</button></div>').join(''):'<div class="g116-itemrow">Belum ada master barang.</div>')+'</div></details>'+
+      '<details open><summary>Input Pembelian Barang</summary>'+
+      '<form data-g116-form="purchase"><div class="g116-grid">'+
+      '<div class="g116-field"><label>Tanggal Pembelian</label><input type="date" required data-g116-date value="'+today()+'"></div>'+
+      '<div class="g116-field"><label>Vendor / Supplier</label><select required data-g116-vendor>'+vendorOptions()+'</select></div>'+
+      '<div class="g116-field"><label>No. Referensi / Nota</label><input required maxlength="120" data-g116-ref value="'+refNo()+'"></div>'+
+      '<div class="g116-field"><label>Status pembayaran</label><select data-g116-status><option value="UNPAID">Tempo / belum dibayar</option><option value="PAID">Lunas (posting kas keluar)</option></select></div>'+
+      '<div class="g116-field" data-g116-method-wrap><label>Metode pembayaran</label><select data-g116-method><option value="TEMPO">Tempo</option><option value="CASH">Tunai</option><option value="BANK">Transfer bank</option><option value="OTHER">Lainnya</option></select></div>'+
+      accountsMarkup+
+      '<div class="g116-field"><label>Catatan</label><input maxlength="500" data-g116-purchase-notes placeholder="Keterangan / tujuan pembelian"></div></div>'+
+      '<div class="g116-lines"><b>Barang yang dibeli</b><div data-g116-lines>'+lineHtml()+'</div><button type="button" data-g116-add-line>+ Tambah barang</button></div>'+
+      '<div class="g116-actions"><button class="primary" type="submit" data-g116-purchase-submit>Simpan Pembelian & Proses Stok</button></div>'+
+      '<p class="g116-note">Tempo: stok langsung masuk, belum dicatat sebagai kas keluar. Lunas: stok masuk dan kas keluar tercatat dalam satu proses transaksi.</p></form></details>'+
+      '<details><summary>Riwayat pembelian terbaru</summary><div class="g116-listwrap"><table><thead><tr><th>Tanggal</th><th>Vendor</th><th>Referensi</th><th>Status</th><th>Total</th><th>Detail</th></tr></thead><tbody>'+
+      (state.purchases.length?state.purchases.map(p=>{
+        const lines=state.purchaseItems.filter(x=>String(x.purchase_id)===String(p.id));
+        const detail=lines.map(x=>{const it=state.items.find(i=>String(i.id)===String(x.item_id));return (it?.item_name||'Barang')+' × '+x.quantity}).join(', ')||'Data lama / belum ada detail item';
+        return '<tr><td>'+esc(p.purchase_date)+'</td><td>'+esc(p.vendor_name)+'</td><td>'+esc(p.receipt_reference)+'</td><td><span class="g116-status">'+esc(p.payment_status)+'</span></td><td>'+money(p.total_amount)+'</td><td>'+esc(detail)+'</td></tr>';
+      }).join(''):'<tr><td colspan="6">Belum ada transaksi pembelian.</td></tr>')+
+      '</tbody></table></div></details>';
+    const status=q('[data-g116-status]',root),method=q('[data-g116-method]',root);
+    if(status&&method){method.value=status.value==='UNPAID'?'TEMPO':'CASH';method.disabled=status.value==='UNPAID';}
+  }
+
+  function resetItemForm(form){
+    form.reset();q('[data-g116-item-id]',form).value='';q('[data-g116-category]',form).value='Mainan Edukasi';q('[data-g116-unit]',form).value='pcs';
+    q('[data-g116-item-save]',form).textContent='Simpan Master Barang';
+  }
+  function getItemById(id){return state.items.find(x=>String(x.id)===String(id));}
+
+  async function handleSubmit(e){
+    const form=e.target.closest?.('[data-g116-form]');if(!form)return;
+    e.preventDefault();
+    const submit=form.querySelector('[type="submit"]');if(submit)submit.disabled=true;
+    try{
+      if(form.dataset.g116Form==='item'){
+        const id=q('[data-g116-item-id]',form).value;
+        const payload={sku:q('[data-g116-sku]',form).value.trim(),item_name:q('[data-g116-name]',form).value.trim(),category:q('[data-g116-category]',form).value.trim()||'Mainan Edukasi',unit:q('[data-g116-unit]',form).value.trim()||'pcs',notes:q('[data-g116-notes]',form).value.trim()||null};
+        if(!payload.sku||!payload.item_name)throw new Error('SKU dan nama barang wajib diisi.');
+        let res;
+        if(id)res=await db().from('inventory_items').update(payload).eq('id',id);
+        else res=await db().from('inventory_items').insert({...payload,current_stock:0,average_cost:0,is_active:true});
+        if(res.error)throw res.error;
+        alert(id?'Master barang berhasil diperbarui.':'Master barang berhasil ditambahkan.');
+        resetItemForm(form);await loadData();
+      }else if(form.dataset.g116Form==='purchase'){
+        if(!actor())throw new Error('Sesi login tidak terbaca. Silakan login ulang.');
+        const status=q('[data-g116-status]',form).value;
+        const method=status==='UNPAID'?'TEMPO':q('[data-g116-method]',form).value;
+        const lines=[...q('[data-g116-lines]',form).querySelectorAll('.g116-line')].map(row=>({
+          item_id:q('[data-g116-item]',row).value,
+          quantity:Number(q('[data-g116-qty]',row).value),
+          unit_cost:Number(q('[data-g116-cost]',row).value)
+        }));
+        if(lines.some(x=>!x.item_id||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_cost)||x.unit_cost<0))throw new Error('Lengkapi barang, qty, dan harga satuan dengan benar.');
+        if(new Set(lines.map(x=>x.item_id)).size!==lines.length)throw new Error('Barang yang sama jangan dibuat dua baris. Gabungkan jumlahnya.');
+        const total=lines.reduce((sum,x)=>sum+Math.round(x.quantity*x.unit_cost),0);
+        if(status==='PAID'&&!ownerManager())throw new Error('Posting pembelian lunas hanya bisa dilakukan Owner/Manager. Pilih Tempo atau minta Owner/Manager memproses pembayaran.');
+        const account=status==='PAID'?q('[data-g116-account]',form)?.value:null;
+        if(status==='PAID'&&!account)throw new Error('Pilih akun kas/bank untuk pembelian lunas.');
+        const payload={
+          p_purchase_date:q('[data-g116-date]',form).value,
+          p_vendor_id:q('[data-g116-vendor]',form).value,
+          p_receipt_reference:q('[data-g116-ref]',form).value.trim(),
+          p_payment_method:method,
+          p_payment_status:status,
+          p_lines:lines,
+          p_notes:q('[data-g116-purchase-notes]',form).value.trim()||null,
+          p_account_id:account||null,
+          p_actor:actor()
+        };
+        const {data,error}=await db().rpc('gmu_create_inventory_purchase',payload);
+        if(error)throw error;
+        const result=Array.isArray(data)?data[0]:data;
+        alert('Pembelian berhasil disimpan.\\nReferensi: '+(result?.receipt_reference||payload.p_receipt_reference)+'\\nTotal: '+money(result?.total_amount??total)+'\\nMutasi stok: '+(result?.stock_movements??lines.length)+' baris'+(status==='PAID'?'\\nKas keluar dan jurnal telah diposting.':'\\nStatus tempo: belum masuk kas keluar.'));
+        form.reset();q('[data-g116-date]',form).value=today();q('[data-g116-ref]',form).value=refNo();q('[data-g116-lines]',form).innerHTML=lineHtml();await loadData();
+        const base=window.GmuInventoryCashV114;if(base?.refresh)base.refresh();
+      }
+    }catch(err){alert('Gagal menyimpan: '+(err?.message||String(err)));}
+    finally{if(submit)submit.disabled=false;}
+  }
+
+  function bind(root){
+    if(root.dataset.g116Bound)return;root.dataset.g116Bound='1';
+    root.addEventListener('click',async e=>{
+      const add=e.target.closest('[data-g116-add-line]');
+      if(add){q('[data-g116-lines]',root).insertAdjacentHTML('beforeend',lineHtml());return;}
+      const remove=e.target.closest('[data-g116-remove-line]');
+      if(remove){const rows=q('[data-g116-lines]',root).querySelectorAll('.g116-line');if(rows.length<=1){alert('Minimal satu baris barang.');return;}remove.closest('.g116-line').remove();return;}
+      const edit=e.target.closest('[data-g116-edit-item]');
+      if(edit){const item=getItemById(edit.dataset.g116EditItem),form=q('[data-g116-form="item"]',root);if(!item||!form)return;
+        q('[data-g116-item-id]',form).value=item.id;q('[data-g116-sku]',form).value=item.sku||'';q('[data-g116-name]',form).value=item.item_name||'';q('[data-g116-category]',form).value=item.category||'';q('[data-g116-unit]',form).value=item.unit||'pcs';q('[data-g116-notes]',form).value=item.notes||'';q('[data-g116-item-save]',form).textContent='Simpan Perubahan';form.scrollIntoView({behavior:'smooth',block:'center'});return;}
+      if(e.target.closest('[data-g116-item-reset]')){resetItemForm(q('[data-g116-form="item"]',root));return;}
+      if(e.target.closest('[data-g116-refresh]')){await loadData();return;}
+    });
+    root.addEventListener('change',e=>{
+      if(e.target.matches('[data-g116-status]')){
+        const method=q('[data-g116-method]',root),status=e.target.value;
+        method.value=status==='UNPAID'?'TEMPO':'CASH';method.disabled=status==='UNPAID';
+      }
+    });
+    root.addEventListener('submit',handleSubmit);
+  }
+
+  function ensure(){
+    const page=q('#inventoryCashControl');if(!page||!canUse())return;
+    let root=q('#gmuInv116Root',page);
+    if(!root){render();root=q('#gmuInv116Root',page);}
+    if(root)bind(root);
+    const nav=q('#nav');
+    if(nav&&!q('#nav [data-page="inventoryPurchaseV116"]')){
+      const b=document.createElement('button');b.type='button';b.dataset.page='inventoryPurchaseV116';b.textContent='Pembelian & Master Barang';
+      b.addEventListener('click',()=>{const base=window.GmuInventoryCashV114;if(base?.refresh)base.refresh();setTimeout(()=>{const p=q('#inventoryCashControl');if(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active');q('#gmuInv116Root',p)?.scrollIntoView({behavior:'smooth',block:'start'});}},150);});
+      nav.appendChild(b);
+    }
+  }
+  function init(){
+    const observer=new MutationObserver(()=>ensure());
+    const start=()=>{if(document.body)observer.observe(document.body,{childList:true,subtree:true});ensure();loadData();};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+    const timer=setInterval(()=>{if(q('#inventoryCashControl')&&canUse()){ensure();clearInterval(timer);}},1000);setTimeout(()=>clearInterval(timer),20000);
+    window.GmuInventoryPurchaseV116=Object.freeze({version:VERSION,refresh:loadData,state});
+  }
+  init();
+})();
