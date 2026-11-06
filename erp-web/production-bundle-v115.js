@@ -6032,3 +6032,42 @@ function paidForm(id){openModal('Konfirmasi pembayaran komisi','<label>Referensi
 const timer=setInterval(()=>{if(typeof profile==='undefined'||!profile)return;clearInterval(timer);init();},1000);
 window.GmuMarketingPartnerFreelance={version:'v11.7',refresh:load};
 })();
+
+/* ===== gmu-universal-crud-core-v118.js ===== */
+(() => {
+'use strict';
+if(window.__gmuUniversalCrudCoreV118)return;window.__gmuUniversalCrudCoreV118=true;
+const editState={booking:null,customer:null,vendor:null};
+const canManage=()=>typeof can==='function'&&can(['Owner','Manager','Admin','Sales']);
+const canDelete=()=>typeof can==='function'&&can(['Owner','Manager']);
+const byId=id=>document.getElementById(id);
+const safe=v=>String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const title=(mid,t,b)=>{const m=byId(mid);if(!m)return;const h=m.querySelector('.mtitle h3');if(h)h.textContent=t;const s=m.querySelector('form button[type="submit"]');if(s)s.textContent=b;};
+function reset(k){editState[k]=null;if(k==='booking')title('bookingModal','Booking Baru','Simpan Booking');if(k==='customer')title('customerModal','Customer Baru','Simpan');if(k==='vendor')title('vendorModal','Vendor Baru','Simpan');}
+const originalOpen=window.openModal;
+if(typeof originalOpen==='function')window.openModal=function(id){if(id==='bookingModal'&&!editState.booking)reset('booking');if(id==='customerModal'&&!editState.customer)reset('customer');if(id==='vendorModal'&&!editState.vendor)reset('vendor');return originalOpen(id);};
+
+window.gmuCrudEditBooking=function(id){if(!canManage())return alert('Akses edit booking tidak tersedia.');const b=(data.bookings||[]).find(x=>String(x.id)===String(id));if(!b)return alert('Booking tidak ditemukan.');editState.booking=id;byId('bCustomer').value=b.customer_id||'';byId('bProgram').value=b.program_name||'';byId('bDate').value=b.trip_date||'';byId('bPax').value=b.pax||1;byId('bPrice').value=b.price_per_pax||0;byId('bStatus').value=b.status||'Lead';byId('bGroup').value=b.participant_group||'';byId('bMeeting').value=b.meeting_point||'';byId('bNotes').value=b.notes||'';title('bookingModal','Edit Booking • '+(b.booking_no||''),'Simpan Perubahan');originalOpen('bookingModal');};
+window.gmuCrudEditCustomer=function(id){if(!canManage())return alert('Akses edit customer tidak tersedia.');const c=(data.customers||[]).find(x=>String(x.id)===String(id));if(!c)return alert('Customer tidak ditemukan.');editState.customer=id;byId('cName').value=c.name||'';byId('cType').value=c.customer_type||'Sekolah';byId('cPic').value=c.pic_name||'';byId('cWa').value=c.whatsapp||'';byId('cNote').value=c.notes||'';title('customerModal','Edit Customer • '+(c.name||''),'Simpan Perubahan');originalOpen('customerModal');};
+window.gmuCrudEditVendor=function(id){if(!canManage())return alert('Akses edit vendor tidak tersedia.');const v=(data.vendors||[]).find(x=>String(x.id)===String(id));if(!v)return alert('Vendor tidak ditemukan.');editState.vendor=id;byId('vName').value=v.name||'';byId('vCat').value=v.category||'Lainnya';byId('vPic').value=v.pic_name||'';byId('vPhone').value=v.phone||'';title('vendorModal','Edit Vendor • '+(v.name||''),'Simpan Perubahan');originalOpen('vendorModal');};
+
+async function del(table,id,label){if(!canDelete())return alert('Hapus permanen hanya untuk Owner/Manager.');if(!confirm('HAPUS PERMANEN '+label+'? Data tidak dapat dipulihkan.'))return;const r=await sb.from(table).delete().eq('id',id);if(r.error)return alert('Gagal hapus: '+r.error.message+'\\nJika ada data relasi, histori terkait harus dipertahankan.');try{await audit('DELETE_PERMANENT',table,id,'Hapus permanen '+label);}catch(_){}await loadAll();}
+window.gmuCrudDeleteBooking=async id=>{const deps=['payments','trips','operationSheets','costs','manifests','rundownItems','tripReports','evaluations'];const has=deps.some(k=>(data[k]||[]).some(x=>String(x.booking_id)===String(id)));if(has)return alert('Booking masih memiliki data pembayaran/operasional. Hapus permanen diblokir agar histori dan laporan tidak rusak.');const b=(data.bookings||[]).find(x=>String(x.id)===String(id));return del('bookings',id,'Booking '+(b?.booking_no||id));};
+window.gmuCrudDeleteCustomer=async id=>{if((data.bookings||[]).some(x=>String(x.customer_id)===String(id)))return alert('Customer masih terhubung ke booking. Tidak bisa dihapus permanen agar histori tetap utuh.');const c=(data.customers||[]).find(x=>String(x.id)===String(id));return del('customers',id,'Customer '+(c?.name||id));};
+window.gmuCrudDeleteVendor=async id=>{const v=(data.vendors||[]).find(x=>String(x.id)===String(id));return del('vendors',id,'Vendor '+(v?.name||id));};
+
+function addActions(bodyId,kind,lookup,editFn,deleteFn){const body=byId(bodyId);if(!body)return;body.querySelectorAll('tr').forEach(tr=>{if(tr.querySelector('[data-gmu-crud]'))return;const first=tr.querySelector('td');if(!first)return;const key=first.textContent.trim();const row=lookup(key);if(!row)return;const td=document.createElement('td');td.dataset.gmuCrud='1';let html='';if(canManage())html+='<button class="btn ghost" onclick="'+editFn+'(\\''+safe(row.id)+'\\')">Edit</button> ';if(canDelete())html+='<button class="btn danger" onclick="'+deleteFn+'(\\''+safe(row.id)+'\\')">Hapus Permanen</button>';td.innerHTML=html;tr.appendChild(td);});const head=body.closest('table')?.querySelector('thead tr');if(head&&!head.querySelector('[data-gmu-crud-head]')){const th=document.createElement('th');th.dataset.gmuCrudHead='1';th.textContent='Kelola Data';head.appendChild(th);}}
+const oldBookings=window.renderBookings;
+if(typeof oldBookings==='function')window.renderBookings=function(){oldBookings();addActions('bookingBody','booking',k=>(data.bookings||[]).find(x=>String(x.booking_no)===k),'gmuCrudEditBooking','gmuCrudDeleteBooking');};
+const oldCustomers=window.renderCustomers;
+if(typeof oldCustomers==='function')window.renderCustomers=function(){oldCustomers();addActions('customerBody','customer',k=>(data.customers||[]).find(x=>String(x.customer_code||x.id)===k),'gmuCrudEditCustomer','gmuCrudDeleteCustomer');};
+const oldVendors=window.renderVendors;
+if(typeof oldVendors==='function')window.renderVendors=function(){oldVendors();addActions('vendorBody','vendor',k=>(data.vendors||[]).find(x=>String(x.vendor_code||x.id)===k),'gmuCrudEditVendor','gmuCrudDeleteVendor');};
+
+function intercept(formId,k,table,build,label){const form=byId(formId);if(!form||form.dataset.gmuCrudIntercept)return;form.dataset.gmuCrudIntercept='1';form.addEventListener('submit',async e=>{const id=editState[k];if(!id)return;e.preventDefault();e.stopImmediatePropagation();const r=await sb.from(table).update(build()).eq('id',id);if(r.error)return alert('Gagal update: '+r.error.message);try{await audit('UPDATE',table,id,'Edit '+label());}catch(_){}reset(k);closeModal(formId.replace('Form','Modal'));form.reset();await loadAll();},true);}
+intercept('bookingForm','booking','bookings',()=>({customer_id:byId('bCustomer').value,program_name:byId('bProgram').value,trip_date:byId('bDate').value,pax:Number(byId('bPax').value),price_per_pax:Number(byId('bPrice').value),status:byId('bStatus').value,participant_group:byId('bGroup').value,meeting_point:byId('bMeeting').value,notes:byId('bNotes').value,updated_by:profile.id}),()=>byId('bProgram').value);
+intercept('customerForm','customer','customers',()=>({name:byId('cName').value,customer_type:byId('cType').value,pic_name:byId('cPic').value,whatsapp:byId('cWa').value,notes:byId('cNote').value,updated_by:profile.id}),()=>byId('cName').value);
+intercept('vendorForm','vendor','vendors',()=>({name:byId('vName').value,category:byId('vCat').value,pic_name:byId('vPic').value,phone:byId('vPhone').value,updated_by:profile.id}),()=>byId('vName').value);
+const load=window.loadAll;if(typeof load==='function'&&!load.__gmuCrud118){const wrap=async function(...a){const r=await load.apply(this,a);return r;};wrap.__gmuCrud118=true;window.loadAll=wrap;}
+setTimeout(()=>{if(typeof renderBookings==='function')renderBookings();if(typeof renderCustomers==='function')renderCustomers();if(typeof renderVendors==='function')renderVendors();},500);
+})();
