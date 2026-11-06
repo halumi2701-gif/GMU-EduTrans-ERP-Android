@@ -87,3 +87,8 @@ ERP memuat `customer-account-crm-v220.js` untuk menampilkan akun baru, akun belu
 Workflow `.github/workflows/deploy-public-web.yml` melakukan validasi source lalu deploy **folder `public-web`** ke project Vercel customer web yang sama. Workflow memverifikasi homepage tetap utuh dan route `/recruitment` benar-benar berisi form recruitment, bukan fallback homepage.
 
 Credential production yang dibutuhkan GitHub Actions: `VERCEL_TOKEN`. Jika secret ini belum tersedia, validasi source tetap dapat diperiksa tetapi deploy production berhenti dengan error eksplisit. Setelah token tersedia: rerun workflow → verifikasi homepage → verifikasi `/recruitment` → lakukan smoke test kandidat → cleanup → baru tandai URL sebagai LIVE di Tracker/Drive.
+
+
+## Production deployment repair (2026-11-06)
+
+The canonical production deployment must be built from this `public-web/` directory, not the legacy standalone `src/` snapshot. This directory contains both `index.html` and `recruitment.html`; verify that `/` serves the homepage and `/recruitment` serves the recruitment form after every production deploy. Do not mark recruitment LIVE if `/recruitment` returns the homepage.
