@@ -1,0 +1,535 @@
+<!doctype html><html lang="id"><head>
+<script id="gmu-auth-config-lock">
+(() => {
+  const OFFICIAL_URL = 'https://gtgnwasijweewmaubvyg.supabase.co';
+  const OFFICIAL_KEY = 'sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW';
+
+  const classify = (k, v) => {
+    const key = String(k || '').toLowerCase();
+    const val = String(v || '');
+    if ((key.includes('supabase') && key.includes('url')) || key.includes('project_url')) return 'url';
+    if ((key.includes('supabase') && (key.includes('key') || key.includes('anon') || key.includes('publish'))) || key.includes('anon_key') || key.includes('publishable_key')) return 'key';
+    if (val.includes('.supabase.co')) return 'url';
+    if (val.startsWith('sb_publishable_')) return 'key';
+    return '';
+  };
+
+  for (const store of [window.localStorage, window.sessionStorage]) {
+    try {
+      const purge = [];
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        const v = store.getItem(k);
+        if (classify(k, v)) purge.push(k);
+      }
+      purge.forEach(k => store.removeItem(k));
+    } catch (_) {}
+  }
+
+  try {
+    const rawGet = Storage.prototype.getItem;
+    const rawSet = Storage.prototype.setItem;
+    Storage.prototype.getItem = function(k) {
+      const kind = classify(k, '');
+      if (kind === 'url') return OFFICIAL_URL;
+      if (kind === 'key') return OFFICIAL_KEY;
+      return rawGet.call(this, k);
+    };
+    Storage.prototype.setItem = function(k, v) {
+      const kind = classify(k, v);
+      if (kind === 'url') return rawSet.call(this, k, OFFICIAL_URL);
+      if (kind === 'key') return rawSet.call(this, k, OFFICIAL_KEY);
+      return rawSet.call(this, k, v);
+    };
+  } catch (_) {}
+
+  window.__GMU_AUTH_CONFIG_LOCK__ = {
+    projectUrl: OFFICIAL_URL,
+    locked: true,
+    version: '2026-09-08.1'
+  };
+})();
+</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GMU EduTrans ERP v21 — Document Upload, Approval & Trip Archive</title><style>:root{--g:#08633d;--gd:#06442e;--gs:#eaf6ef;--gold:#d3a400;--bg:#f3f7f5;--card:#fff;--text:#173128;--muted:#718078;--line:#dce7e1;--bad:#b63c3c;--blue:#315f9e;--shadow:0 12px 32px rgba(6,68,46,.09)}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}.login{min-height:100vh;display:grid;grid-template-columns:1.08fr .92fr;background:#fff}.hero{background:linear-gradient(145deg,var(--gd),var(--g));padding:50px;color:#fff;display:flex;flex-direction:column;justify-content:space-between}.hero img{width:220px;height:auto;max-height:145px;object-fit:contain;background:#fff;border-radius:20px;padding:8px}.hero h1{font-size:40px;margin:20px 0 8px}.hero p{color:#d6ebe1;max-width:630px;line-height:1.65}.hero h2{font-size:32px;max-width:650px}.loginpanel{display:grid;place-items:center;padding:34px}.box{width:min(470px,100%)}.box h2{font-size:30px;margin:0 0 6px}.box>p{color:var(--muted);margin:0 0 22px}.field{display:grid;gap:6px;margin-bottom:12px}.field label{font-size:11px;color:var(--muted);font-weight:800}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:11px;padding:11px 12px;outline:none;background:#fff;color:var(--text)}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(8,99,61,.08)}.btn{border:0;border-radius:10px;padding:10px 13px;font-weight:800;cursor:pointer}.primary{background:var(--g);color:#fff}.ghost{background:#edf4f0;color:var(--gd)}.gold{background:#fff2c8;color:#745800}.danger{background:#fff0f0;color:var(--bad)}.wide{width:100%}.setup{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:13px;background:#fbfdfc}.setup summary{font-size:12px;font-weight:800;cursor:pointer}.note{font-size:10px;color:var(--muted);line-height:1.55}.err{color:var(--bad);font-size:11px;min-height:20px;margin-top:8px}.app{display:flex;min-height:100vh}.side{width:270px;position:fixed;inset:0 auto 0 0;background:linear-gradient(180deg,var(--gd),#033020);color:#fff;padding:16px 13px;overflow:auto}.brand{display:flex;align-items:center;gap:12px;padding:2px 7px 18px}.brand img{width:118px;height:auto;max-height:72px;object-fit:contain;background:#fff;border-radius:14px;padding:5px}.brand h1{font-size:17px;margin:0}.brand small{opacity:.7}.me{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);border-radius:13px;padding:11px;margin:0 3px 12px}.me b{display:block;font-size:12px}.me span{font-size:10px;color:#cce2d8}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#d9eee5;text-align:left;padding:10px 11px;border-radius:10px;cursor:pointer}.nav button:hover,.nav button.active{background:rgba(255,255,255,.12);color:#fff}.sidefoot{font-size:10px;color:#b9d5c9;border-top:1px solid rgba(255,255,255,.12);margin-top:20px;padding:13px 7px}.main{margin-left:270px;width:calc(100% - 270px)}.top{height:74px;position:sticky;top:0;z-index:5;background:rgba(255,255,255,.95);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 23px}.top h2{font-size:19px;margin:0}.top small{color:var(--muted)}.topright{display:flex;align-items:center;gap:8px}.pill{font-size:10px;font-weight:900;border-radius:999px;padding:7px 9px;background:#fff2c8;color:#745800}.content{padding:22px}.page{display:none}.page.active{display:block}.notice{border:1px solid #cfe3d7;background:var(--gs);border-radius:13px;padding:11px 13px;font-size:10px;color:#315c49;margin-bottom:14px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.metric{padding:16px;border-top:4px solid var(--g)}.metric.goldtop{border-top-color:var(--gold)}.metric.bluetop{border-top-color:var(--blue)}.metric span{font-size:10px;color:var(--muted)}.metric b{display:block;font-size:22px;margin-top:6px}.section{padding:18px;margin-top:14px}.head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}.head h3{margin:0;font-size:16px}.head p{margin:3px 0 0;font-size:10px;color:var(--muted)}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.search{min-width:230px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}th{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.wrap{overflow:auto}.badge{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900}.ok{background:#e5f5ed;color:#0b6649}.warn{background:#fff4dc;color:#956300}.bad{background:#fdeaea;color:#a73838}.info{background:#eaf1fb;color:#285a91}.neutral{background:#edf1ef;color:#5c6963}.money{font-weight:800}.red{color:var(--bad);font-weight:900}.green{color:var(--g);font-weight:900}.grid2{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.list{display:grid;gap:8px}.item{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}.item b{font-size:11px}.item p{font-size:9px;color:var(--muted);margin:4px 0 0}.itemtop{display:flex;justify-content:space-between;gap:9px}.audit{display:grid;grid-template-columns:130px 110px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:10px}.modal{position:fixed;inset:0;background:rgba(2,28,19,.54);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.open{display:flex}.modalbox{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:20px}.mtitle{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.mtitle h3{margin:0}.close{border:0;width:32px;height:32px;border-radius:50%;background:#edf3f0}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.full{grid-column:1/-1}.mobile{display:none}@media(max-width:1050px){.metrics{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}@media(max-width:760px){.login{grid-template-columns:1fr}.hero{padding:25px;min-height:260px}.hero h2{display:none}.hero img{width:170px;height:auto;max-height:105px}.hero h1{font-size:27px}.loginpanel{padding:25px 18px}.side{transform:translateX(-100%);transition:.2s;z-index:20}.side.open{transform:translateX(0)}.main{margin-left:0;width:100%}.mobile{display:inline-flex}.content{padding:13px}.top{padding:0 12px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.audit{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}@media(max-width:480px){.metrics{grid-template-columns:1fr}}</style><style id="gmu-erp-v92-style">
+.tripbar{height:8px;border-radius:999px;background:#e7efeb;overflow:hidden;margin-top:5px}.tripbar>i{display:block;height:100%;background:var(--g);border-radius:999px}
+.tripready{display:grid;gap:3px;min-width:120px}.tripready small{font-size:8px;color:var(--muted)}
+.financial-locked-note{border:1px solid #eadca8;background:#fff8df;color:#755b00;border-radius:12px;padding:11px 13px;font-size:10px;margin-bottom:14px}
+@media(max-width:760px){.tripready{min-width:90px}}
+</style><style id="gmu-erp-v93-i18n-style">
+.lang-select{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 9px;font-size:10px;font-weight:800;outline:none;max-width:132px}
+.lang-select:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(8,99,61,.08)}
+@media(max-width:560px){.lang-select{max-width:102px;padding:7px 6px}.topright{gap:5px}.topright .pill{display:none}}
+</style><style id="gmu-erp-v94-tripfolder-style">
+.folder-score{display:flex;align-items:center;gap:10px;min-width:150px}
+.folder-ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--g) var(--pct),#e4ece8 0);position:relative;flex:0 0 auto}
+.folder-ring:after{content:"";position:absolute;width:32px;height:32px;border-radius:50%;background:#fff}
+.folder-ring b{position:relative;z-index:1;font-size:10px}
+.folder-docs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.folder-doc{border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}
+.folder-doc.okdoc{border-color:#bfe1ce;background:#f4fbf7}
+.folder-doc.lockeddoc{background:#fafafa}
+.folder-doc b{display:block;font-size:10px}
+.folder-doc small{font-size:8px;color:var(--muted)}
+.folder-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.folder-mini-list{display:grid;gap:6px;margin-top:8px}
+.folder-mini-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:7px 0;font-size:9px}
+.folder-form{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+@media(max-width:760px){.folder-docs,.folder-detail-grid{grid-template-columns:1fr}.folder-score{min-width:120px}}
+</style><style id="gmu-erp-v95-documents-style">
+.doc-upload-card{margin-top:14px!important}
+.doc-upload-grid{display:grid;grid-template-columns:190px 1fr auto;gap:9px;align-items:end}
+.doc-file-list{display:grid;gap:8px;margin-top:12px}
+.doc-file{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}
+.doc-file-main{min-width:0}.doc-file-main b{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.doc-file-main small{display:block;font-size:8px;color:var(--muted);margin-top:3px}
+.doc-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.archive-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #cfe3d7;background:#f4fbf7;border-radius:13px;padding:12px 13px;margin-top:14px}
+.archive-banner.archived{border-color:#dfc56d;background:#fff9e6}
+.archive-banner b{font-size:11px}.archive-banner p{font-size:9px;color:var(--muted);margin:3px 0 0}
+.doc-category{font-size:8px;font-weight:900;color:var(--g);text-transform:uppercase;letter-spacing:.04em}
+.doc-empty{border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;color:var(--muted);font-size:9px}
+@media(max-width:760px){.doc-upload-grid{grid-template-columns:1fr}.doc-file{grid-template-columns:1fr}.doc-actions{justify-content:flex-start}}
+</style></head><body><section id="loginScreen" class="login"><div class="hero"><div><img src="https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"><h1>GMU EduTrans</h1><p>Company Autopilot v21 — Enterprise Operating System</p></div><div><h2>Data terpusat, login asli, hak akses database, dan sinkronisasi antar divisi.</h2><p>Versi ini menggunakan Supabase Auth + PostgreSQL + Row Level Security. Sales, Finance, Operation, TL, Manager dan Owner bekerja pada sumber data yang sama.</p></div><small>PT Garsyani Multi Usaha • GMU EduTrans • 2026</small></div><div class="loginpanel"><div class="box"><h2>Masuk ke ERP Online</h2><p>Gunakan email akun internal GMU EduTrans.</p><form id="loginForm"><div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" required placeholder="nama@gmuedutrans.com"></div><div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required></div><button class="btn primary wide" type="submit">Masuk</button><div id="loginError" class="err"></div></form>
+      <div style="height:10px"></div>
+      <button class="btn ghost wide" type="button" onclick="toggleForgotPassword()">Lupa Password?</button>
+      <form id="forgotPasswordForm" class="hidden" style="margin-top:14px">
+        <div class="field"><label>Email Akun</label><input id="forgotEmail" type="email" required placeholder="email akun ERP"></div>
+        <button class="btn primary wide" type="submit">Kirim Link Reset Password</button>
+        <div id="forgotStatus" class="err"></div>
+        <p class="note">Link reset dikirim melalui email. Setelah membuka link, buat password baru di halaman ERP.</p>
+      </form>
+    <div class="notice" style="margin-top:14px">Pendaftaran akun publik dinonaktifkan. Akun staf hanya dibuat oleh <b>Owner</b> dari menu <b>User & Role</b>.</div><details class="setup" id="setupBox"><summary>Konfigurasi Supabase — sudah terhubung</summary><p class="note">Project Supabase GMU sudah dipasang sebagai konfigurasi default. Bagian ini hanya diperlukan jika nanti project dipindahkan. Jangan pernah memasukkan service-role key.</p><div class="field"><label>Supabase Project URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Anon / Publishable Key</label><textarea id="cfgKey" rows="4"></textarea></div><button class="btn ghost" type="button" onclick="saveConfig()">Simpan Konfigurasi</button><span id="cfgStatus" class="note"></span></details></div></div></section><div id="app" class="app hidden"><aside class="side" id="side"><div class="brand"><img src="https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"><div><h1>GMU EduTrans</h1><small>ERP v21 Online</small></div></div><div class="me"><b id="meName">-</b><span id="meRole">-</span></div><div class="nav" id="nav"><button data-page="dashboard">⌂ &nbsp; Dashboard</button><button data-page="bookings">▣ &nbsp; Booking</button><button data-page="customers">◎ &nbsp; Customer</button><button data-page="finance">Rp &nbsp; Finance</button><button data-page="operation">◆ &nbsp; Trip Operation</button><button data-page="tripcontrol">◈ &nbsp; Trip Control</button><button data-page="tripfolder">▰ &nbsp; Trip Folder</button><button data-page="vendors">▤ &nbsp; Vendor</button><button data-page="workflow">⚑ &nbsp; Workflow Control</button><button data-page="users">♙ &nbsp; User & Role</button><button data-page="migration">⇪ &nbsp; Migrasi v8</button></div><div class="sidefoot">Online database • Supabase Auth • PostgreSQL • RLS • Realtime</div></aside><main class="main"><header class="top"><div style="display:flex;align-items:center;gap:9px"><button id="menu" class="btn ghost mobile">☰</button><div><h2 id="title">Dashboard</h2><small id="today"></small></div></div><div class="topright"><select id="langSelect" class="lang-select" aria-label="Language">
+<option value="id">🇮🇩 Indonesia</option>
+<option value="en">🇬🇧 English</option>
+<option value="su">🟩 Sunda</option>
+</select><span id="connection" class="pill">ONLINE</span><button class="btn ghost" onclick="logout()">Keluar</button></div></header><div class="content"><div class="notice">GMU EduTrans Company Autopilot v21 aktif • Target Cascade v21.2, Compensation Autopilot v21.3 dan Performance-Based Payroll & Workforce Capacity v21.4 bekerja end-to-end dengan management by exception.</div><section id="dashboard" class="page active"><div id="metrics" class="metrics"></div><div class="grid2"><div class="card section"><div class="head"><div><h3>Trip Mendatang</h3><p>Booking aktif yang dapat diakses role ini</p></div></div><div class="wrap"><table><thead><tr><th>Booking</th><th>Program</th><th>Customer</th><th>Tanggal</th><th>Pax</th><th>Status</th></tr></thead><tbody id="upcoming"></tbody></table></div></div><div class="card section"><div class="head"><div><h3>Workflow Alerts</h3><p>Deadline dan approval prioritas</p></div></div><div id="dashAlerts" class="list"></div></div></div></section><section id="bookings" class="page"><div class="card section"><div class="head"><div><h3>Booking Online</h3><p>Data booking terpusat</p></div><button id="newBookingBtn" class="btn primary" onclick="openModal('bookingModal')">+ Booking</button></div><div class="toolbar"><input id="bookingSearch" class="search" placeholder="Cari booking..." oninput="renderBookings()"></div><div class="wrap"><table><thead><tr><th>No</th><th>Customer</th><th>Program</th><th>Tanggal</th><th>Pax</th><th class="financial-only">Omzet</th><th>Sales</th><th>Status</th></tr></thead><tbody id="bookingBody"></tbody></table></div></div></section><section id="customers" class="page"><div class="card section"><div class="head"><div><h3>Customer</h3><p>Database sekolah, instansi, komunitas dan partner</p></div><button id="newCustomerBtn" class="btn primary" onclick="openModal('customerModal')">+ Customer</button></div><div class="wrap"><table><thead><tr><th>Kode</th><th>Nama</th><th>PIC</th><th>WhatsApp</th><th>Tipe</th><th class="financial-only">Omzet</th></tr></thead><tbody id="customerBody"></tbody></table></div></div></section><section id="finance" class="page"><div id="financeMetrics" class="metrics"></div><div class="card section"><div class="head"><div><h3>Pembayaran & Piutang</h3><p>Finance online per booking</p></div></div><div class="wrap"><table><thead><tr><th>Booking</th><th>Customer</th><th>Invoice</th><th>Terbayar</th><th>Piutang</th><th>Aksi</th></tr></thead><tbody id="financeBody"></tbody></table></div></div></section><section id="operation" class="page"><div class="card section"><div class="head"><div><h3>Trip Operation</h3><p>Assignment TL dan kesiapan operation sheet</p></div></div><div class="wrap"><table><thead><tr><th>Booking</th><th>Program</th><th>Tanggal</th><th>TL</th><th>Progress</th><th>Operation Sheet</th><th>Aksi</th></tr></thead><tbody id="operationBody"></tbody></table></div></div></section><section id="tripcontrol" class="page">
+<div id="tripControlMetrics" class="metrics"></div>
+<div class="card section">
+  <div class="head">
+    <div><h3>Trip Control Center</h3><p>Kesiapan trip terpadu — TL, progress, Operation Sheet dan approval.</p></div>
+    <button class="btn ghost" onclick="loadAll()">↻ Refresh</button>
+  </div>
+  <div class="toolbar"><input id="tripControlSearch" class="search" placeholder="Cari booking, program, customer..." oninput="renderTripControl()"></div>
+  <div class="wrap"><table><thead><tr><th>Booking</th><th>Customer</th><th>Program</th><th>Tanggal</th><th>TL</th><th>Kesiapan</th><th>Operation Sheet</th><th>Approval</th><th>Aksi</th></tr></thead><tbody id="tripControlBody"></tbody></table></div>
+</div>
+</section><section id="tripfolder" class="page">
+<div id="tripFolderMetrics" class="metrics"></div>
+<div class="card section">
+  <div class="head">
+    <div><h3>Trip Folder & Document Center</h3><p>Satu folder administrasi untuk setiap booking dari persiapan sampai closing.</p></div>
+    <button class="btn ghost" onclick="loadAll()">↻ Refresh</button>
+  </div>
+  <div class="toolbar"><input id="tripFolderSearch" class="search" placeholder="Cari folder trip..." oninput="renderTripFolder()"></div>
+  <div class="wrap"><table><thead><tr><th>Booking</th><th>Customer</th><th>Program</th><th>Tanggal</th><th>Kelengkapan</th><th>Dokumen</th><th>Aksi</th></tr></thead><tbody id="tripFolderBody"></tbody></table></div>
+</div>
+</section><section id="vendors" class="page"><div class="card section"><div class="head"><div><h3>Vendor</h3><p>Master vendor terpusat</p></div><button id="newVendorBtn" class="btn primary" onclick="openModal('vendorModal')">+ Vendor</button></div><div class="wrap"><table><thead><tr><th>Kode</th><th>Vendor</th><th>Kategori</th><th>PIC</th><th>Kontak</th></tr></thead><tbody id="vendorBody"></tbody></table></div></div></section><section id="workflow" class="page"><div id="workflowMetrics" class="metrics"></div><div class="grid2"><div class="card section"><div class="head"><div><h3>Approval Queue</h3><p>Persetujuan berdasarkan role</p></div></div><div id="approvalList" class="list"></div></div><div class="card section"><div class="head"><div><h3>Deadline SOP</h3><p>H-7 / H-3 / H-1</p></div></div><div id="deadlineList" class="list"></div></div></div><div class="card section"><div class="head"><div><h3>Audit Trail</h3><p>Aktivitas terbaru</p></div></div><div id="auditList"></div></div></section><section id="users" class="page"><div class="card section"><div class="head"><div><h3>User & Role</h3><p>Owner membuat akun staf, menentukan role, dan mengaktifkan/nonaktifkan akses ERP.</p></div><button id="newStaffBtn" class="btn primary" onclick="openModal('staffModal')">+ Akun Staf</button></div><div class="notice">Public registration <b>DITUTUP</b>. Role yang tersedia: Manager, Admin, Sales, Finance, Operation, dan TL.</div><div class="wrap"><table><thead><tr><th>Nama</th><th>Role</th><th>Kontak</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="userBody"></tbody></table></div></div></section><section id="migration" class="page"><div class="card section"><div class="head"><div><h3>Migrasi Backup ERP v8</h3><p>Import data lokal lama ke Supabase v9</p></div></div><p class="note">Fitur ini hanya untuk Owner. Backup JSON v8 akan di-upsert ke tabel online. ID Sales/TL lama dipertahankan sebagai legacy reference; assignment user online dapat dirapikan setelah migrasi.</p><input id="migrationFile" type="file" accept=".json"><button class="btn primary" onclick="migrateV8()">Import ke Database Online</button><div id="migrationStatus" class="note" style="margin-top:12px"></div></div></section></div></main></div><div id="tripFolderModal" class="modal">
+<div class="modalbox" style="width:min(980px,100%)">
+  <div class="mtitle"><div><h3 id="tripFolderTitle">Trip Folder</h3><p id="tripFolderSubtitle" class="note" style="margin:4px 0 0"></p></div><button class="close" onclick="closeModal('tripFolderModal')">×</button></div>
+  <input id="tripFolderBookingId" type="hidden">
+  <div id="tripFolderDocGrid" class="folder-docs"></div>
+  <div id="tripArchiveBanner" class="archive-banner">
+    <div><b>Trip Archive</b><p id="tripArchiveText">Folder masih aktif dan dapat diperbarui.</p></div>
+    <div id="tripArchiveActions"></div>
+  </div>
+  <div id="folderDocumentCenter" class="card section doc-upload-card">
+    <div class="head"><div><h3>Document Upload Center</h3><p>Simpan PDF, foto, PO, vendor invoice, absensi final, dan dokumen trip lain di folder private booking.</p></div><div class="note">Dokumen finansial hanya Owner/Manager.</div></div>
+    <form id="folderDocumentUploadForm" class="doc-upload-grid">
+      <div class="field" style="margin:0"><label>Kategori Dokumen</label><select id="fduCategory"></select></div>
+      <div class="field" style="margin:0"><label>Pilih File</label><input id="fduFile" type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.csv,.xlsx,.docx"></div>
+      <button id="fduSubmit" class="btn primary" type="submit">Upload Dokumen</button>
+    </form>
+    <div id="folderDocumentStatus" class="note" style="margin-top:8px"></div>
+    <div class="head" style="margin-top:14px;margin-bottom:0"><div><h3>File Tersimpan</h3></div></div>
+    <div id="folderDocumentList" class="doc-file-list"><div class="doc-empty">Belum ada file tersimpan.</div></div>
+  </div>
+  <div class="folder-detail-grid" style="margin-top:14px">
+    <div class="card section" style="margin-top:0">
+      <div class="head"><div><h3>Manifest</h3><p>Daftar peserta trip</p></div></div>
+      <div id="folderManifestList" class="folder-mini-list"></div>
+      <form id="folderManifestForm" class="folder-form">
+        <div class="formgrid">
+          <div class="field"><label>Nama Peserta</label><input id="fmName" required></div>
+          <div class="field"><label>Kelas / Usia</label><input id="fmClass"></div>
+          <div class="field"><label>Gender</label><select id="fmGender"><option value="">-</option><option>L</option><option>P</option></select></div>
+          <div class="field"><label>Kontak Darurat</label><input id="fmEmergency"></div>
+        </div>
+        <button class="btn primary" type="submit">+ Tambah Peserta</button>
+      </form>
+    </div>
+    <div class="card section" style="margin-top:0">
+      <div class="head"><div><h3>Rundown</h3><p>Urutan kegiatan trip</p></div></div>
+      <div id="folderRundownList" class="folder-mini-list"></div>
+      <form id="folderRundownForm" class="folder-form">
+        <div class="formgrid">
+          <div class="field"><label>Waktu</label><input id="frTime" type="time"></div>
+          <div class="field"><label>Kegiatan</label><input id="frActivity" required></div>
+          <div class="field full"><label>Lokasi</label><input id="frLocation"></div>
+        </div>
+        <button class="btn primary" type="submit">+ Tambah Rundown</button>
+      </form>
+    </div>
+  </div>
+  <div class="folder-detail-grid" style="margin-top:14px">
+    <div class="card section" style="margin-top:0">
+      <div class="head"><div><h3>Trip Report</h3><p>Laporan setelah kegiatan</p></div></div>
+      <form id="folderReportForm">
+        <div class="field"><label>Ringkasan</label><textarea id="ftrSummary" rows="3"></textarea></div>
+        <div class="field"><label>Insiden</label><textarea id="ftrIncidents" rows="2"></textarea></div>
+        <div class="field"><label>Pencapaian</label><textarea id="ftrAchievements" rows="2"></textarea></div>
+        <div class="field"><label>Tindak Lanjut</label><textarea id="ftrFollowUp" rows="2"></textarea></div>
+        <button class="btn primary" type="submit">Simpan Trip Report</button>
+      </form>
+    </div>
+    <div class="card section" style="margin-top:0">
+      <div class="head"><div><h3>Evaluasi</h3><p>Catatan evaluasi internal trip</p></div></div>
+      <div id="folderEvaluationList" class="folder-mini-list"></div>
+      <form id="folderEvaluationForm" class="folder-form">
+        <div class="field"><label>Skor</label><input id="feScore" type="number" min="1" max="5" value="5"></div>
+        <div class="field"><label>Feedback</label><textarea id="feFeedback" rows="3" required></textarea></div>
+        <div class="field"><label>Corrective Action</label><textarea id="feAction" rows="2"></textarea></div>
+        <button class="btn primary" type="submit">+ Tambah Evaluasi</button>
+      </form>
+    </div>
+  </div>
+  <div class="toolbar" style="margin-top:14px">
+    <button class="btn primary" type="button" onclick="openFolderOperation()">Kelola Operation Sheet</button>
+    <button class="btn ghost" type="button" onclick="printTripFolder()">Cetak Ringkasan Folder</button>
+  </div>
+</div>
+</div><div id="staffModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Akun Staf Baru</h3><button class="close" onclick="closeModal('staffModal')">×</button></div><form id="staffForm" class="formgrid"><div class="field"><label>Nama Lengkap</label><input id="sName" required></div><div class="field"><label>Email</label><input id="sEmail" type="email" required></div><div class="field"><label>WhatsApp / Telepon</label><input id="sPhone"></div><div class="field"><label>Role</label><select id="sRole" required><option>Manager</option><option>Admin</option><option>Sales</option><option>Finance</option><option>Operation</option><option>TL</option></select></div><div class="field"><label>Password Awal</label><input id="sPassword" type="password" minlength="8" required placeholder="Minimal 8 karakter"></div><div class="field"><label>Ulangi Password</label><input id="sPassword2" type="password" minlength="8" required></div><div class="full"><p class="note">Akun dibuat langsung oleh Owner dan email dianggap terverifikasi. Password awal sebaiknya segera diganti oleh staf.</p><button class="btn primary" type="submit">Buat Akun Staf</button><span id="staffStatus" class="note"></span></div></form></div></div><div id="resetStaffModal" class="modal"><div class="modalbox" style="max-width:560px"><div class="mtitle"><h3>Reset Password Staf</h3><button class="close" onclick="closeModal('resetStaffModal')">×</button></div><form id="resetStaffForm" class="formgrid"><div class="field full"><label>Akun Staf</label><input id="rsName" readonly></div><div class="field full"><label>Email Staf</label><input id="rsEmail" type="email" required placeholder="email staf"><div class="field"><label>Password Baru</label><input id="rsPassword" type="password" minlength="8" required placeholder="Minimal 8 karakter"></div><div class="field"><label>Ulangi Password</label><input id="rsPassword2" type="password" minlength="8" required></div><div class="full"><p class="note">Hanya Owner aktif yang dapat mereset password staf. Password baru berlaku langsung setelah berhasil disimpan.</p><button class="btn primary" type="submit">Reset Password</button><span id="resetStaffStatus" class="note"></span></div></form></div></div><div id="customerModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Customer Baru</h3><button class="close" onclick="closeModal('customerModal')">×</button></div><form id="customerForm" class="formgrid"><div class="field"><label>Nama</label><input id="cName" required></div><div class="field"><label>Tipe</label><select id="cType"><option>Sekolah</option><option>Instansi</option><option>Komunitas</option><option>Partner</option><option>Individu</option></select></div><div class="field"><label>PIC</label><input id="cPic"></div><div class="field"><label>WhatsApp</label><input id="cWa"></div><div class="field full"><label>Alamat / Catatan</label><textarea id="cNote" rows="3"></textarea></div><div class="full"><button class="btn primary" type="submit">Simpan</button></div></form></div></div><div id="vendorModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Vendor Baru</h3><button class="close" onclick="closeModal('vendorModal')">×</button></div><form id="vendorForm" class="formgrid"><div class="field"><label>Nama Vendor</label><input id="vName" required></div><div class="field"><label>Kategori</label><select id="vCat"><option>Transport</option><option>Destinasi</option><option>Konsumsi</option><option>Dokumentasi</option><option>Guide/TL</option><option>Lainnya</option></select></div><div class="field"><label>PIC</label><input id="vPic"></div><div class="field"><label>Kontak</label><input id="vPhone"></div><div class="full"><button class="btn primary" type="submit">Simpan</button></div></form></div></div><div id="bookingModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Booking Baru</h3><button class="close" onclick="closeModal('bookingModal')">×</button></div><form id="bookingForm" class="formgrid"><div class="field"><label>Customer</label><select id="bCustomer" required></select></div><div class="field"><label>Program</label><input id="bProgram" required></div><div class="field"><label>Tanggal Trip</label><input id="bDate" type="date" required></div><div class="field"><label>Pax</label><input id="bPax" type="number" min="1" required></div><div class="field"><label>Harga/Pax</label><input id="bPrice" type="number" min="0" required></div><div class="field"><label>Status</label><select id="bStatus"><option>Lead</option><option>Quotation</option><option>DP</option><option>Confirmed</option><option>Preparation</option><option>Trip</option><option>Completed</option><option>Closed</option></select></div><div class="field"><label>Kelas / Usia</label><input id="bGroup"></div><div class="field"><label>Titik Kumpul</label><input id="bMeeting"></div><div class="field full"><label>Fasilitas / Kebutuhan</label><textarea id="bNotes" rows="3"></textarea></div><div class="full"><button class="btn primary" type="submit">Simpan Booking</button></div></form></div></div><div id="paymentModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Catat Pembayaran</h3><button class="close" onclick="closeModal('paymentModal')">×</button></div><form id="paymentForm" class="formgrid"><input id="pBooking" type="hidden"><div class="field"><label>Booking</label><input id="pLabel" readonly></div><div class="field"><label>Jenis</label><select id="pType"><option>DP</option><option>Pelunasan</option><option>Tambahan</option><option>Refund</option></select></div><div class="field"><label>Nominal</label><input id="pAmount" type="number" min="1" required></div><div class="field"><label>Tanggal</label><input id="pDate" type="date" required></div><div class="field"><label>Metode</label><input id="pMethod" placeholder="Transfer / Cash"></div><div class="field"><label>Catatan</label><input id="pNote"></div><div class="full"><button class="btn primary" type="submit">Simpan Pembayaran</button></div></form></div></div><div id="operationModal" class="modal"><div class="modalbox"><div class="mtitle"><h3>Operation Sheet Online</h3><button class="close" onclick="closeModal('operationModal')">×</button></div><form id="operationForm" class="formgrid"><input id="oBooking" type="hidden"><div class="field"><label>Booking</label><input id="oLabel" readonly></div><div class="field"><label>Tour Leader</label><select id="oTl"></select></div><div class="field"><label>Progress %</label><input id="oProgress" type="number" min="0" max="100"></div><div class="field"><label>Status Kesiapan</label><select id="oStatus"><option>Draft</option><option>Preparation</option><option>Ready</option><option>Completed</option></select></div><div class="field"><label>Meeting Time</label><input id="oMeeting" type="time"></div><div class="field"><label>Transport</label><input id="oTransport"></div><div class="field full"><label>Briefing Notes</label><textarea id="oBriefing" rows="3"></textarea></div><div class="full"><button class="btn primary" type="submit">Simpan Operation Sheet</button><button class="btn gold" type="button" onclick="requestOperationApproval()">Ajukan Approval</button></div></form></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>let sb=null, profile=null, realtime=null;let currentLang=localStorage.getItem('gmu_erp_lang')||'id';
+function localeForLang(){return currentLang==='en'?'en-US':currentLang==='su'?'su-ID':'id-ID'}
+const GMU_I18N={
+"Dashboard":{en:"Dashboard",su:"Dasbor"},
+"Booking":{en:"Bookings",su:"Booking"},
+"Customer":{en:"Customers",su:"Palanggan"},
+"Finance":{en:"Finance",su:"Kauangan"},
+"Trip Operation":{en:"Trip Operations",su:"Operasional Perjalanan"},
+"Trip Control":{en:"Trip Control",su:"Kontrol Perjalanan"},
+"Vendor":{en:"Vendors",su:"Vendor"},
+"Workflow Control":{en:"Workflow Control",su:"Kontrol Alur Kerja"},
+"User & Role":{en:"Users & Roles",su:"Pamaké & Peran"},
+"Migrasi v8":{en:"v8 Migration",su:"Migrasi v8"},
+"Masuk ke ERP Online":{en:"Sign in to Online ERP",su:"Asup ka ERP Online"},
+"Gunakan email akun internal GMU EduTrans.":{en:"Use your internal GMU EduTrans account email.",su:"Paké email akun internal GMU EduTrans."},
+"Email":{en:"Email",su:"Email"},
+"Password":{en:"Password",su:"Sandi"},
+"Masuk":{en:"Sign In",su:"Asup"},
+"Lupa Password?":{en:"Forgot Password?",su:"Hilap Sandi?"},
+"Email Akun":{en:"Account Email",su:"Email Akun"},
+"Kirim Link Reset Password":{en:"Send Password Reset Link",su:"Kirim Tautan Reset Sandi"},
+"Link reset dikirim melalui email. Setelah membuka link, buat password baru di halaman ERP.":{en:"The reset link is sent by email. Open it and create a new password on the ERP page.",su:"Tautan reset dikirim ku email. Buka tautanna teras jieun sandi anyar dina kaca ERP."},
+"Pendaftaran akun publik dinonaktifkan.":{en:"Public account registration is disabled.",su:"Pendaptaran akun umum dipareuman."},
+"Konfigurasi Supabase — sudah terhubung":{en:"Supabase Configuration — connected",su:"Konfigurasi Supabase — tos nyambung"},
+"Simpan Konfigurasi":{en:"Save Configuration",su:"Simpen Konfigurasi"},
+"Data terpusat, login asli, hak akses database, dan sinkronisasi antar divisi.":{en:"Centralized data, real authentication, database permissions, and cross-division synchronization.",su:"Data terpusat, login asli, hak aksés database, jeung sinkronisasi antar divisi."},
+"Versi ini menggunakan Supabase Auth + PostgreSQL + Row Level Security. Sales, Finance, Operation, TL, Manager dan Owner bekerja pada sumber data yang sama.":{en:"This version uses Supabase Auth + PostgreSQL + Row Level Security. Sales, Finance, Operations, TL, Managers and Owners work from the same data source.",su:"Versi ieu ngagunakeun Supabase Auth + PostgreSQL + Row Level Security. Sales, Finance, Operation, TL, Manager jeung Owner damel dina sumber data anu sami."},
+"Keluar":{en:"Sign Out",su:"Kaluar"},
+"Trip Mendatang":{en:"Upcoming Trips",su:"Perjalanan Nu Badé Datang"},
+"Booking aktif yang dapat diakses role ini":{en:"Active bookings accessible to this role",su:"Booking aktif anu tiasa diaksés ku peran ieu"},
+"Workflow Alerts":{en:"Workflow Alerts",su:"Pangéling Alur Kerja"},
+"Deadline dan approval prioritas":{en:"Priority deadlines and approvals",su:"Deadline jeung persetujuan prioritas"},
+"Booking Online":{en:"Online Bookings",su:"Booking Online"},
+"Data booking terpusat":{en:"Centralized booking data",su:"Data booking terpusat"},
+"+ Booking":{en:"+ Booking",su:"+ Booking"},
+"Cari booking...":{en:"Search bookings...",su:"Pilarian booking..."},
+"No":{en:"No.",su:"No."},
+"Program":{en:"Program",su:"Program"},
+"Tanggal":{en:"Date",su:"Tanggal"},
+"Pax":{en:"Pax",su:"Pax"},
+"Omzet":{en:"Revenue",su:"Omzet"},
+"Sales":{en:"Sales",su:"Sales"},
+"Status":{en:"Status",su:"Status"},
+"Database sekolah, instansi, komunitas dan partner":{en:"Database of schools, institutions, communities and partners",su:"Database sakola, instansi, komunitas jeung partner"},
+"+ Customer":{en:"+ Customer",su:"+ Palanggan"},
+"Kode":{en:"Code",su:"Kode"},
+"Nama":{en:"Name",su:"Ngaran"},
+"PIC":{en:"PIC",su:"PIC"},
+"WhatsApp":{en:"WhatsApp",su:"WhatsApp"},
+"Tipe":{en:"Type",su:"Tipe"},
+"Pembayaran & Piutang":{en:"Payments & Receivables",su:"Pamayaran & Piutang"},
+"Finance online per booking":{en:"Online finance by booking",su:"Kauangan online per booking"},
+"Invoice":{en:"Invoice",su:"Invoice"},
+"Terbayar":{en:"Paid",su:"Tos Dibayar"},
+"Piutang":{en:"Receivables",su:"Piutang"},
+"Aksi":{en:"Actions",su:"Aksi"},
+"Assignment TL dan kesiapan operation sheet":{en:"TL assignment and operation sheet readiness",su:"Penugasan TL jeung kesiapan operation sheet"},
+"TL":{en:"TL",su:"TL"},
+"Progress":{en:"Progress",su:"Kamajuan"},
+"Operation Sheet":{en:"Operation Sheet",su:"Operation Sheet"},
+"Kelola":{en:"Manage",su:"Atur"},
+"Trip Control Center":{en:"Trip Control Center",su:"Pusat Kontrol Perjalanan"},
+"Kesiapan trip terpadu — TL, progress, Operation Sheet dan approval.":{en:"Integrated trip readiness — TL, progress, Operation Sheet and approvals.",su:"Kesiapan perjalanan terpadu — TL, kamajuan, Operation Sheet jeung persetujuan."},
+"↻ Refresh":{en:"↻ Refresh",su:"↻ Anyarkeun"},
+"Cari booking, program, customer...":{en:"Search booking, program, customer...",su:"Pilarian booking, program, palanggan..."},
+"Kesiapan":{en:"Readiness",su:"Kesiapan"},
+"Approval":{en:"Approval",su:"Persetujuan"},
+"Master vendor terpusat":{en:"Centralized vendor master",su:"Master vendor terpusat"},
+"+ Vendor":{en:"+ Vendor",su:"+ Vendor"},
+"Kategori":{en:"Category",su:"Kategori"},
+"Kontak":{en:"Contact",su:"Kontak"},
+"Approval Queue":{en:"Approval Queue",su:"Antrian Persetujuan"},
+"Persetujuan berdasarkan role":{en:"Role-based approvals",su:"Persetujuan dumasar peran"},
+"Deadline SOP":{en:"SOP Deadlines",su:"Deadline SOP"},
+"H-7 / H-3 / H-1":{en:"D-7 / D-3 / D-1",su:"H-7 / H-3 / H-1"},
+"Audit Trail":{en:"Audit Trail",su:"Riwayat Audit"},
+"Aktivitas terbaru":{en:"Recent activity",su:"Kagiatan panganyarna"},
+"Owner membuat akun staf, menentukan role, dan mengaktifkan/nonaktifkan akses ERP.":{en:"The Owner creates staff accounts, assigns roles, and enables/disables ERP access.",su:"Owner nyieun akun staf, nangtukeun peran, jeung ngaktipkeun/nonaktipkeun aksés ERP."},
+"+ Akun Staf":{en:"+ Staff Account",su:"+ Akun Staf"},
+"Public registration DITUTUP.":{en:"Public registration is CLOSED.",su:"Pendaptaran umum DITUTUP."},
+"Nama Lengkap":{en:"Full Name",su:"Ngaran Lengkep"},
+"WhatsApp / Telepon":{en:"WhatsApp / Phone",su:"WhatsApp / Telepon"},
+"Role":{en:"Role",su:"Peran"},
+"Password Awal":{en:"Initial Password",su:"Sandi Awal"},
+"Ulangi Password":{en:"Repeat Password",su:"Ulangi Sandi"},
+"Buat Akun Staf":{en:"Create Staff Account",su:"Jieun Akun Staf"},
+"Reset Password Staf":{en:"Reset Staff Password",su:"Reset Sandi Staf"},
+"Akun Staf":{en:"Staff Account",su:"Akun Staf"},
+"Email Staf":{en:"Staff Email",su:"Email Staf"},
+"Password Baru":{en:"New Password",su:"Sandi Anyar"},
+"Reset Password":{en:"Reset Password",su:"Reset Sandi"},
+"Customer Baru":{en:"New Customer",su:"Palanggan Anyar"},
+"Alamat / Catatan":{en:"Address / Notes",su:"Alamat / Catetan"},
+"Simpan Customer":{en:"Save Customer",su:"Simpen Palanggan"},
+"Vendor Baru":{en:"New Vendor",su:"Vendor Anyar"},
+"Simpan Vendor":{en:"Save Vendor",su:"Simpen Vendor"},
+"Booking Baru":{en:"New Booking",su:"Booking Anyar"},
+"Jumlah Pax":{en:"Number of Pax",su:"Jumlah Pax"},
+"Harga / Pax":{en:"Price / Pax",su:"Harga / Pax"},
+"Kelompok Peserta / Kelas":{en:"Participant Group / Class",su:"Kelompok Pamilon / Kelas"},
+"Titik Kumpul":{en:"Meeting Point",su:"Titik Kumpul"},
+"Catatan":{en:"Notes",su:"Catetan"},
+"Simpan Booking":{en:"Save Booking",su:"Simpen Booking"},
+"Pembayaran":{en:"Payment",su:"Pamayaran"},
+"Tipe Pembayaran":{en:"Payment Type",su:"Tipe Pamayaran"},
+"Jumlah":{en:"Amount",su:"Jumlah"},
+"Metode":{en:"Method",su:"Metode"},
+"Simpan Pembayaran":{en:"Save Payment",su:"Simpen Pamayaran"},
+"Trip Operation Sheet":{en:"Trip Operation Sheet",su:"Trip Operation Sheet"},
+"Meeting Time":{en:"Meeting Time",su:"Waktos Kumpul"},
+"Transport":{en:"Transport",su:"Transport"},
+"Briefing Notes":{en:"Briefing Notes",su:"Catetan Briefing"},
+"Simpan Operation":{en:"Save Operations",su:"Simpen Operasional"},
+"Ajukan Approval":{en:"Request Approval",su:"Ajukeun Persetujuan"},
+"Migrasi Backup ERP v8":{en:"Migrate ERP v8 Backup",su:"Migrasi Backup ERP v8"},
+"Import data lokal lama ke Supabase v9":{en:"Import legacy local data into Supabase v9",su:"Import data lokal lami ka Supabase v9"},
+"Import ke Database Online":{en:"Import to Online Database",su:"Import ka Database Online"},
+"Booking":{en:"Bookings",su:"Booking"},
+"Pax":{en:"Pax",su:"Pax"},
+"Trip Mendatang":{en:"Upcoming Trips",su:"Perjalanan Nu Badé Datang"},
+"Workflow Alert":{en:"Workflow Alerts",su:"Pangéling Alur Kerja"},
+"nilai booking":{en:"booking value",su:"nilai booking"},
+"outstanding":{en:"outstanding",su:"can dibayar"},
+"payments":{en:"payments",su:"pamayaran"},
+"omzet - biaya aktual":{en:"revenue - actual costs",su:"omzet - biaya aktual"},
+"pipeline":{en:"pipeline",su:"pipeline"},
+"peserta":{en:"participants",su:"pamilon"},
+"jadwal aktif":{en:"active schedule",su:"jadwal aktif"},
+"perlu perhatian":{en:"needs attention",su:"peryogi perhatian"},
+"Belum ada trip.":{en:"No trips yet.",su:"Can aya perjalanan."},
+"Tidak ada alert prioritas.":{en:"No priority alerts.",su:"Teu aya pangéling prioritas."},
+"Belum ditetapkan":{en:"Not assigned",su:"Can ditetepkeun"},
+"Perlu Perhatian":{en:"Needs Attention",su:"Peryogi Perhatian"},
+"Belum":{en:"Not Yet",su:"Can"},
+"SELESAI":{en:"DONE",su:"RÉNGSÉ"},
+"SEGERA":{en:"DUE SOON",su:"ENGGAL"},
+"OPEN":{en:"OPEN",su:"DIBUKA"},
+"OVERDUE":{en:"OVERDUE",su:"KALIWAT"},
+"Ready":{en:"Ready",su:"Siap"},
+"Preparation":{en:"Preparation",su:"Persiapan"},
+"Pending":{en:"Pending",su:"Nungguan"},
+"Approved":{en:"Approved",su:"Disatujuan"},
+"Rejected":{en:"Rejected",su:"Ditolak"},
+"Completed":{en:"Completed",su:"Rengsé"},
+"Closed":{en:"Closed",su:"Ditutup"},
+"Lead":{en:"Lead",su:"Lead"},
+"Quotation":{en:"Quotation",su:"Penawaran"},
+"DP":{en:"Deposit",su:"DP"}
+};
+Object.assign(GMU_I18N,{
+"Trip Folder":{en:"Trip Folder",su:"Folder Perjalanan"},
+"Trip Folder & Document Center":{en:"Trip Folder & Document Center",su:"Folder Perjalanan & Pusat Dokumén"},
+"Satu folder administrasi untuk setiap booking dari persiapan sampai closing.":{en:"One administrative folder for each booking from preparation through closing.",su:"Hiji folder administrasi pikeun unggal booking ti persiapan nepi ka closing."},
+"Cari folder trip...":{en:"Search trip folders...",su:"Pilarian folder perjalanan..."},
+"Kelengkapan":{en:"Completeness",su:"Kelengkapan"},
+"Dokumen":{en:"Documents",su:"Dokumén"},
+"Daftar peserta trip":{en:"Trip participant list",su:"Daptar pamilon perjalanan"},
+"Nama Peserta":{en:"Participant Name",su:"Ngaran Pamilon"},
+"Kelas / Usia":{en:"Class / Age",su:"Kelas / Umur"},
+"Gender":{en:"Gender",su:"Jinis Kelamin"},
+"Kontak Darurat":{en:"Emergency Contact",su:"Kontak Darurat"},
+"+ Tambah Peserta":{en:"+ Add Participant",su:"+ Tambah Pamilon"},
+"Urutan kegiatan trip":{en:"Trip activity sequence",su:"Urutan kagiatan perjalanan"},
+"Waktu":{en:"Time",su:"Waktos"},
+"Kegiatan":{en:"Activity",su:"Kagiatan"},
+"Lokasi":{en:"Location",su:"Lokasi"},
+"+ Tambah Rundown":{en:"+ Add Rundown Item",su:"+ Tambah Rundown"},
+"Trip Report":{en:"Trip Report",su:"Laporan Perjalanan"},
+"Laporan setelah kegiatan":{en:"Post-trip report",su:"Laporan sanggeus kagiatan"},
+"Ringkasan":{en:"Summary",su:"Ringkesan"},
+"Insiden":{en:"Incidents",su:"Insiden"},
+"Pencapaian":{en:"Achievements",su:"Pencapaian"},
+"Tindak Lanjut":{en:"Follow-up",su:"Tindak Lanjut"},
+"Simpan Trip Report":{en:"Save Trip Report",su:"Simpen Laporan Perjalanan"},
+"Evaluasi":{en:"Evaluation",su:"Évaluasi"},
+"Catatan evaluasi internal trip":{en:"Internal trip evaluation notes",su:"Catetan évaluasi internal perjalanan"},
+"Skor":{en:"Score",su:"Skor"},
+"Feedback":{en:"Feedback",su:"Masukan"},
+"Corrective Action":{en:"Corrective Action",su:"Léngkah Perbaikan"},
+"+ Tambah Evaluasi":{en:"+ Add Evaluation",su:"+ Tambah Évaluasi"},
+"Kelola Operation Sheet":{en:"Manage Operation Sheet",su:"Atur Operation Sheet"},
+"Cetak Ringkasan Folder":{en:"Print Folder Summary",su:"Citak Ringkesan Folder"},
+"Booking Form":{en:"Booking Form",su:"Form Booking"},
+"Quotation":{en:"Quotation",su:"Penawaran"},
+"Invoice":{en:"Invoice",su:"Invoice"},
+"Manifest":{en:"Manifest",su:"Manifest"},
+"Rundown":{en:"Rundown",su:"Rundown"},
+"Absensi":{en:"Attendance",su:"Absénsi"},
+"Siap dicetak dari Manifest":{en:"Ready to print from Manifest",su:"Siap dicitak tina Manifest"},
+"Belum lengkap":{en:"Incomplete",su:"Can lengkep"},
+"Lengkap":{en:"Complete",su:"Lengkep"},
+"Terkunci":{en:"Locked",su:"Dikonci"},
+"Buka Folder":{en:"Open Folder",su:"Buka Folder"},
+"Folder Lengkap":{en:"Complete Folders",su:"Folder Lengkep"},
+"Perlu Dilengkapi":{en:"Needs Completion",su:"Peryogi Dilengkepan"}
+});
+Object.assign(GMU_I18N,{
+"Document Upload Center":{en:"Document Upload Center",su:"Pusat Unggah Dokumén"},
+"Simpan PDF, foto, PO, vendor invoice, absensi final, dan dokumen trip lain di folder private booking.":{en:"Store PDFs, photos, POs, vendor invoices, final attendance, and other trip documents in the booking's private folder.",su:"Simpen PDF, poto, PO, invoice vendor, absénsi final, jeung dokumén perjalanan séjén dina folder private booking."},
+"Kategori Dokumen":{en:"Document Category",su:"Kategori Dokumén"},
+"Pilih File":{en:"Choose File",su:"Pilih Berkas"},
+"Upload Dokumen":{en:"Upload Document",su:"Unggah Dokumén"},
+"File Tersimpan":{en:"Stored Files",su:"Berkas Nu Disimpen"},
+"Belum ada file tersimpan.":{en:"No stored files yet.",su:"Can aya berkas nu disimpen."},
+"Buka":{en:"Open",su:"Buka"},
+"Minta Approval":{en:"Request Approval",su:"Ménta Persetujuan"},
+"Approve":{en:"Approve",su:"Satujuan"},
+"Reject":{en:"Reject",su:"Tolak"},
+"Hapus":{en:"Delete",su:"Pupus"},
+"PO Vendor":{en:"Vendor PO",su:"PO Vendor"},
+"Vendor Invoice":{en:"Vendor Invoice",su:"Invoice Vendor"},
+"Foto Kegiatan":{en:"Activity Photos",su:"Poto Kagiatan"},
+"Dokumen Lain":{en:"Other Document",su:"Dokumén Séjén"},
+"Trip Archive":{en:"Trip Archive",su:"Arsip Perjalanan"},
+"Folder masih aktif dan dapat diperbarui.":{en:"The folder is active and can still be updated.",su:"Folder masih aktip tur tiasa diropéa."},
+"Folder sudah diarsipkan dan dibekukan dari perubahan.":{en:"The folder is archived and frozen from changes.",su:"Folder tos diarsipkeun tur dikonci tina parobahan."},
+"Archive & Freeze":{en:"Archive & Freeze",su:"Arsipkeun & Konci"},
+"Buka Kembali Arsip":{en:"Reopen Archive",su:"Buka Deui Arsip"},
+"Diarsipkan":{en:"Archived",su:"Diarsipkeun"},
+"Aktif":{en:"Active",su:"Aktip"},
+"Dokumen finansial hanya Owner/Manager.":{en:"Financial documents are Owner/Manager only.",su:"Dokumén finansial ngan ukur Owner/Manager."},
+"Upload berhasil.":{en:"Upload successful.",su:"Unggah hasil."},
+"Approval diajukan.":{en:"Approval requested.",su:"Persetujuan tos diajukeun."},
+"Folder diarsipkan.":{en:"Folder archived.",su:"Folder tos diarsipkeun."},
+"Folder dibuka kembali.":{en:"Folder reopened.",su:"Folder dibuka deui."}
+});
+const GMU_I18N_PLACEHOLDER={
+"email akun ERP":{en:"ERP account email",su:"email akun ERP"},
+"Cari booking...":{en:"Search bookings...",su:"Pilarian booking..."},
+"Cari booking, program, customer...":{en:"Search booking, program, customer...",su:"Pilarian booking, program, palanggan..."},
+"Minimal 8 karakter":{en:"Minimum 8 characters",su:"Minimal 8 karakter"},
+"email staf":{en:"staff email",su:"email staf"}
+};
+const gmuOriginalText=new WeakMap();
+function gmuTranslateString(str){
+  const x=GMU_I18N[str];
+  return currentLang==='id'||!x?str:(x[currentLang]||str);
+}
+function gmuTranslateNode(node){
+  if(node.nodeType===3){
+    if(node.parentElement?.closest('script,style,option'))return;
+    if(!gmuOriginalText.has(node))gmuOriginalText.set(node,node.nodeValue);
+    const orig=gmuOriginalText.get(node)||'';
+    const trimmed=orig.trim();
+    const translated=gmuTranslateString(trimmed);
+    if(translated!==trimmed){
+      const lead=orig.match(/^\s*/)?.[0]||'',trail=orig.match(/\s*$/)?.[0]||'';
+      const next=lead+translated+trail;
+      if(node.nodeValue!==next)node.nodeValue=next;
+    }else if(currentLang==='id'&&node.nodeValue!==orig)node.nodeValue=orig;
+  }else if(node.nodeType===1){
+    if(node.matches('input[placeholder],textarea[placeholder]')){
+      if(!node.dataset.gmuOriginalPlaceholder)node.dataset.gmuOriginalPlaceholder=node.getAttribute('placeholder')||'';
+      const p=node.dataset.gmuOriginalPlaceholder, m=GMU_I18N_PLACEHOLDER[p];
+      node.setAttribute('placeholder',currentLang==='id'||!m?p:(m[currentLang]||p));
+    }
+    node.childNodes.forEach(gmuTranslateNode);
+  }
+}
+function applyLanguage(){
+  document.documentElement.lang=currentLang==='su'?'su':currentLang;
+  document.querySelectorAll('#langSelect').forEach(x=>x.value=currentLang);
+  gmuTranslateNode(document.body);
+  document.title=currentLang==='en'?'GMU EduTrans ERP v21 — Document Upload, Approval & Trip Archive':currentLang==='su'?'GMU EduTrans ERP v21 — Unggah Dokumén, Persetujuan & Arsip Perjalanan':'GMU EduTrans ERP v21 — Document Upload, Approval & Trip Archive';
+  const t=$('today');if(t)t.textContent=new Date().toLocaleDateString(localeForLang(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+}
+function setLanguage(lang){
+  currentLang=['id','en','su'].includes(lang)?lang:'id';
+  localStorage.setItem('gmu_erp_lang',currentLang);
+  applyLanguage();
+  try{renderAll()}catch(_){}
+  applyLanguage();
+}
+const gmuLangObserver=new MutationObserver(ms=>{
+  for(const m of ms){
+    if(m.type==='characterData')gmuTranslateNode(m.target);
+    else m.addedNodes.forEach(gmuTranslateNode);
+  }
+});
+gmuLangObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+let data={profiles:[],customers:[],vendors:[],bookings:[],payments:[],trips:[],operationSheets:[],approvals:[],deadlines:[],audit:[],costs:[],manifests:[],rundownItems:[],tripReports:[],evaluations:[]};const $=id=>document.getElementById(id), rupiah=n=>'Rp '+Number(n||0).toLocaleString(localeForLang()), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));const uid=prefix=>prefix+'-'+crypto.randomUUID(), customer=id=>data.customers.find(x=>x.id===id), person=id=>data.profiles.find(x=>x.id===id);const bookingRevenue=b=>Number(b.pax||0)*Number(b.price_per_pax||0);const bookingPaid=id=>data.payments.filter(x=>x.booking_id===id).reduce((a,x)=>a+(x.payment_type==='Refund'?-Number(x.amount):Number(x.amount)),0);const bookingCost=id=>data.costs.filter(x=>x.booking_id===id).reduce((a,x)=>a+Number(x.actual_amount||0),0);const fmtDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString(localeForLang(),{day:'2-digit',month:'short',year:'numeric'}):'-';const badge=s=>`<span class="badge ${['Closed','Completed','Approved','Ready'].includes(s)?'ok':['DP','Quotation','Pending','Preparation'].includes(s)?'warn':['Rejected'].includes(s)?'bad':'info'}">${esc(gmuTranslateString(String(s??'')))}</span>`;const role=()=>profile?.role||'';const can=(roles)=>roles.includes(role());const DEFAULT_SUPABASE_URL='https://gtgnwasijweewmaubvyg.supabase.co';const DEFAULT_SUPABASE_KEY='sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW';function cfg(){return {url:localStorage.getItem('gmu_sb_url')||DEFAULT_SUPABASE_URL,key:localStorage.getItem('gmu_sb_key')||DEFAULT_SUPABASE_KEY}}function initClient(){const c=cfg(); if(!c.url||!c.key||!window.supabase)return false; sb=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return true}function saveConfig(){localStorage.setItem('gmu_sb_url',$('cfgUrl').value.trim());localStorage.setItem('gmu_sb_key',$('cfgKey').value.trim());$('cfgStatus').textContent=' Tersimpan. Muat ulang halaman lalu login.'}function hydrateCfg(){const c=cfg();$('cfgUrl').value=c.url;$('cfgKey').value=c.key;if(!c.url||!c.key)$('setupBox').open=true}async function authProfile(user){const {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).single(); if(error)throw error; if(!p.is_active)throw new Error('Akun dinonaktifkan.'); profile=p; return p}async function boot(){hydrateCfg();$('today').textContent=new Date().toLocaleDateString(localeForLang(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});if(!initClient()){ $('loginError').textContent='Konfigurasi Supabase belum diisi.'; return}const {data:{session}}=await sb.auth.getSession();if(session){try{await authProfile(session.user);await enterApp()}catch(e){$('loginError').textContent=e.message}}}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='Memproses...';if(!sb&&!initClient()){ $('loginError').textContent='Isi konfigurasi Supabase dahulu.';return}const {data:r,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value}); if(error){$('loginError').textContent=error.message;return}try{await authProfile(r.user);await enterApp()}catch(e2){$('loginError').textContent='Login berhasil, tetapi tampilan ERP mengalami error: '+e2.message;if(profile){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}}});async function enterApp(){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');$('meName').textContent=profile.full_name;$('meRole').textContent=profile.role;applyRole();try{await loadAll();startRealtime();navTo('dashboard');await audit('LOGIN','session',profile.id,'Login ERP v9')}catch(e){console.error('ERP load error',e);$('connection').textContent='ONLINE • UI ERROR';$('title').textContent='Dashboard';const c=document.querySelector('.content');if(c&&!document.getElementById('uiErrorNotice')){const n=document.createElement('div');n.id='uiErrorNotice';n.className='notice';n.style.borderColor='#f1c7c7';n.style.background='#fff4f4';n.style.color='#a73838';n.textContent='Sesi login tetap aktif. Sebagian tampilan gagal dimuat: '+(e?.message||e);c.prepend(n)}}}async function logout(){if(realtime)await sb.removeChannel(realtime);await sb.auth.signOut();location.reload()}function applyRole(){const pages={Owner:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','vendors','workflow','users','migration'],Manager:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','vendors','workflow'],Admin:['dashboard','bookings','customers','operation','tripcontrol','tripfolder','vendors','workflow'],Sales:['dashboard','bookings','customers','tripcontrol','tripfolder','workflow'],Finance:['dashboard','bookings','workflow'],Operation:['dashboard','bookings','operation','tripcontrol','tripfolder','vendors','workflow'],TL:['dashboard','operation','tripcontrol','tripfolder','workflow']}[role()]||['dashboard'];document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('hidden',!pages.includes(b.dataset.page)));document.querySelectorAll('.financial-only').forEach(el=>el.classList.toggle('hidden',!can(['Owner','Manager'])));$('newBookingBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newCustomerBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newVendorBtn').classList.toggle('hidden',!can(['Owner','Manager','Operation']));$('newStaffBtn')?.classList.toggle('hidden',role()!=='Owner');}async function loadAll(){$('connection').textContent='SYNC...';const qs=await Promise.all([sb.from('profiles').select('*').order('full_name'),sb.from('customers').select('*').order('name'),sb.from('vendors').select('*').order('name'),sb.from('bookings').select('*').order('trip_date',{ascending:true}),sb.from('payments').select('*'),sb.from('trips').select('*'),sb.from('operation_sheets').select('*'),sb.from('approvals').select('*').order('requested_at',{ascending:false}),sb.from('sop_deadlines').select('*').eq('is_active',true).order('offset_days'),sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(100),sb.from('trip_costs').select('*'),sb.from('manifests').select('*'),sb.from('rundown_items').select('*'),sb.from('trip_reports').select('*'),sb.from('evaluations').select('*')]);const names=['profiles','customers','vendors','bookings','payments','trips','operationSheets','approvals','deadlines','audit','costs','manifests','rundownItems','tripReports','evaluations'];qs.forEach((r,i)=>{if(!r.error)data[names[i]]=r.data||[];else console.warn(names[i],r.error.message)});$('connection').textContent='ONLINE';renderAll();}function startRealtime(){realtime=sb.channel('gmu-erp-v9').on('postgres_changes',{event:'*',schema:'public'},()=>debouncedReload()).subscribe()}let reloadTimer=null;function debouncedReload(){clearTimeout(reloadTimer);reloadTimer=setTimeout(loadAll,450)}function navTo(page){if(page==='users'&&role()!=='Owner')page='dashboard';if(page==='finance'&&!can(['Owner','Manager']))page='dashboard';const allowedTrip=can(['Owner','Manager','Admin','Sales','Operation','TL']);if(page==='tripcontrol'&&!allowedTrip)page='dashboard';if(page==='tripfolder'&&!allowedTrip)page='dashboard';document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(page)?.classList.add('active');document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$('title').textContent=document.querySelector(`#nav button[data-page="${page}"]`)?.textContent.trim()||page;$('side').classList.remove('open')}$('nav').addEventListener('click',e=>{const b=e.target.closest('button[data-page]');if(b)navTo(b.dataset.page)});$('menu').onclick=()=>$('side').classList.toggle('open');function openModal(id){$(id).classList.add('open')}function closeModal(id){$(id).classList.remove('open')}function accessibleBookings(){return data.bookings}function renderDashboard(){const bs=accessibleBookings(),rev=bs.reduce((a,b)=>a+bookingRevenue(b),0),pax=bs.reduce((a,b)=>a+Number(b.pax||0),0),paid=bs.reduce((a,b)=>a+bookingPaid(b.id),0),cost=bs.reduce((a,b)=>a+bookingCost(b.id),0),profit=rev-cost;const now=new Date();now.setHours(0,0,0,0);const upcomingCount=bs.filter(b=>new Date(b.trip_date+'T00:00:00')>=now&&!['Completed','Closed'].includes(b.status)).length;const alerts=workflowAlerts();const metricSet=can(['Owner','Manager'])?[['Booking',bs.length,'pipeline',''],['Pax',pax,'peserta',''],['Omzet',rupiah(rev),'nilai booking','goldtop'],['Piutang',rupiah(Math.max(0,rev-paid)),'outstanding','goldtop'],['Kas Masuk',rupiah(paid),'payments','bluetop'],['Laba Estimasi',rupiah(profit),'omzet - biaya aktual','bluetop']]:[['Booking',bs.length,'pipeline',''],['Pax',pax,'peserta',''],['Trip Mendatang',upcomingCount,'jadwal aktif','bluetop'],['Workflow Alert',alerts.length,'perlu perhatian','goldtop']];$('metrics').innerHTML=metricSet.map(x=>`<div class="card metric ${x[3]}"><span>${x[0]}</span><b>${x[1]}</b><span>${x[2]}</span></div>`).join('');$('upcoming').innerHTML=bs.filter(b=>new Date(b.trip_date+'T00:00:00')>=now&&!['Completed','Closed'].includes(b.status)).slice(0,8).map(b=>`<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(b.program_name)}</td><td>${esc(customer(b.customer_id)?.name||'-')}</td><td>${fmtDate(b.trip_date)}</td><td>${b.pax}</td><td>${badge(b.status)}</td></tr>`).join('')||'<tr><td colspan="6">Belum ada trip.</td></tr>';$('dashAlerts').innerHTML=alerts.slice(0,8).map(a=>`<div class="item"><div class="itemtop"><b>${esc(a.title)}</b>${badge(a.level)}</div><p>${esc(a.text)}</p></div>`).join('')||'<div class="item"><b>Tidak ada alert prioritas.</b></div>'}function renderBookings(){const q=($('bookingSearch').value||'').toLowerCase();$('bookingBody').innerHTML=accessibleBookings().filter(b=>[b.booking_no,b.program_name,customer(b.customer_id)?.name,b.status].join(' ').toLowerCase().includes(q)).map(b=>`<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(customer(b.customer_id)?.name||'-')}</td><td>${esc(b.program_name)}</td><td>${fmtDate(b.trip_date)}</td><td>${b.pax}</td><td class="money financial-only ${can(['Owner','Manager'])?'':'hidden'}">${can(['Owner','Manager'])?rupiah(bookingRevenue(b)):'-'}</td><td>${esc(person(b.sales_id)?.full_name||'-')}</td><td>${badge(b.status)}</td></tr>`).join('')}function renderCustomers(){$('customerBody').innerHTML=data.customers.map(c=>{const rev=can(['Owner','Manager'])?data.bookings.filter(b=>b.customer_id===c.id).reduce((a,b)=>a+bookingRevenue(b),0):0;return `<tr><td>${esc(c.customer_code||c.id)}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.pic_name||'-')}</td><td>${esc(c.whatsapp||'-')}</td><td>${esc(c.customer_type||'-')}</td><td class="money financial-only ${can(['Owner','Manager'])?'':'hidden'}">${can(['Owner','Manager'])?rupiah(rev):'-'}</td></tr>`}).join('')}function renderFinance(){if(!can(['Owner','Manager'])){if($('financeMetrics'))$('financeMetrics').innerHTML='<div class="financial-locked-note" style="grid-column:1/-1">Akses keuangan dikunci. Hanya Owner dan Manager.</div>';if($('financeBody'))$('financeBody').innerHTML='';return;}const bs=accessibleBookings(),inv=bs.reduce((a,b)=>a+bookingRevenue(b),0),paid=bs.reduce((a,b)=>a+bookingPaid(b.id),0),recv=Math.max(0,inv-paid);$('financeMetrics').innerHTML=[['Invoice',rupiah(inv),'total',''],['Kas Masuk',rupiah(paid),'received','bluetop'],['Piutang',rupiah(recv),'outstanding','goldtop'],['Collection',inv?(paid/inv*100).toFixed(1)+'%':'0%','rate','']].map(x=>`<div class="card metric ${x[3]}"><span>${x[0]}</span><b>${x[1]}</b><span>${x[2]}</span></div>`).join('');$('financeBody').innerHTML=bs.map(b=>{const p=bookingPaid(b.id),r=Math.max(0,bookingRevenue(b)-p);return `<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(customer(b.customer_id)?.name||'-')}</td><td>${rupiah(bookingRevenue(b))}</td><td>${rupiah(p)}</td><td class="${r?'red':'green'}">${rupiah(r)}</td><td>${can(['Owner','Manager','Finance'])?`<button class="btn ghost" onclick="openPayment('${b.id}')">+ Bayar</button>`:'-'}</td></tr>`}).join('')}function renderOperation(){$('operationBody').innerHTML=accessibleBookings().filter(b=>!['Lead','Quotation','Closed'].includes(b.status)).map(b=>{const t=data.trips.find(x=>x.booking_id===b.id),os=data.operationSheets.find(x=>x.booking_id===b.id);return `<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(b.program_name)}</td><td>${fmtDate(b.trip_date)}</td><td>${esc(person(t?.tl_id)?.full_name||'-')}</td><td>${t?.operational_progress||0}%</td><td>${badge(os?.readiness_status||'Belum')}</td><td>${can(['Owner','Manager','Operation','TL'])?`<button class="btn ghost" onclick="openOperation('${b.id}')">Kelola</button>`:'-'}</td></tr>`}).join('')}function tripControlState(b){const t=data.trips.find(x=>x.booking_id===b.id),os=data.operationSheets.find(x=>x.booking_id===b.id),approved=data.approvals.some(x=>x.booking_id===b.id&&x.approval_type==='Operation Sheet'&&x.status==='Approved');let score=0;if(t?.tl_id)score+=25;if(os)score+=25;if(Number(t?.operational_progress||0)>=80)score+=25;if(approved)score+=25;const state=score>=100?'Ready':score>=50?'Preparation':'Perlu Perhatian';return {t,os,approved,score,state}}function renderTripControl(){const el=$('tripControlBody');if(!el)return;const q=($('tripControlSearch')?.value||'').toLowerCase(),now=new Date();now.setHours(0,0,0,0);const bs=accessibleBookings().filter(b=>!['Lead','Quotation','Closed'].includes(b.status));const rows=bs.filter(b=>[b.booking_no,b.program_name,customer(b.customer_id)?.name,b.status].join(' ').toLowerCase().includes(q));const states=bs.map(tripControlState);const ready=states.filter(x=>x.score===100).length,attention=states.filter(x=>x.score<50).length,upcoming=bs.filter(b=>new Date(b.trip_date+'T00:00:00')>=now&&!['Completed','Closed'].includes(b.status)).length;$('tripControlMetrics').innerHTML=[['Trip Aktif',bs.length,'operasional',''],['Trip Mendatang',upcoming,'jadwal aktif','bluetop'],['Ready',ready,'siap berangkat',''],['Perlu Perhatian',attention,'kesiapan < 50%','goldtop']].map(x=>`<div class="card metric ${x[3]}"><span>${x[0]}</span><b>${x[1]}</b><span>${x[2]}</span></div>`).join('');el.innerHTML=rows.map(b=>{const x=tripControlState(b),ap=x.approved?'Approved':data.approvals.some(a=>a.booking_id===b.id&&a.approval_type==='Operation Sheet'&&a.status==='Pending')?'Pending':'Belum';return `<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(customer(b.customer_id)?.name||'-')}</td><td>${esc(b.program_name)}</td><td>${fmtDate(b.trip_date)}</td><td>${esc(person(x.t?.tl_id)?.full_name||'Belum ditetapkan')}</td><td><div class="tripready"><b>${x.score}%</b><div class="tripbar"><i style="width:${x.score}%"></i></div><small>${esc(x.state)}</small></div></td><td>${badge(x.os?.readiness_status||'Belum')}</td><td>${badge(ap)}</td><td>${can(['Owner','Manager','Operation','TL'])?`<button class="btn ghost" onclick="openOperation('${b.id}')">Kelola</button>`:'-'}</td></tr>`}).join('')||'<tr><td colspan="9">Belum ada trip operasional.</td></tr>'}function tripFolderState(b){const manifest=data.manifests.filter(x=>x.booking_id===b.id),rundown=data.rundownItems.filter(x=>x.booking_id===b.id),os=data.operationSheets.find(x=>x.booking_id===b.id),report=data.tripReports.find(x=>x.booking_id===b.id),evals=data.evaluations.filter(x=>x.booking_id===b.id),quotation=!['Lead'].includes(b.status),invoice=bookingRevenue(b)>0&&!['Lead'].includes(b.status),attendance=manifest.length>0;const docs=[{key:'booking',name:'Booking Form',ok:true,meta:b.booking_no},{key:'quotation',name:'Quotation',ok:quotation,meta:quotation?b.status:'Belum lengkap'}];if(can(['Owner','Manager']))docs.push({key:'invoice',name:'Invoice',ok:invoice,meta:invoice?'Lengkap':'Belum lengkap'});else docs.push({key:'invoice',name:'Invoice',ok:false,locked:true,meta:'Terkunci'});docs.push({key:'manifest',name:'Manifest',ok:manifest.length>0,meta:manifest.length+' peserta'},{key:'rundown',name:'Rundown',ok:rundown.length>0,meta:rundown.length+' item'},{key:'opsheet',name:'Operation Sheet',ok:!!os,meta:os?.readiness_status||'Belum lengkap'},{key:'attendance',name:'Absensi',ok:attendance,meta:attendance?'Siap dicetak dari Manifest':'Belum lengkap'},{key:'report',name:'Trip Report',ok:!!report,meta:report?'Lengkap':'Belum lengkap'},{key:'evaluation',name:'Evaluasi',ok:evals.length>0,meta:evals.length+' item'});const countable=docs.filter(x=>!x.locked),done=countable.filter(x=>x.ok).length,score=Math.round(done/Math.max(1,countable.length)*100);return {manifest,rundown,os,report,evals,docs,score,done,total:countable.length}}function renderTripFolder(){const body=$('tripFolderBody');if(!body)return;const q=($('tripFolderSearch')?.value||'').toLowerCase(),bs=accessibleBookings().filter(b=>[b.booking_no,b.program_name,customer(b.customer_id)?.name,b.status].join(' ').toLowerCase().includes(q));const states=bs.map(tripFolderState),complete=states.filter(x=>x.score===100).length,need=states.filter(x=>x.score<100).length;$('tripFolderMetrics').innerHTML=[['Trip Folder',bs.length,'booking',''],['Folder Lengkap',complete,'100%',''],['Perlu Dilengkapi',need,'< 100%','goldtop'],['Dokumen',states.reduce((a,x)=>a+x.done,0),states.reduce((a,x)=>a+x.total,0)+' total','bluetop']].map(x=>`<div class="card metric ${x[3]}"><span>${gmuTranslateString(x[0])}</span><b>${x[1]}</b><span>${x[2]}</span></div>`).join('');body.innerHTML=bs.map(b=>{const x=tripFolderState(b);return `<tr><td><b>${esc(b.booking_no)}</b></td><td>${esc(customer(b.customer_id)?.name||'-')}</td><td>${esc(b.program_name)}</td><td>${fmtDate(b.trip_date)}</td><td><div class="folder-score"><div class="folder-ring" style="--pct:${x.score}%"><b>${x.score}%</b></div><div><b>${x.done}/${x.total}</b><br><small>${gmuTranslateString(x.score===100?'Lengkap':'Belum lengkap')}</small></div></div></td><td>${x.docs.filter(d=>d.ok&&!d.locked).length}/${x.docs.filter(d=>!d.locked).length}</td><td><button class="btn ghost" onclick="openTripFolder('${b.id}')">${gmuTranslateString('Buka Folder')}</button></td></tr>`}).join('')||'<tr><td colspan="7">-</td></tr>'}const TRIP_DOC_BUCKET='gmu-trip-documents';
+const TRIP_DOC_CATEGORIES=[
+ {key:'booking-form',label:'Booking Form'},
+ {key:'quotation',label:'Quotation'},
+ {key:'invoice',label:'Invoice',finance:true},
+ {key:'po-vendor',label:'PO Vendor'},
+ {key:'vendor-invoice',label:'Vendor Invoice',finance:true},
+ {key:'manifest',label:'Manifest'},
+ {key:'rundown',label:'Rundown'},
+ {key:'operation-sheet',label:'Operation Sheet'},
+ {key:'attendance',label:'Absensi'},
+ {key:'trip-report',label:'Trip Report'},
+ {key:'evaluation',label:'Evaluasi'},
+ {key:'photos',label:'Foto Kegiatan'},
+ {key:'other',label:'Dokumen Lain'}
+];
+let tripDocumentFiles={},tripFolderArchiveState={};
+function visibleTripDocCategories(){return TRIP_DOC_CATEGORIES.filter(c=>!c.finance||can(['Owner','Manager']))}
+function tripDocCategory(key){return TRIP_DOC_CATEGORIES.find(c=>c.key===key)||{key,label:key}}
+function tripDocSafeName(name){return String(name||'file').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').slice(-120)}
+function isTripFolderArchived(bid){return !!tripFolderArchiveState[bid]?.archived}
+function canUploadTripDocument(){const bid=$('tripFolderBookingId')?.value||'';return !isTripFolderArchived(bid)&&can(['Owner','Manager','Admin','Operation','TL'])}
+function tripDocApproval(bid,path){return data.approvals.filter(a=>a.booking_id===bid&&a.approval_type==='Trip Document'&&a.reference_id===path).sort((a,b)=>String(b.requested_at||'').localeCompare(String(a.requested_at||'')))[0]||null}
+async function readTripArchiveState(bid){try{const {data,error}=await sb.storage.from(TRIP_DOC_BUCKET).download(bid+'/_meta/archive.json');if(error){tripFolderArchiveState[bid]={archived:false};return tripFolderArchiveState[bid]}const j=JSON.parse(await data.text());tripFolderArchiveState[bid]=j&&typeof j==='object'?j:{archived:false};return tripFolderArchiveState[bid]}catch(_){tripFolderArchiveState[bid]={archived:false};return tripFolderArchiveState[bid]}}
+async function listTripDocumentCategory(bid,cat){const {data:rows,error}=await sb.storage.from(TRIP_DOC_BUCKET).list(bid+'/'+cat.key,{limit:100,sortBy:{column:'created_at',order:'desc'}});if(error)throw error;return (rows||[]).filter(f=>f.name&&f.id).map(f=>({name:f.name,path:bid+'/'+cat.key+'/'+f.name,category:cat.key,created_at:f.created_at||f.updated_at||'',metadata:f.metadata||{}}))}
+async function loadTripDocumentCenter(bid){const status=$('folderDocumentStatus'),list=$('folderDocumentList'),sel=$('fduCategory');if(sel)sel.innerHTML=visibleTripDocCategories().map(c=>'<option value="'+esc(c.key)+'">'+esc(gmuTranslateString(c.label))+'</option>').join('');if(status)status.textContent='SYNC...';if(list)list.innerHTML='<div class="doc-empty">SYNC...</div>';try{await readTripArchiveState(bid);const cats=visibleTripDocCategories(),results=await Promise.all(cats.map(c=>listTripDocumentCategory(bid,c)));tripDocumentFiles[bid]=results.flat().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));renderTripArchiveBanner(bid);renderTripDocumentList(bid);if(status)status.textContent='';const up=$('folderDocumentUploadForm');if(up)up.classList.toggle('hidden',!canUploadTripDocument());applyLanguage()}catch(e){if(status)status.textContent='Document storage: '+(e?.message||e);if(list)list.innerHTML='<div class="doc-empty">'+esc(e?.message||'Storage error')+'</div>'}}
+function renderTripDocumentList(bid){const list=$('folderDocumentList');if(!list)return;const files=tripDocumentFiles[bid]||[];if(!files.length){list.innerHTML='<div class="doc-empty">'+gmuTranslateString('Belum ada file tersimpan.')+'</div>';return}list.innerHTML=files.map(f=>{const cat=tripDocCategory(f.category),ap=tripDocApproval(bid,f.path),stat=ap?.status||'Belum';const size=Number(f.metadata?.size||0),sizeTxt=size?Math.max(1,Math.round(size/1024))+' KB':'';let actions='<button class="btn ghost" onclick="openTripDocument(\''+esc(f.path)+'\')">'+gmuTranslateString('Buka')+'</button>';if(canUploadTripDocument()&&!ap)actions+='<button class="btn ghost" onclick="requestTripDocumentApproval(\''+esc(bid)+'\',\''+esc(f.path)+'\')">'+gmuTranslateString('Minta Approval')+'</button>';if(can(['Owner','Manager'])&&ap?.status==='Pending')actions+='<button class="btn primary" onclick="decideTripDocumentApproval(\''+esc(bid)+'\',\''+esc(ap.id)+'\',\'Approved\')">'+gmuTranslateString('Approve')+'</button><button class="btn danger" onclick="decideTripDocumentApproval(\''+esc(bid)+'\',\''+esc(ap.id)+'\',\'Rejected\')">'+gmuTranslateString('Reject')+'</button>';if(can(['Owner','Manager'])&&!isTripFolderArchived(bid)&&ap?.status!=='Approved')actions+='<button class="btn danger" onclick="deleteTripDocument(\''+esc(bid)+'\',\''+esc(f.path)+'\')">'+gmuTranslateString('Hapus')+'</button>';return '<div class="doc-file"><div class="doc-file-main"><span class="doc-category">'+esc(gmuTranslateString(cat.label))+'</span><b>'+esc(f.name.replace(/^\d+_/,'').replace(/^\d+-/,''))+'</b><small>'+esc(sizeTxt)+(sizeTxt?' • ':'')+esc(f.created_at?new Date(f.created_at).toLocaleString(localeForLang()):'')+' • '+badge(stat)+'</small></div><div class="doc-actions">'+actions+'</div></div>'}).join('')}
+async function uploadTripDocument(e){e.preventDefault();const bid=$('tripFolderBookingId')?.value||'',file=$('fduFile')?.files?.[0],cat=$('fduCategory')?.value||'';if(!bid||!file||!cat)return;if(!canUploadTripDocument())return alert(gmuTranslateString('Folder sudah diarsipkan dan dibekukan dari perubahan.'));if(file.size>15*1024*1024)return alert('Maksimal 15 MB.');const category=tripDocCategory(cat);if(category.finance&&!can(['Owner','Manager']))return alert(gmuTranslateString('Dokumen finansial hanya Owner/Manager.'));const status=$('folderDocumentStatus');if(status)status.textContent='Uploading...';const path=bid+'/'+cat+'/'+Date.now()+'_'+tripDocSafeName(file.name);const {error}=await sb.storage.from(TRIP_DOC_BUCKET).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(error){if(status)status.textContent=error.message;return}await audit('UPLOAD','storage',bid,'Upload dokumen '+category.label+' • '+file.name);e.target.reset();if(status)status.textContent=gmuTranslateString('Upload berhasil.');await loadTripDocumentCenter(bid)}
+async function openTripDocument(path){const {data,error}=await sb.storage.from(TRIP_DOC_BUCKET).createSignedUrl(path,180);if(error)return alert(error.message);window.open(data.signedUrl,'_blank','noopener')}
+async function requestTripDocumentApproval(bid,path){if(isTripFolderArchived(bid))return;const existing=tripDocApproval(bid,path);if(existing?.status==='Pending')return alert('Approval masih Pending.');const row={id:uid('AP'),booking_id:bid,approval_type:'Trip Document',reference_id:path,status:'Pending',requested_by:profile.id};const {error}=await sb.from('approvals').insert(row);if(error)return alert(error.message);await audit('REQUEST_APPROVAL','approvals',row.id,'Approval dokumen trip • '+path.split('/').pop());await loadAll();await loadTripDocumentCenter(bid);alert(gmuTranslateString('Approval diajukan.'))}
+async function decideTripDocumentApproval(bid,id,status){if(!can(['Owner','Manager']))return;await approval(id,status);await loadTripDocumentCenter(bid)}
+async function deleteTripDocument(bid,path){if(!can(['Owner','Manager'])||isTripFolderArchived(bid))return;if(!confirm('Hapus file ini dari Trip Folder?'))return;const {error}=await sb.storage.from(TRIP_DOC_BUCKET).remove([path]);if(error)return alert(error.message);await audit('DELETE','storage',bid,'Menghapus dokumen trip • '+path.split('/').pop());await loadTripDocumentCenter(bid)}
+function renderTripArchiveBanner(bid){const banner=$('tripArchiveBanner'),txt=$('tripArchiveText'),actions=$('tripArchiveActions');if(!banner||!txt||!actions)return;const st=tripFolderArchiveState[bid]||{archived:false};banner.classList.toggle('archived',!!st.archived);txt.textContent=gmuTranslateString(st.archived?'Folder sudah diarsipkan dan dibekukan dari perubahan.':'Folder masih aktif dan dapat diperbarui.');actions.innerHTML=can(['Owner','Manager'])?'<button class="btn '+(st.archived?'ghost':'gold')+'" onclick="setTripFolderArchive(\''+esc(bid)+'\','+(st.archived?'false':'true')+')">'+gmuTranslateString(st.archived?'Buka Kembali Arsip':'Archive & Freeze')+'</button>':badge(st.archived?'Diarsipkan':'Aktif')}
+async function setTripFolderArchive(bid,archived){if(!can(['Owner','Manager']))return;const b=data.bookings.find(x=>x.id===bid);if(!b)return;if(archived){const pending=data.approvals.some(a=>a.booking_id===bid&&a.approval_type==='Trip Document'&&a.status==='Pending');if(pending)return alert('Masih ada approval dokumen Pending. Selesaikan dulu sebelum archive.');if(!confirm('Archive & Freeze '+b.booking_no+'? Folder tidak dapat diedit sampai dibuka kembali.'))return}else if(!confirm('Buka kembali arsip '+b.booking_no+' untuk diedit?'))return;const payload={archived:!!archived,booking_id:bid,booking_no:b.booking_no,updated_at:new Date().toISOString(),updated_by:profile.id,updated_by_name:profile.full_name};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const {error}=await sb.storage.from(TRIP_DOC_BUCKET).upload(bid+'/_meta/archive.json',blob,{upsert:true,contentType:'application/json',cacheControl:'0'});if(error)return alert(error.message);tripFolderArchiveState[bid]=payload;await audit(archived?'ARCHIVE':'REOPEN','storage',bid,(archived?'Mengarsipkan':'Membuka kembali')+' Trip Folder '+b.booking_no);renderTripArchiveBanner(bid);renderTripFolderModal();await loadTripDocumentCenter(bid);alert(gmuTranslateString(archived?'Folder diarsipkan.':'Folder dibuka kembali.'))}
+document.getElementById('folderDocumentUploadForm')?.addEventListener('submit',uploadTripDocument);
+function canEditTripFolder(){const bid=$('tripFolderBookingId')?.value||'';return !isTripFolderArchived(bid)&&can(['Owner','Manager','Admin','Operation','TL'])}function openTripFolder(id){const b=data.bookings.find(x=>x.id===id);if(!b)return;$('tripFolderBookingId').value=id;$('tripFolderTitle').textContent='Trip Folder • '+b.booking_no;$('tripFolderSubtitle').textContent=(customer(b.customer_id)?.name||'-')+' • '+b.program_name+' • '+fmtDate(b.trip_date);renderTripFolderModal();openModal('tripFolderModal');loadTripDocumentCenter(id);applyLanguage()}function renderTripFolderModal(){const id=$('tripFolderBookingId')?.value,b=data.bookings.find(x=>x.id===id);if(!b)return;const x=tripFolderState(b);$('tripFolderDocGrid').innerHTML=x.docs.map(d=>`<div class="folder-doc ${d.ok?'okdoc':''} ${d.locked?'lockeddoc':''}"><b>${gmuTranslateString(d.name)}</b><small>${d.locked?gmuTranslateString('Terkunci'):esc(gmuTranslateString(String(d.meta||'')))}</small></div>`).join('');$('folderManifestList').innerHTML=x.manifest.length?x.manifest.map(m=>`<div class="folder-mini-row"><span><b>${esc(m.participant_name)}</b><br><small>${esc(m.class_or_age||'-')}</small></span><span>${esc(m.gender||'-')}</span></div>`).join(''):'<div class="note">-</div>';$('folderRundownList').innerHTML=x.rundown.length?x.rundown.slice().sort((a,b)=>String(a.activity_time||'').localeCompare(String(b.activity_time||''))).map(r=>`<div class="folder-mini-row"><span><b>${esc(r.activity_time||'-')}</b> • ${esc(r.activity)}</span><span>${esc(r.location||'-')}</span></div>`).join(''):'<div class="note">-</div>';const rp=x.report;$('ftrSummary').value=rp?.summary||'';$('ftrIncidents').value=rp?.incidents||'';$('ftrAchievements').value=rp?.achievements||'';$('ftrFollowUp').value=rp?.follow_up||'';$('folderEvaluationList').innerHTML=x.evals.length?x.evals.slice(-6).map(e=>`<div class="folder-mini-row"><span><b>${esc(e.score||'-')}/5</b> • ${esc(e.feedback||'-')}</span></div>`).join(''):'<div class="note">-</div>';['folderManifestForm','folderRundownForm','folderReportForm','folderEvaluationForm'].forEach(fid=>$(fid)?.classList.toggle('hidden',!canEditTripFolder()));renderTripArchiveBanner(id);const up=$('folderDocumentUploadForm');if(up)up.classList.toggle('hidden',!canUploadTripDocument())}async function folderAddManifest(e){e.preventDefault();if(!canEditTripFolder())return;const bid=$('tripFolderBookingId').value,row={id:uid('MAN'),booking_id:bid,participant_name:$('fmName').value.trim(),class_or_age:$('fmClass').value.trim()||null,gender:$('fmGender').value||null,emergency_contact:$('fmEmergency').value.trim()||null};const {error}=await sb.from('manifests').insert(row);if(error)return alert(error.message);await audit('CREATE','manifests',row.id,'Menambah peserta manifest');e.target.reset();await loadAll();$('tripFolderBookingId').value=bid;renderTripFolderModal()}async function folderAddRundown(e){e.preventDefault();if(!canEditTripFolder())return;const bid=$('tripFolderBookingId').value,row={id:uid('RUN'),booking_id:bid,activity_time:$('frTime').value||null,activity:$('frActivity').value.trim(),location:$('frLocation').value.trim()||null,pic:profile.full_name||null};const {error}=await sb.from('rundown_items').insert(row);if(error)return alert(error.message);await audit('CREATE','rundown_items',row.id,'Menambah item rundown');e.target.reset();await loadAll();$('tripFolderBookingId').value=bid;renderTripFolderModal()}async function folderSaveReport(e){e.preventDefault();if(!canEditTripFolder())return;const bid=$('tripFolderBookingId').value,existing=data.tripReports.find(x=>x.booking_id===bid),row={id:existing?.id||uid('REP'),booking_id:bid,summary:$('ftrSummary').value.trim()||'-',incidents:$('ftrIncidents').value.trim()||null,achievements:$('ftrAchievements').value.trim()||null,follow_up:$('ftrFollowUp').value.trim()||null,created_by:existing?.created_by||profile.id};const {error}=await sb.from('trip_reports').upsert(row,{onConflict:'booking_id'});if(error)return alert(error.message);await audit('UPDATE','trip_reports',row.id,'Memperbarui Trip Report');await loadAll();$('tripFolderBookingId').value=bid;renderTripFolderModal()}async function folderAddEvaluation(e){e.preventDefault();if(!canEditTripFolder())return;const bid=$('tripFolderBookingId').value,row={id:uid('EV'),booking_id:bid,evaluation_type:'Internal Trip',subject_id:bid,score:Number($('feScore').value||5),feedback:$('feFeedback').value.trim(),corrective_action:$('feAction').value.trim()||null,created_by:profile.id};const {error}=await sb.from('evaluations').insert(row);if(error)return alert(error.message);await audit('CREATE','evaluations',row.id,'Menambah evaluasi trip');e.target.reset();$('feScore').value=5;await loadAll();$('tripFolderBookingId').value=bid;renderTripFolderModal()}function openFolderOperation(){const bid=$('tripFolderBookingId')?.value;if(!bid)return;closeModal('tripFolderModal');openOperation(bid)}function printTripFolder(){const bid=$('tripFolderBookingId')?.value,b=data.bookings.find(x=>x.id===bid);if(!b)return;const x=tripFolderState(b),w=window.open('','_blank','width=900,height=700');if(!w)return;const rows=x.docs.map(d=>`<tr><td>${esc(gmuTranslateString(d.name))}</td><td>${d.locked?gmuTranslateString('Terkunci'):gmuTranslateString(d.ok?'Lengkap':'Belum lengkap')}</td><td>${esc(gmuTranslateString(String(d.meta||'')))}</td></tr>`).join('');w.document.write(`<!doctype html><html><head><title>${esc(b.booking_no)} Trip Folder</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#173128}h1{color:#08633d}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}.meta{color:#66726B}</style></head><body><h1>GMU EduTrans — Trip Folder</h1><p><b>${esc(b.booking_no)}</b> • ${esc(customer(b.customer_id)?.name||'-')} • ${esc(b.program_name)} • ${fmtDate(b.trip_date)}</p><p class="meta">Completeness: ${x.score}% (${x.done}/${x.total})</p><table><thead><tr><th>Document</th><th>Status</th><th>Detail</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>window.print()<\/script><!-- gmu-erp-v94-trip-folder -->
+<!-- gmu-erp-v95-document-archive -->
+<!-- gmu-erp-v95-syntax-fix -->
+<!-- gmu-erp-v95-doc-safety-fix -->
+</body></html>`);w.document.close()}document.getElementById('folderManifestForm')?.addEventListener('submit',folderAddManifest);document.getElementById('folderRundownForm')?.addEventListener('submit',folderAddRundown);document.getElementById('folderReportForm')?.addEventListener('submit',folderSaveReport);document.getElementById('folderEvaluationForm')?.addEventListener('submit',folderAddEvaluation);function renderVendors(){$('vendorBody').innerHTML=data.vendors.map(v=>`<tr><td>${esc(v.vendor_code||v.id)}</td><td><b>${esc(v.name)}</b></td><td>${esc(v.category||'-')}</td><td>${esc(v.pic_name||'-')}</td><td>${esc(v.phone||'-')}</td></tr>`).join('')}function deadlineStatus(b,d){const due=new Date(b.trip_date+'T00:00:00');due.setDate(due.getDate()+Number(d.offset_days));const now=new Date();now.setHours(0,0,0,0);const diff=Math.round((due-now)/86400000);let done=false;if(d.code==='H7_QUOTATION')done=!['Lead'].includes(b.status);if(d.code==='H3_PAYMENT')done=bookingPaid(b.id)>0;if(d.code==='H3_OPSHEET')done=!!data.operationSheets.find(x=>x.booking_id===b.id);if(d.code==='H1_OPSHEET_APPROVAL')done=data.approvals.some(x=>x.booking_id===b.id&&x.approval_type==='Operation Sheet'&&x.status==='Approved');return {due,diff,done,status:done?'SELESAI':diff<0?'OVERDUE':diff<=1?'SEGERA':'OPEN'}}function workflowAlerts(){const out=[];data.bookings.forEach(b=>data.deadlines.forEach(d=>{const s=deadlineStatus(b,d);if(!s.done&&(s.status==='OVERDUE'||s.status==='SEGERA'))out.push({title:`${b.booking_no} • ${d.responsible_role}`,text:`${d.task_name} • ${fmtDate(s.due.toISOString().slice(0,10))}`,level:s.status})}));data.approvals.filter(a=>a.status==='Pending').forEach(a=>out.push({title:`Pending Approval • ${a.approval_type}`,text:data.bookings.find(b=>b.id===a.booking_id)?.booking_no||a.booking_id,level:'Pending'}));return out}function renderWorkflow(){const pending=data.approvals.filter(a=>a.status==='Pending'), alerts=workflowAlerts(), overdue=alerts.filter(x=>x.level==='OVERDUE').length;$('workflowMetrics').innerHTML=[['Pending Approval',pending.length,'queue','goldtop'],['Overdue',overdue,'deadline','goldtop'],['Alert Aktif',alerts.length,'workflow','bluetop'],['Audit',data.audit.length,'log terbaru','']].map(x=>`<div class="card metric ${x[3]}"><span>${x[0]}</span><b>${x[1]}</b><span>${x[2]}</span></div>`).join('');$('approvalList').innerHTML=pending.map(a=>{const b=data.bookings.find(x=>x.id===a.booking_id);const approve=can(['Owner','Manager'])||(a.approval_type==='Invoice'&&role()==='Finance');return `<div class="item"><div class="itemtop"><b>${esc(a.approval_type)} • ${esc(b?.booking_no||a.booking_id)}</b>${badge(a.status)}</div><p>Diajukan ${new Date(a.requested_at).toLocaleString(localeForLang())}</p>${approve?`<div style="margin-top:8px"><button class="btn primary" onclick="approval('${a.id}','Approved')">Approve</button><button class="btn danger" onclick="approval('${a.id}','Rejected')">Reject</button></div>`:''}</div>`}).join('')||'<div class="item"><b>Tidak ada pending approval.</b></div>';const dl=[];data.bookings.forEach(b=>data.deadlines.forEach(d=>{const s=deadlineStatus(b,d);if(!s.done)dl.push({b,d,s})}));dl.sort((a,b)=>a.s.due-b.s.due);$('deadlineList').innerHTML=dl.slice(0,12).map(x=>`<div class="item"><div class="itemtop"><b>${esc(x.b.booking_no)} • ${esc(x.d.responsible_role)}</b>${badge(x.s.status)}</div><p>${esc(x.d.task_name)} • ${fmtDate(x.s.due.toISOString().slice(0,10))}</p></div>`).join('')||'<div class="item"><b>Semua deadline selesai.</b></div>';$('auditList').innerHTML=data.audit.map(a=>`<div class="audit"><div><b>${new Date(a.created_at).toLocaleString(localeForLang())}</b></div><div>${esc(person(a.user_id)?.full_name||'-')}<br><small>${esc(a.action)}</small></div><div>${esc(a.message||'')}<br><small>${esc(a.table_name)} • ${esc(a.record_id||'-')}</small></div></div>`).join('')}function renderUsers(){$('userBody').innerHTML=data.profiles.map(p=>`<tr><td><b>${esc(p.full_name)}</b></td><td>${badge(p.role)}</td><td>${esc(p.phone||'-')}</td><td>${p.is_active?badge('Aktif'):badge('Nonaktif')}</td><td>${role()==='Owner'&&p.id!==profile.id?`<select onchange="changeRole('${p.id}',this.value)">${['Manager','Admin','Sales','Finance','Operation','TL'].map(r=>`<option ${r===p.role?'selected':''}>${r}</option>`).join('')}</select><button class="btn ghost" onclick="openResetStaff('${p.id}','${esc(p.full_name).replace(/'/g,'&#39;')}')">Reset Password</button><button class="btn ${p.is_active?'danger':'ghost'}" onclick="setUserActive('${p.id}',${!p.is_active})">${p.is_active?'Nonaktifkan':'Aktifkan'}</button>`:'-'}</td></tr>`).join('')}function renderAll(){renderDashboard();renderBookings();renderCustomers();renderFinance();renderOperation();renderTripControl();renderTripFolder();renderVendors();renderWorkflow();renderUsers();fillSelects();applyRole();applyLanguage()}function fillSelects(){$('bCustomer').innerHTML=data.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');$('oTl').innerHTML='<option value="">Belum ditetapkan</option>'+data.profiles.filter(p=>p.role==='TL'&&p.is_active).map(p=>`<option value="${p.id}">${esc(p.full_name)}</option>`).join('')}async function audit(action,table,id,message){if(!profile)return;await sb.from('audit_logs').insert({id:uid('LOG'),user_id:profile.id,action,table_name:table,record_id:id,message})}async function nextCode(rpc,fallback){const {data:r,error}=await sb.rpc(rpc);return error?fallback:r}$('customerForm').addEventListener('submit',async e=>{e.preventDefault();const code=await nextCode('next_customer_code','CUS-'+Date.now());const row={id:uid('CUS'),customer_code:code,name:$('cName').value,customer_type:$('cType').value,pic_name:$('cPic').value,whatsapp:$('cWa').value,notes:$('cNote').value,created_by:profile.id};const {error}=await sb.from('customers').insert(row);if(error)return alert(error.message);await audit('CREATE','customers',row.id,`Membuat customer ${row.name}`);closeModal('customerModal');e.target.reset();await loadAll()});$('vendorForm').addEventListener('submit',async e=>{e.preventDefault();const code=await nextCode('next_vendor_code','VEN-'+Date.now());const row={id:uid('VEN'),vendor_code:code,name:$('vName').value,category:$('vCat').value,pic_name:$('vPic').value,phone:$('vPhone').value,created_by:profile.id};const {error}=await sb.from('vendors').insert(row);if(error)return alert(error.message);await audit('CREATE','vendors',row.id,`Membuat vendor ${row.name}`);closeModal('vendorModal');e.target.reset();await loadAll()});$('bookingForm').addEventListener('submit',async e=>{e.preventDefault();const no=await nextCode('next_booking_no','BK-'+Date.now());const row={id:uid('BKG'),booking_no:no,customer_id:$('bCustomer').value,sales_id:role()==='Sales'?profile.id:null,program_name:$('bProgram').value,trip_date:$('bDate').value,pax:Number($('bPax').value),price_per_pax:Number($('bPrice').value),status:$('bStatus').value,participant_group:$('bGroup').value,meeting_point:$('bMeeting').value,notes:$('bNotes').value,created_by:profile.id};const {error}=await sb.from('bookings').insert(row);if(error)return alert(error.message);await audit('CREATE','bookings',row.id,`Membuat booking ${no}`);closeModal('bookingModal');e.target.reset();await loadAll()});function openPayment(id){const b=data.bookings.find(x=>x.id===id);$('pBooking').value=id;$('pLabel').value=b.booking_no+' — '+b.program_name;$('pDate').value=new Date().toISOString().slice(0,10);openModal('paymentModal')}$('paymentForm').addEventListener('submit',async e=>{e.preventDefault();const row={id:uid('PAY'),booking_id:$('pBooking').value,payment_type:$('pType').value,amount:Number($('pAmount').value),payment_date:$('pDate').value,method:$('pMethod').value,notes:$('pNote').value,verified_by:profile.id};const {error}=await sb.from('payments').insert(row);if(error)return alert(error.message);await audit('PAYMENT','payments',row.id,`Mencatat pembayaran ${rupiah(row.amount)}`);closeModal('paymentModal');e.target.reset();await loadAll()});function openOperation(id){const b=data.bookings.find(x=>x.id===id),t=data.trips.find(x=>x.booking_id===id),os=data.operationSheets.find(x=>x.booking_id===id);$('oBooking').value=id;$('oLabel').value=b.booking_no+' — '+b.program_name;$('oTl').value=t?.tl_id||'';$('oProgress').value=t?.operational_progress||0;$('oStatus').value=os?.readiness_status||'Draft';$('oMeeting').value=os?.meeting_time||'';$('oTransport').value=os?.transport||'';$('oBriefing').value=os?.briefing_notes||'';openModal('operationModal')}$('operationForm').addEventListener('submit',async e=>{e.preventDefault();const bid=$('oBooking').value;const trip={id:data.trips.find(x=>x.booking_id===bid)?.id||uid('TRIP'),booking_id:bid,tl_id:$('oTl').value||null,operational_progress:Number($('oProgress').value||0),updated_by:profile.id};let r=await sb.from('trips').upsert(trip,{onConflict:'booking_id'});if(r.error)return alert(r.error.message);const os={id:data.operationSheets.find(x=>x.booking_id===bid)?.id||uid('OS'),booking_id:bid,meeting_time:$('oMeeting').value||null,readiness_status:$('oStatus').value,transport:$('oTransport').value,briefing_notes:$('oBriefing').value,updated_by:profile.id};r=await sb.from('operation_sheets').upsert(os,{onConflict:'booking_id'});if(r.error)return alert(r.error.message);await audit('UPDATE','operation_sheets',os.id,'Memperbarui Operation Sheet');closeModal('operationModal');await loadAll()});async function requestOperationApproval(){const bid=$('oBooking').value;const existing=data.approvals.find(a=>a.booking_id===bid&&a.approval_type==='Operation Sheet'&&a.status==='Pending');if(existing)return alert('Approval masih Pending.');const row={id:uid('AP'),booking_id:bid,approval_type:'Operation Sheet',reference_id:data.operationSheets.find(x=>x.booking_id===bid)?.id||null,status:'Pending',requested_by:profile.id};const {error}=await sb.from('approvals').insert(row);if(error)return alert(error.message);await audit('REQUEST_APPROVAL','approvals',row.id,'Mengajukan approval Operation Sheet');alert('Approval diajukan.');await loadAll()}async function approval(id,status){const row={status,approved_by:profile.id,approved_at:new Date().toISOString()};const {error}=await sb.from('approvals').update(row).eq('id',id);if(error)return alert(error.message);await audit(status==='Approved'?'APPROVE':'REJECT','approvals',id,`${status} approval`);await loadAll()}function openResetStaff(id,name){if(role()!=='Owner')return alert('Hanya Owner.');$('rsName').value=name;$('rsEmail').value=name.toLowerCase().includes('ayu')?'garsyanimultiusaha@gmail.com':'';$('rsPassword').value='';$('rsPassword2').value='';$('resetStaffStatus').textContent='';openModal('resetStaffModal')}$('resetStaffForm').addEventListener('submit',async e=>{e.preventDefault();if(role()!=='Owner')return alert('Hanya Owner.');const p1=$('rsPassword').value,p2=$('rsPassword2').value;if(p1!==p2){$('resetStaffStatus').textContent='Password tidak sama.';return}if(p1.length<8){$('resetStaffStatus').textContent='Password minimal 8 karakter.';return}$('resetStaffStatus').textContent='Mereset password...';const {data:sessionData}=await sb.auth.getSession();const token=sessionData.session?.access_token;if(!token){$('resetStaffStatus').textContent='Sesi Owner tidak ditemukan. Silakan login ulang.';return}const c=cfg();try{const res=await fetch(c.url+'/functions/v1/reset-staff-password',{method:'POST',headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+token},body:JSON.stringify({email:$('rsEmail').value.trim(),password:p1})});const j=await res.json();if(!res.ok)throw new Error(j.error||'Reset password gagal');$('resetStaffStatus').style.color='var(--g)';$('resetStaffStatus').textContent='BERHASIL — password staf sudah direset. Sekarang logout Owner lalu login dengan akun staf.';alert('Password staf berhasil direset. Modal tetap terbuka agar status terlihat.');}catch(err){$('resetStaffStatus').textContent='Gagal: '+err.message}});async function changeRole(id,newRole){if(role()!=='Owner')return;const {error}=await sb.from('profiles').update({role:newRole}).eq('id',id);if(error)return alert(error.message);await audit('ROLE_CHANGE','profiles',id,`Mengubah role menjadi ${newRole}`);await loadAll()}async function setUserActive(id,isActive){if(role()!=='Owner')return;const {error}=await sb.from('profiles').update({is_active:isActive,updated_at:new Date().toISOString()}).eq('id',id);if(error)return alert(error.message);await audit(isActive?'USER_ACTIVATE':'USER_DEACTIVATE','profiles',id,isActive?'Mengaktifkan akun staf':'Menonaktifkan akun staf');await loadAll()}$('staffForm').addEventListener('submit',async e=>{e.preventDefault(); if(role()!=='Owner')return alert('Hanya Owner.');const pass=$('sPassword').value, pass2=$('sPassword2').value; if(pass!==pass2)return alert('Password tidak sama.');$('staffStatus').textContent='Membuat akun...';const {data:sessionData}=await sb.auth.getSession(); const token=sessionData.session?.access_token; if(!token){$('staffStatus').textContent='Sesi login tidak ditemukan.';return}const c=cfg();try{const res=await fetch(c.url+'/functions/v1/create-staff-user',{method:'POST',headers:{'Content-Type':'application/json','apikey':c.key,'Authorization':'Bearer '+token},body:JSON.stringify({full_name:$('sName').value.trim(),email:$('sEmail').value.trim(),phone:$('sPhone').value.trim(),role:$('sRole').value,password:pass})});const j=await res.json(); if(!res.ok)throw new Error(j.error||'Gagal membuat akun staf');$('staffStatus').textContent='Berhasil.'; closeModal('staffModal'); e.target.reset(); await loadAll(); alert('Akun staf berhasil dibuat.');}catch(err){$('staffStatus').textContent='Gagal: '+err.message}});async function migrateV8(){if(role()!=='Owner')return alert('Hanya Owner yang dapat migrasi.');const f=$('migrationFile').files[0];if(!f)return alert('Pilih file JSON backup v8.');$('migrationStatus').textContent='Membaca file...';let old;try{old=JSON.parse(await f.text())}catch(e){return $('migrationStatus').textContent='JSON tidak valid.'}try{const cust=(old.customers||[]).map(c=>({id:String(c.id),customer_code:String(c.id),name:c.name,customer_type:c.type||null,pic_name:c.pic||null,whatsapp:c.wa||null,notes:'Migrasi v8',created_by:profile.id}));if(cust.length){let r=await sb.from('customers').upsert(cust);if(r.error)throw r.error}const ven=(old.vendors||[]).map(v=>({id:String(v.id),vendor_code:String(v.id),name:v.name,category:v.category||null,pic_name:v.pic||null,phone:v.contact||null,notes:v.note||'Migrasi v8',created_by:profile.id}));if(ven.length){let r=await sb.from('vendors').upsert(ven);if(r.error)throw r.error}const books=(old.bookings||[]).map(b=>({id:String(b.id),booking_no:String(b.id),customer_id:String(b.customerId),program_name:b.program,trip_date:b.date,pax:Number(b.pax||0),price_per_pax:Number(b.price||0),status:b.status||'Lead',participant_group:b.classAge||null,meeting_point:b.meetingPoint||null,facilities:b.facilities||null,special_requirements:b.specialRequirements||null,notes:b.notes||null,legacy_sales_id:b.salesId||null,legacy_tl_id:b.tlId||null,created_by:profile.id}));if(books.length){let r=await sb.from('bookings').upsert(books);if(r.error)throw r.error}const pays=(old.bookings||[]).filter(b=>Number(b.paid||0)>0).map(b=>({id:'MIGPAY-'+String(b.id),booking_id:String(b.id),payment_type:'DP',amount:Number(b.paid),payment_date:b.date||new Date().toISOString().slice(0,10),method:'Migrasi v8',notes:'Saldo pembayaran dari backup v8',verified_by:profile.id}));if(pays.length){let r=await sb.from('payments').upsert(pays);if(r.error)throw r.error}const costs=(old.bookings||[]).filter(b=>Number(b.rab||0)>0||Number(b.actual||0)>0).map(b=>({id:'MIGCOST-'+String(b.id),booking_id:String(b.id),cost_category:'Legacy Total',description:'Total RAB/aktual hasil migrasi v8',rab_amount:Number(b.rab||0),actual_amount:Number(b.actual||0)}));if(costs.length){let r=await sb.from('trip_costs').upsert(costs);if(r.error)throw r.error}const mans=(old.manifests||[]).map(m=>({id:String(m.id),booking_id:String(m.bookingId),participant_name:m.name,class_or_age:m.classAge||null,gender:m.gender||null,phone:m.phone||null,emergency_contact:m.emergencyContact||null,special_needs:m.specialNeeds||null,notes:m.notes||null}));if(mans.length){let r=await sb.from('manifests').upsert(mans);if(r.error)throw r.error}const rund=(old.rundowns||[]).map(x=>({id:String(x.id),booking_id:String(x.bookingId),activity_time:x.time||null,activity:x.activity,location:x.location||null,pic:x.pic||null,notes:x.notes||null}));if(rund.length){let r=await sb.from('rundown_items').upsert(rund);if(r.error)throw r.error}const os=(old.operationSheets||[]).map(x=>({id:String(x.id),booking_id:String(x.bookingId),meeting_time:x.meetingTime||null,readiness_status:x.status||'Draft',transport:x.transport||null,driver_contact:x.driverContact||null,operation_pic:x.operationPic||null,emergency_contact:x.emergencyContact||null,equipment:x.equipment||null,vendor_notes:x.vendorNotes||null,briefing_notes:x.briefingNotes||null,updated_by:profile.id}));if(os.length){let r=await sb.from('operation_sheets').upsert(os,{onConflict:'booking_id'});if(r.error)throw r.error}const reps=(old.tripReports||[]).map(x=>({id:String(x.id),booking_id:String(x.bookingId),summary:x.summary||'-',incidents:x.incidents||null,achievements:x.achievements||null,follow_up:x.followUp||null,created_by:profile.id}));if(reps.length){let r=await sb.from('trip_reports').upsert(reps,{onConflict:'booking_id'});if(r.error)throw r.error}const evs=(old.evaluations||[]).map(x=>({id:String(x.id),booking_id:String(x.bookingId),evaluation_type:x.type,subject_id:String(x.subjectId||''),score:Number(x.score||0),feedback:x.feedback||'-',corrective_action:x.action||null,created_by:profile.id}));if(evs.length){let r=await sb.from('evaluations').upsert(evs);if(r.error)throw r.error}await audit('MIGRATION','system','v8',`Migrasi backup v8: ${books.length} booking, ${cust.length} customer, ${ven.length} vendor`);$('migrationStatus').textContent=`Selesai: ${cust.length} customer, ${ven.length} vendor, ${books.length} booking, ${mans.length} manifest, ${rund.length} rundown.`;await loadAll()}catch(e){$('migrationStatus').textContent='Gagal: '+e.message}}document.getElementById('langSelect')?.addEventListener('change',e=>setLanguage(e.target.value));
+applyLanguage();
+boot();</script>
+      <div id="passwordRecoveryModal" class="modal">
+        <div class="modalbox" style="max-width:520px">
+          <div class="mtitle"><h3>Buat Password Baru</h3><button class="close" onclick="closePasswordRecovery()">×</button></div>
+          <form id="passwordRecoveryForm">
+            <div class="field"><label>Password Baru</label><input id="newRecoveryPassword" type="password" minlength="8" required placeholder="Minimal 8 karakter"></div>
+            <div class="field"><label>Ulangi Password Baru</label><input id="newRecoveryPassword2" type="password" minlength="8" required></div>
+            <button class="btn primary wide" type="submit">Simpan Password Baru</button>
+            <div id="passwordRecoveryStatus" class="err"></div>
+          </form>
+        </div>
+      </div>
+    <!-- gmu-erp-v92-trip-control -->
+<!-- gmu-erp-v93-multilingual -->
+
+<script src="./unified-v10-loader.js" defer></script>
+<!-- gmu-company-autopilot-v21-additive -->
+</body></html>
