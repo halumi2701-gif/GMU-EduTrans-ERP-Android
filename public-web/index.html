@@ -547,7 +547,7 @@ function money(n){return 'Rp'+Number(n||0).toLocaleString('id-ID')}
 function data(){
  var a=window.GMU_PROGRAM_MASTER||[];
  if(a.length)return a.map(function(p){return {id:p.id,slug:p.slug,name:p.name,category:p.category||'',price:p.price||p.public_price||p.price_per_pax||null,min_pax:p.min_pax||p.minimum_pax||20,location:p.location||'Menyesuaikan',duration:p.duration||'Menyesuaikan'}});
- var cards=$('.g24card,.g26fcard');return cards.map(function(c,i){return {id:'ui'+i,slug:'ui'+i,name:(c.querySelector('h3,h4')||{}).textContent||'Program',price:null,min_pax:20,category:'Program Edukasi'}});
+ var cards=$$('.g24card,.g26fcard');return cards.map(function(c,i){return {id:'ui'+i,slug:'ui'+i,name:(c.querySelector('h3,h4')||{}).textContent||'Program',price:null,min_pax:20,category:'Program Edukasi'}});
 }
 function current(){
  var path=location.pathname,slug=path.indexOf('/jelajah/')===0?decodeURIComponent(path.split('/')[2]||''):null;
