@@ -6051,7 +6051,24 @@ window.gmuCrudEditBooking=function(id){if(!canManage())return alert('Akses edit 
 window.gmuCrudEditCustomer=function(id){if(!canManage())return alert('Akses edit customer tidak tersedia.');const c=(data.customers||[]).find(x=>String(x.id)===String(id));if(!c)return alert('Customer tidak ditemukan.');editState.customer=id;byId('cName').value=c.name||'';byId('cType').value=c.customer_type||'Sekolah';byId('cPic').value=c.pic_name||'';byId('cWa').value=c.whatsapp||'';byId('cNote').value=c.notes||'';title('customerModal','Edit Customer • '+(c.name||''),'Simpan Perubahan');originalOpen('customerModal');};
 window.gmuCrudEditVendor=function(id){if(!canManage())return alert('Akses edit vendor tidak tersedia.');const v=(data.vendors||[]).find(x=>String(x.id)===String(id));if(!v)return alert('Vendor tidak ditemukan.');editState.vendor=id;byId('vName').value=v.name||'';byId('vCat').value=v.category||'Lainnya';byId('vPic').value=v.pic_name||'';byId('vPhone').value=v.phone||'';title('vendorModal','Edit Vendor • '+(v.name||''),'Simpan Perubahan');originalOpen('vendorModal');};
 
-async function del(table,id,label){if(!canDelete())return alert('Hapus permanen hanya untuk Owner/Manager.');if(!confirm('HAPUS PERMANEN '+label+'? Data tidak dapat dipulihkan.'))return;const r=await sb.from(table).delete().eq('id',id);if(r.error)return alert('Gagal hapus: '+r.error.message+'\\nJika ada data relasi, histori terkait harus dipertahankan.');try{await audit('DELETE_PERMANENT',table,id,'Hapus permanen '+label);}catch(_){}await loadAll();}
+async function del(table,id,label){
+ if(!canDelete())return alert('Hapus permanen hanya untuk Owner/Manager.');
+ if(!confirm('HAPUS PERMANEN '+label+'? Data tidak dapat dipulihkan.'))return;
+ try{
+  const result=await sb.from(table).delete().eq('id',id).select('id');
+  if(result.error){
+   const code=String(result.error.code||'');
+   if(code==='23503')return alert('Tidak dapat menghapus '+label+'. Data ini masih terhubung dengan transaksi, pembayaran, dokumen, stok, atau histori lain. Selesaikan atau pindahkan relasinya terlebih dahulu. Data terkait tetap aman.');
+   if(code==='42501'||code==='PGRST301')return alert('Tidak dapat menghapus '+label+' karena akun Anda tidak memiliki izin. Hubungi Owner/Manager.');
+   return alert('Gagal menghapus '+label+': '+(result.error.message||'Terjadi kesalahan database.'));
+  }
+  if(!Array.isArray(result.data)||result.data.length===0)return alert(label+' tidak terhapus. Data mungkin sudah tidak ada atau akses penghapusan dibatasi.');
+  try{await audit('DELETE_PERMANENT',table,id,'Hapus permanen '+label);}catch(_){}
+  try{await loadAll();}catch(refreshError){alert(label+' berhasil dihapus, tetapi daftar belum berhasil diperbarui. Muat ulang halaman untuk menyegarkan data.');}
+ }catch(error){
+  alert('Permintaan hapus '+label+' gagal diproses. Periksa koneksi internet lalu coba kembali. Detail: '+(error?.message||'koneksi/database tidak merespons.'));
+ }
+}
 window.gmuCrudDeleteBooking=async id=>{const deps=['payments','trips','operationSheets','costs','manifests','rundownItems','tripReports','evaluations'];const has=deps.some(k=>(data[k]||[]).some(x=>String(x.booking_id)===String(id)));if(has)return alert('Booking masih memiliki data pembayaran/operasional. Hapus permanen diblokir agar histori dan laporan tidak rusak.');const b=(data.bookings||[]).find(x=>String(x.id)===String(id));return del('bookings',id,'Booking '+(b?.booking_no||id));};
 window.gmuCrudDeleteCustomer=async id=>{if((data.bookings||[]).some(x=>String(x.customer_id)===String(id)))return alert('Customer masih terhubung ke booking. Tidak bisa dihapus permanen agar histori tetap utuh.');const c=(data.customers||[]).find(x=>String(x.id)===String(id));return del('customers',id,'Customer '+(c?.name||id));};
 window.gmuCrudDeleteVendor=async id=>{const v=(data.vendors||[]).find(x=>String(x.id)===String(id));return del('vendors',id,'Vendor '+(v?.name||id));};
