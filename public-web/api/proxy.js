@@ -1,7 +1,9 @@
 const PUBLIC_FUNCTIONS = new Set([
   'public-package-catalog',
   'public-booking-submit',
+  'public-booking-track',
   'public-customer-portal',
+  'public-customer-account',
   'public-payment-checkout',
   'public-customer-document',
   'public-web-customer-v2',
