@@ -5982,10 +5982,21 @@ function renderFees(){
  q('#mktBody').querySelectorAll('[data-delete-fee]').forEach(b=>b.onclick=()=>deleteRecord('marketing_commissions',b.dataset.deleteFee,'komisi'));
 }
 async function deleteRecord(table,id,label,protect=false){
- if(!confirm('HAPUS PERMANEN '+label.toUpperCase()+'?\nData tidak dapat dipulihkan.'))return;
- const r=await sb.from(table).delete().eq('id',id);
- if(r.error){alert('Tidak dapat menghapus '+label+': '+r.error.message+'\nJika masih terhubung dengan data lain, hapus/selesaikan relasi terlebih dahulu.');return;}
- alert(label+' berhasil dihapus permanen.');load();
+ if(!confirm('HAPUS PERMANEN '+label.toUpperCase()+'?\\nData tidak dapat dipulihkan.'))return;
+ try{
+  const r=await sb.from(table).delete().eq('id',id).select('id');
+  if(r.error){
+   const code=String(r.error.code||'');
+   if(code==='23503'){alert('Tidak dapat menghapus '+label+'. Data masih terhubung dengan transaksi atau histori lain. Selesaikan relasinya terlebih dahulu; data terkait tetap aman.');return;}
+   if(code==='42501'||code==='PGRST301'){alert('Tidak dapat menghapus '+label+' karena akun Anda tidak memiliki izin. Hubungi Owner/Manager.');return;}
+   alert('Tidak dapat menghapus '+label+': '+(r.error.message||'Terjadi kesalahan database.'));return;
+  }
+  if(!Array.isArray(r.data)||r.data.length===0){alert(label+' tidak terhapus. Data mungkin sudah tidak ada atau akses penghapusan dibatasi.');return;}
+  alert(label+' berhasil dihapus permanen.');
+  try{await load();}catch(_){alert('Data berhasil dihapus, tetapi daftar belum diperbarui. Muat ulang halaman.');}
+ }catch(error){
+  alert('Permintaan hapus '+label+' gagal diproses. Periksa koneksi internet lalu coba kembali. '+(error?.message||''));
+ }
 }
 async function load(){
  if(!allowed.includes(role())||typeof sb==='undefined'||!sb.from||busy)return;busy=true;q('#mktStatus').textContent='Sinkronisasi database marketing…';
