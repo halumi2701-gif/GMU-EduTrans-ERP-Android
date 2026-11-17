@@ -598,11 +598,13 @@ function drawerHTML(){
  '<button class="g28chip" data-g28-action="crm">Referral/CRM</button>'+
  '<button class="g28chip" data-g28-action="profile">Profil Sekolah</button></div></div>'+
  '<div class="g28card"><h4>Status Integrasi</h4>'+
- '<div class="g28row"><span>Program Master ERP</span><strong>Terhubung</strong></div>'+
- '<div class="g28row"><span>Booking & Quotation</span><strong>Terhubung</strong></div>'+
- '<div class="g28row"><span>Invoice / Payment Center</span><strong>Existing</strong></div>'+
- '<div class="g28row"><span>Customer Portal / Dokumen</span><strong>Existing</strong></div>'+
- '<div class="g28notice">Fitur yang membutuhkan keputusan finansial final—availability kapasitas nyata, diskon final, refund, dan settlement pembayaran—tetap meminta konfirmasi backend/ERP sebelum dianggap sah.</div></div>';
+ '<div class="g28row"><span>Program Master</span><strong>Data publik ERP</strong></div>'+
+ '<div class="g28row"><span>Pengajuan Booking</span><strong>Endpoint ERP</strong></div>'+
+ '<div class="g28row"><span>Quotation / Invoice / Pembayaran</span><strong>Portal customer</strong></div>'+
+ '<div class="g28row"><span>Favorit / Compare / Notifikasi</span><strong>Lokal perangkat</strong></div>'+
+ '<div class="g28row"><span>Voucher / Manifest / Review / CRM</span><strong>Belum sinkron ERP</strong></div>'+
+ '<div class="g28row"><span>Reschedule / Refund</span><strong>Belum tersedia</strong></div>'+
+ '<div class="g28notice">Status lokal tidak sama dengan transaksi ERP. Cek kapasitas, voucher, manifest, review, referral, reschedule, dan refund belum dianggap tercatat resmi sampai ada konfirmasi server/ERP.</div></div>';
 }
 function renderDrawer(){var b=$('#g28Body');if(b)b.innerHTML=drawerHTML()}
 function openPanel(type){
