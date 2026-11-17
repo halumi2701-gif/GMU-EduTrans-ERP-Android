@@ -635,8 +635,36 @@ function openPanel(type){
  } else if(type==='crm'){
   b.innerHTML='<div class="g28card"><h4>Referral & CRM Attribution</h4><input class="g28input" id="g28Referral" placeholder="Kode referral / sales / mitra"><input class="g28input" id="g28Campaign" style="margin-top:8px" placeholder="Campaign / sumber lead"><button class="g28btn primary" id="g28CrmSave" style="width:100%;margin-top:8px">Simpan Atribusi</button><div id="g28CrmResult"></div></div>';$('#g28CrmSave').onclick=function(){var v={referral:$('#g28Referral').value,campaign:$('#g28Campaign').value};localStorage.setItem('gmu28_crm',JSON.stringify(v));$('#g28CrmResult').innerHTML='<div class="g28notice">Atribusi tersimpan di perangkat ini dan dapat diteruskan ke booking sebagai referral/source.</div>'};
  } else if(type==='profile'){
-  var pr=get(STORE.profile,{});
-  b.innerHTML='<div class="g28card"><h4>Profil Sekolah / Customer</h4><input class="g28input" id="g28School" placeholder="Nama sekolah / instansi" value="'+esc(pr.school||'')+'"><input class="g28input" id="g28PIC" style="margin-top:8px" placeholder="PIC" value="'+esc(pr.pic||'')+'"><input class="g28input" id="g28Email" style="margin-top:8px" placeholder="Email" value="'+esc(pr.email||'')+'"><input class="g28input" id="g28WA" style="margin-top:8px" placeholder="WhatsApp" value="'+esc(pr.wa||'')+'"><button class="g28btn primary" id="g28ProfileSave" style="width:100%;margin-top:8px">Simpan Profil</button></div>';$('#g28ProfileSave').onclick=function(){set(STORE.profile,{school:$('#g28School').value,pic:$('#g28PIC').value,email:$('#g28Email').value,wa:$('#g28WA').value});notify('Profil customer disimpan','Data dapat digunakan untuk mempercepat booking berikutnya.','info');renderDrawer()};
+  var token=localStorage.getItem('gmu_customer_access');
+  if(!token){b.innerHTML='<div class="g28card"><h4>Profil Sekolah / Customer</h4><div class="g28notice">Silakan masuk ke Akun Customer GMU terlebih dahulu. Profil hanya dapat disimpan setelah autentikasi.</div><a class="g28btn primary" href="/akun?mode=login" style="display:block;text-align:center;text-decoration:none;margin-top:10px">Masuk Akun Customer</a></div>';return}
+  b.innerHTML='<div class="g28card"><h4>Profil Sekolah / Customer</h4><div class="g28notice">Memuat profil resmi dari Customer Account GMU...</div></div>';
+  (async function(){
+   try{
+    var d;
+    try{d=await accountApi('me')}catch(firstError){
+     var refresh=localStorage.getItem('gmu_customer_refresh');
+     if(!refresh)throw firstError;
+     var renewed=await accountApi('refresh',{refresh_token:refresh});
+     if(renewed.session)saveSession(renewed.session);
+     d=await accountApi('me');
+    }
+    var a=d.account||{},u=d.user||{};
+    b.innerHTML='<div class="g28card"><h4>Profil Sekolah / Customer</h4><label class="g28muted">Nama PIC / Customer</label><input class="g28input" id="g28PIC" maxlength="180" value="'+esc(a.full_name||'')+'"><label class="g28muted" style="display:block;margin-top:8px">Nama Sekolah / Instansi</label><input class="g28input" id="g28School" maxlength="220" value="'+esc(a.institution_name||'')+'"><label class="g28muted" style="display:block;margin-top:8px">Jenis Customer</label><input class="g28input" id="g28CustomerType" maxlength="80" value="'+esc(a.customer_type||'')+'"><label class="g28muted" style="display:block;margin-top:8px">Email Akun</label><input class="g28input" id="g28Email" value="'+esc(u.email||'')+'" readonly><label class="g28muted" style="display:block;margin-top:8px">WhatsApp</label><input class="g28input" id="g28WA" maxlength="80" value="'+esc(a.whatsapp||'')+'"><button class="g28btn primary" id="g28ProfileSave" style="width:100%;margin-top:10px">Simpan ke Akun GMU</button><div id="g28ProfileResult"></div></div>';
+    $('#g28ProfileSave').onclick=async function(){
+     var btn=this;btn.disabled=true;btn.textContent='Menyimpan ke ERP...';
+     try{
+      var saved=await accountApi('update_profile',{full_name:$('#g28PIC').value.trim(),institution_name:$('#g28School').value.trim(),customer_type:$('#g28CustomerType').value.trim(),whatsapp:$('#g28WA').value.trim()});
+      var x=saved.account||{};
+      $('#g28ProfileResult').innerHTML='<div class="g28notice">Profil berhasil diperbarui pada Customer Account GMU.</div>';
+      notify('Profil customer diperbarui','Data profil tersimpan pada akun customer GMU.','success');
+      renderDrawer();
+     }catch(err){$('#g28ProfileResult').innerHTML='<div class="g28notice">'+esc(err.message||'Profil belum berhasil disimpan.')+'</div>'}
+     finally{btn.disabled=false;btn.textContent='Simpan ke Akun GMU'}
+    };
+   }catch(err){
+    b.innerHTML='<div class="g28card"><h4>Profil Sekolah / Customer</h4><div class="g28notice">'+esc(err.message||'Profil belum dapat dimuat.')+'</div><a class="g28btn primary" href="/akun?mode=login" style="display:block;text-align:center;text-decoration:none;margin-top:10px">Masuk ulang</a></div>';
+   }
+  })();
  }
 }
 function comparePage(){
