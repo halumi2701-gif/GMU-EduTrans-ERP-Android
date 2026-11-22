@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { publicProgram, publicPackage } from "../_shared/public_catalog_media.ts";
 
 function allowed(origin:string|null){
   if(!origin) return true;
@@ -52,7 +53,7 @@ Deno.serve(async (req:Request) => {
     const sessionType=String(body?.session_type || requestUrl.searchParams.get("session_type") || "PRIVATE").toUpperCase()==="SHARED"?"SHARED":"PRIVATE";
 
     const programsRes=await sb.from("programs")
-      .select("id,slug,name,category,short_description,min_pax,sort_order,marketing_start_price,marketing_price_note")
+      .select("id,slug,name,category,short_description,min_pax,sort_order,marketing_start_price,marketing_price_note,cover_image_url,gallery_urls")
       .eq("is_active",true)
       .order("sort_order",{ascending:true})
       .order("name",{ascending:true});
@@ -65,7 +66,7 @@ Deno.serve(async (req:Request) => {
     // Intentionally load all currently ACTIVE packages first, then filter by program in-memory.
     // This avoids intermittent gateway timeouts observed on program_id-filtered PostgREST requests.
     let q=sb.from("program_packages")
-      .select("id,package_code,program_id,name,description,price_per_pax,min_pax,facilities,effective_from,effective_until,sort_order")
+      .select("id,package_code,program_id,name,description,price_per_pax,min_pax,facilities,effective_from,effective_until,sort_order,cover_image_url,gallery_urls")
       .eq("status","ACTIVE")
       .eq("is_active",true)
       .gt("price_per_pax",0)
@@ -114,30 +115,29 @@ Deno.serve(async (req:Request) => {
       .filter((x:any)=>browseAllActivePackages || !programId || String(x.program_id)===String(programId))
       .map((x:any)=>{
         const p:any=programMap.get(String(x.program_id));
-        return {
-          id:x.id,
-          package_code:x.package_code,
-          program_id:x.program_id,
+        const tier=applicableTier(String(x.package_code));
+        const tierPrices=packageTiers(String(x.package_code)).map((t:any)=>Number(t.unit_price||0)).filter((n:number)=>n>0);
+        const selectedPrice=tier?Number(tier.unit_price):Number(x.price_per_pax||0);
+        const estimatedTotal=pax!==null&&pax>0?selectedPrice*pax:null;
+        const projected=publicPackage({
+          ...x,
           program_name:p?.name||null,
           program_category:p?.category||null,
-          name:x.name,
-          description:x.description,
-          price_per_pax:(()=>{const t=applicableTier(String(x.package_code));return t?Number(t.unit_price):Number(x.price_per_pax||0)})(),
+          program_cover_image_url:p?.cover_image_url||null
+        },estimatedTotal);
+        return {
+          ...projected,
+          price_per_pax:selectedPrice,
           base_price_per_pax:Number(x.price_per_pax||0),
-          starting_price:(()=>{const a=packageTiers(String(x.package_code)).map((t:any)=>Number(t.unit_price||0)).filter((n:number)=>n>0);return a.length?Math.min(...a):Number(x.price_per_pax||0)})(),
-          public_price:(()=>{const t=applicableTier(String(x.package_code));if(t)return Number(t.unit_price);const a=packageTiers(String(x.package_code)).map((q:any)=>Number(q.unit_price||0)).filter((n:number)=>n>0);return a.length?Math.min(...a):Number(x.price_per_pax||0)})(),
+          starting_price:tierPrices.length?Math.min(...tierPrices):Number(x.price_per_pax||0),
+          public_price:tier?Number(tier.unit_price):(tierPrices.length?Math.min(...tierPrices):Number(x.price_per_pax||0)),
           session_type:sessionType,
-          min_pax:Number(x.min_pax||1),
-          facilities:Array.isArray(x.facilities)?x.facilities:[],
-          effective_from:x.effective_from,
-          effective_until:x.effective_until,
           price_tiers:packageTiers(String(x.package_code)).map((t:any)=>({
             session_type:t.session_type,
             min_pax:Number(t.min_pricing_pax||1),
             max_pax:t.max_pricing_pax==null?null:Number(t.max_pricing_pax),
             unit_price:Number(t.unit_price||0)
-          })),
-          estimated_total:pax!==null&&pax>0?((()=>{const t=applicableTier(String(x.package_code));return t?Number(t.unit_price):Number(x.price_per_pax||0)})()*pax):null
+          }))
         };
       });
 
@@ -150,13 +150,7 @@ Deno.serve(async (req:Request) => {
       pax:pax??null,
       session_type:sessionType,
       programs:programs.map((p:any)=>({
-        id:p.id,
-        slug:p.slug,
-        name:p.name,
-        category:p.category,
-        short_description:p.short_description,
-        min_pax:Number(p.min_pax||1),
-        sort_order:Number(p.sort_order||0),
+        ...publicProgram(p),
         marketing_start_price:Number(p.marketing_start_price||0),
         marketing_price_note:p.marketing_price_note||null,
         public_price:Number(p.marketing_start_price||0)
