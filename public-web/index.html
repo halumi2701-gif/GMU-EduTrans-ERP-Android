@@ -374,6 +374,91 @@
   input,select,textarea{color-scheme:light!important;background-color:#FFFFFF}
 }
 </style>
+
+<style id="gmu-2026-full-redesign">
+/* GMU EduTrans — complete public experience refresh */
+:root{--gmu-green:#08734f;--gmu-deep:#073f32;--gmu-lime:#d8ef8b;--gmu-gold:#f4c64e;--gmu-ink:#142b25;--gmu-muted:#65766f;--gmu-paper:#f6f8f3;--gmu-white:#fff;--gmu-line:#e2e9e1;--gmu-shadow:0 22px 60px rgba(8,52,39,.10)}
+html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{background:var(--gmu-paper);color:var(--gmu-ink);font-family:Inter,"Segoe UI",Arial,sans-serif;letter-spacing:-.01em}
+.wrap{max-width:1240px;padding-left:28px;padding-right:28px}
+header{background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-bottom:1px solid rgba(8,115,79,.10);box-shadow:0 5px 28px rgba(16,48,37,.04)}
+.bar{min-height:88px}.brand img{width:170px;height:78px}
+.nav{gap:24px}.nav a{font-size:13px;color:#38564a;transition:color .2s}.nav a:hover{color:var(--gmu-green)}
+.btn{border-radius:999px;padding:14px 22px;font-size:13px;letter-spacing:.01em;transition:transform .2s,box-shadow .2s,background .2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(8,70,49,.15)}
+.btn-g{background:var(--gmu-green);color:#fff}.btn-gold{background:var(--gmu-gold);color:#203b2d}.btn-outline{border:1px solid #cbd9ce;color:var(--gmu-deep);background:#fff}
+.hero{position:relative;overflow:hidden;padding:76px 0 88px;background:radial-gradient(ellipse at 80% 5%,rgba(216,239,139,.26),transparent 32%),linear-gradient(120deg,#073f32 0%,#07553e 52%,#0c7651 100%);color:#fff}
+.hero:before{content:"";position:absolute;width:520px;height:520px;border:1px solid rgba(255,255,255,.12);border-radius:50%;right:-160px;top:-260px;box-shadow:0 0 0 45px rgba(255,255,255,.025),0 0 0 90px rgba(255,255,255,.02)}
+.hero:after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(244,198,78,.10);right:30%;bottom:-230px;filter:blur(4px)}
+.heroGrid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(340px,.78fr);gap:70px;align-items:center}
+.hero-copy{max-width:650px}.eyebrow,.g26eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.18em;font-weight:900;color:var(--gmu-lime)}
+.eyebrow:before{content:"";width:28px;height:2px;background:var(--gmu-gold)}
+.hero h1{font-size:clamp(42px,5.4vw,70px);line-height:1.02;letter-spacing:-.055em;max-width:650px;margin:22px 0}
+.hero-copy>p{max-width:550px;color:rgba(255,255,255,.78);font-size:16px;line-height:1.8}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.hero .btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.38)}
+.heroCard{background:#fff;color:var(--gmu-ink);padding:28px;border:1px solid rgba(255,255,255,.55);border-radius:26px;box-shadow:0 28px 80px rgba(0,0,0,.22);position:relative}
+.heroCard:before{content:"";position:absolute;inset:9px;border:1px solid #edf1eb;border-radius:19px;pointer-events:none}
+.heroCard>*{position:relative}.journey{color:var(--gmu-green);font-size:10px;letter-spacing:.14em;font-weight:900}
+.heroCard h3{font-size:24px;line-height:1.15;letter-spacing:-.04em;margin:13px 0 7px}.muted{color:var(--gmu-muted);line-height:1.65}
+.field{margin-top:15px}.field label{display:block;color:#53665c;font-size:11px;font-weight:800;margin-bottom:7px}
+input,select,textarea{border:1px solid #dce5dc!important;border-radius:12px!important;background:#fbfcfa!important;color:#18372a!important;padding:12px 14px!important;min-height:46px;outline:none;transition:border .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{border-color:#48a17b!important;box-shadow:0 0 0 3px rgba(8,115,79,.10)}
+.heroCard .btn{min-height:48px}
+# gmu-v25-flow-strip{}
+#gmu-v25-flow-strip{background:transparent!important;padding:24px 0 0!important}
+#gmu-v25-flow-strip .wrap>div{justify-content:center;gap:12px!important;flex-wrap:wrap}
+#gmu-v25-flow-strip span{border:1px solid #e1e9dd;box-shadow:0 5px 18px rgba(30,60,40,.04);padding:11px 17px!important;font-size:10px!important;letter-spacing:.04em}
+#gmu-v26-experience{padding:54px 0 38px;background:var(--gmu-paper)}
+.g26wrap{max-width:1240px;padding:0 28px;margin:auto}.g26shell{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:22px}
+.g26main,.g26rail>div{background:#fff;border:1px solid var(--gmu-line);border-radius:24px;box-shadow:0 12px 38px rgba(22,54,39,.045)}
+.g26main{padding:26px}.g26tabs{display:flex;gap:8px;overflow:auto;padding-bottom:20px;border-bottom:1px solid #edf1eb}
+.g26tab{border:1px solid #e5ece4;background:#fff;color:#4e6659;border-radius:999px;padding:11px 15px;display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;white-space:nowrap}
+.g26tab.active,.g26tab:hover{background:#eaf5e9;color:var(--gmu-green);border-color:#d5e8d5}
+.g26tab svg,.g26input svg,.g26cat svg,.g26rail svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.g26search{display:grid;grid-template-columns:1.35fr 1fr .8fr auto;gap:12px;align-items:end;padding:22px 0}
+.g26field label{display:block;font-size:10px;color:#78877e;font-weight:900;margin-bottom:7px}.g26input{height:48px;display:flex;align-items:center;gap:9px;padding:0 12px;border:1px solid #e0e8df;border-radius:12px;background:#fbfcfa;color:var(--gmu-green)}
+.g26input select,.g26input input{width:100%;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-height:42px;font-size:12px}
+.g26searchbtn{height:48px;border:0;border-radius:12px;background:var(--gmu-green);color:white;padding:0 18px;font-weight:900;font-size:12px;display:flex;gap:8px;align-items:center;justify-content:center;cursor:pointer}
+.g26searchbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2}
+.g26categories{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g26cat{display:grid;grid-template-columns:32px 1fr;align-items:center;column-gap:9px;padding:15px;border:1px solid #e8eee7;border-radius:15px;text-decoration:none;color:var(--gmu-ink);background:#fcfdfa;transition:.2s}
+.g26cat:hover{transform:translateY(-3px);border-color:#b7d8c2;box-shadow:0 10px 24px rgba(8,75,48,.07)}
+.g26cat svg{grid-row:span 2;color:var(--gmu-green);width:24px;height:24px}.g26cat b{font-size:12px}.g26cat span{font-size:10px;color:#78877e;margin-top:3px}
+.g26promo{margin:22px 0;padding:24px 26px;border-radius:19px;background:linear-gradient(110deg,#eaf4df,#f8f5df);display:flex;align-items:center;justify-content:space-between;gap:24px}
+.g26promo h3{font-size:22px;letter-spacing:-.04em;margin:9px 0 5px;color:#174432}.g26promo p{font-size:12px;color:#5e7565;max-width:570px;line-height:1.7;margin:0}
+.g26promobtn{white-space:nowrap;text-decoration:none;background:var(--gmu-green);color:#fff;border-radius:999px;padding:13px 18px;font-size:11px;font-weight:900}
+.g26head,.g27title{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:26px 0 15px}.g26head h2,.g27title h2{font-size:25px;letter-spacing:-.045em;margin:0;color:#173d2e}.g26head p,.g27title p{font-size:12px;color:#718078;margin:7px 0 0}.g26head>a,.g27title>a{font-size:11px;color:var(--gmu-green);font-weight:900;text-decoration:none;white-space:nowrap}
+.g26featured{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.g26rail{display:flex;flex-direction:column;gap:14px}.g26rail>div{padding:20px}.g26railtitle{display:flex;gap:11px;align-items:center}.g26railtitle>svg{width:30px;height:30px;color:var(--gmu-green)}.g26railtitle b{display:block;font-size:12px}.g26railtitle span{display:block;font-size:10px;color:#7a8980;margin-top:4px}
+.g26stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:20px;padding-top:17px;border-top:1px solid #edf1eb}.g26stats strong{display:block;font-size:20px;color:var(--gmu-green)}.g26stats span{font-size:9px;color:#7b8981}
+.g26quick h3{font-size:15px;margin:0 0 13px}.g26quickgrid{display:grid;gap:9px}.g26quickgrid a{display:flex;align-items:center;gap:11px;padding:11px;border-radius:13px;background:#f7faf6;text-decoration:none;color:var(--gmu-ink)}.g26quickgrid a>svg{color:var(--gmu-green);width:22px;height:22px}.g26quickgrid b{display:block;font-size:11px}.g26quickgrid small{display:block;color:#819087;font-size:9px;margin-top:3px}
+#gmu-v27-moods{padding:30px 0 62px;background:#fff}.g27wrap{max-width:1240px;padding:0 28px;margin:auto}.g27title{margin:0 0 22px}.g27title h2{font-size:29px}
+.g27moodgrid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:14px}
+.g27mood{min-height:285px;display:flex;align-items:end;padding:24px;border-radius:22px;overflow:hidden;position:relative;text-decoration:none;color:#fff;background:linear-gradient(145deg,#0b6246,#123b31)}
+.g27mood:before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(4,30,23,.86),rgba(4,30,23,.02) 78%)}
+.g27mood:after{content:"";position:absolute;width:210px;height:210px;border:1px solid rgba(255,255,255,.2);border-radius:50%;right:-60px;top:-70px;box-shadow:0 0 0 25px rgba(255,255,255,.05),0 0 0 50px rgba(255,255,255,.035)}
+.g27mood>div{position:relative;z-index:1}.g27mood small{font-size:9px;letter-spacing:.17em;color:#d8ef8b;font-weight:900}.g27mood h3{font-size:23px;line-height:1.12;letter-spacing:-.04em;max-width:290px;margin:10px 0}.g27mood p{font-size:11px;line-height:1.65;color:rgba(255,255,255,.78);max-width:300px;margin:0}
+.g27mood.farm{background:linear-gradient(145deg,#8b9c53,#31543a)}.g27mood.custom{background:linear-gradient(145deg,#b68a37,#674d25)}
+.g27journey{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}.g27step{display:flex;align-items:center;gap:11px;padding:15px;border:1px solid #e9eee7;border-radius:15px;background:#fcfdfa}.g27ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#eaf5e9;color:var(--gmu-green);flex-shrink:0}.g27ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.g27step b{display:block;font-size:11px}.g27step span{display:block;font-size:9px;color:#829087;margin-top:3px}
+#program,#paket,#faq,#pesanan{padding:70px 0;background:var(--gmu-paper)}
+#paket,#pesanan{background:#fff}
+.head{margin-bottom:26px}.head h2{font-size:32px;letter-spacing:-.05em;color:#173d2e;margin:0}.head p{font-size:13px;color:#748279;margin:8px 0 0}
+.programs,.packages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card,.program-card,.package-card{background:#fff;border:1px solid #e5ece4;border-radius:20px;padding:22px;box-shadow:0 10px 32px rgba(21,57,39,.045)}
+.card h3,.program-card h3,.package-card h3{color:#173d2e;letter-spacing:-.025em}
+.program-card:hover,.package-card:hover{transform:translateY(-3px);box-shadow:var(--gmu-shadow);transition:.2s}
+.feature{background:#fff}
+.faq{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.faq details{padding:18px 20px;border:1px solid #e2eae1;border-radius:15px;background:#fff}.faq summary{font-size:13px;font-weight:900;color:#254b38;cursor:pointer}.faq p{font-size:12px;color:#6e7d74;line-height:1.7}
+#pesanan .grid2,#portal .grid2{gap:16px}#pesanan .card,#portal .card{border-radius:20px}
+#portal{padding:65px 0;background:#f1f5ef}.portal .head h2{font-size:30px}
+.account-intro{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:18px!important;padding:25px!important;background:#f4f8f0!important}
+footer{background:#073f32;color:#fff;padding:44px 0 38px}footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px}footer img{max-width:150px;max-height:90px;object-fit:contain}
+.notice{background:#eff7ec;border:1px solid #dcebd8;border-radius:13px;padding:13px;color:#365a43;font-size:12px}
+.modal,.modal-content,[role=dialog]{border-radius:24px}
+@media(max-width:900px){.heroGrid{grid-template-columns:1fr;gap:34px}.hero{padding:58px 0 65px}.heroCard{max-width:620px}.g26shell{grid-template-columns:1fr}.g26rail{display:grid;grid-template-columns:1fr 1fr}.g26search{grid-template-columns:1fr 1fr}.g26searchbtn{width:100%}.g26categories{grid-template-columns:repeat(2,1fr)}.g27moodgrid{grid-template-columns:1fr 1fr}.g27mood:first-child{grid-column:span 2}.programs,.packages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.wrap,.g26wrap,.g27wrap{padding-left:18px;padding-right:18px}.bar{min-height:72px}.brand img{width:128px;height:64px}.nav{gap:8px}.nav a{display:none}.nav .lang{padding:8px;font-size:9px}.nav .btn{padding:10px 13px;font-size:11px}.hero{padding:48px 0 54px}.hero h1{font-size:43px}.hero-copy>p{font-size:14px}.heroCard{padding:21px;border-radius:20px}.g26wrap{padding:0 14px}.g26main{padding:16px;border-radius:19px}.g26tabs{margin-right:-5px}.g26search{grid-template-columns:1fr;gap:8px}.g26categories{grid-template-columns:1fr 1fr;gap:7px}.g26cat{padding:11px;grid-template-columns:26px 1fr}.g26cat b{font-size:10px}.g26cat span{font-size:8px}.g26promo{padding:19px;display:block}.g26promo h3{font-size:19px}.g26promobtn{display:inline-block;margin-top:14px}.g26head,.g27title{align-items:start;flex-direction:column}.g26head h2,.g27title h2{font-size:23px}.g26featured{grid-template-columns:1fr}.g26rail{grid-template-columns:1fr}.g27moodgrid{grid-template-columns:1fr}.g27mood:first-child{grid-column:auto}.g27mood{min-height:230px}.g27journey{grid-template-columns:1fr 1fr}.programs,.packages,.faq{grid-template-columns:1fr}.head h2{font-size:27px}#program,#paket,#faq,#pesanan{padding:48px 0}#gmu-v26-experience{padding:35px 0 25px}#gmu-v27-moods{padding:30px 0 45px}.account-intro{display:block!important}.account-actions{flex-wrap:wrap}footer .wrap{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+</style>
 </head><body>
 <header><div class="wrap bar"><div class="brand"><img alt="Logo GMU EduTrans" src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20500%20500%22%3E%3Cg%20font-family%3D%22Arial%20Black%2CArial%2Csans-serif%22%20font-weight%3D%22900%22%20font-style%3D%22italic%22%20text-anchor%3D%22middle%22%3E%3Ctext%20x%3D%22250%22%20y%3D%22245%22%20font-size%3D%22116%22%20letter-spacing%3D%22-10%22%20fill%3D%22%23168b12%22%20stroke%3D%22%23168b12%22%20stroke-width%3D%224%22%3EGMU%3C%2Ftext%3E%3Cpath%20d%3D%22M148%20150h95l15%2028H136zM282%20150h35l-15%2030h-40zM348%20150h32l-8%2030h-31z%22%20fill%3D%22%23d5a000%22%2F%3E%3Cpath%20d%3D%22M226%20190h65l-35%2052z%22%20fill%3D%22%23d5a000%22%2F%3E%3Ctext%20x%3D%22250%22%20y%3D%22300%22%20font-size%3D%2248%22%20letter-spacing%3D%22-2%22%20fill%3D%22%23168b12%22%20stroke%3D%22%23d5a000%22%20stroke-width%3D%221.5%22%3EEduTrans%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fsvg%3E" alt="GMU EduTrans"></div><nav class="nav"><a href="#program">Program</a><a href="#paket">Paket</a><a href="#pesanan">Customer Portal</a><select id="lang" class="lang"><option value="id">🇮🇩 ID</option><option value="en">🇬🇧 EN</option><option value="su">🟩 SU</option></select><button class="btn btn-g" onclick="location.href='/akun'">Akun</button></nav></div></header>
 <div id="gmuV24Route"></div><main><section class="hero"><div class="wrap heroGrid"><div class="hero-copy"><div class="eyebrow">EDUCATIONAL TRIP & EDUCATIONAL TOURISM OPERATOR</div><h1 data-t="heroTitle">Belajar lebih jauh dari ruang kelas.</h1><p data-t="heroText">Perjalanan edukasi yang terencana, aman, profesional, dan bermakna untuk sekolah, instansi, komunitas, corporate, dan partner.</p><div class="hero-actions"><button class="btn btn-gold" onclick="openBooking()" data-t="plan">Rencanakan Trip →</button><button class="btn btn-outline" onclick="document.getElementById('pesanan').scrollIntoView({behavior:'smooth'})">Track Booking</button></div></div><div class="heroCard"><span class="journey">GMU CUSTOMER JOURNEY</span><h3>Mulai perjalanan EduTrip Anda</h3><p class="muted">Pilih program, tanggal, dan jumlah peserta.</p><div class="field"><label>Program</label><select id="programSel"></select></div><div class="grid2"><div class="field"><label>Tanggal</label><input id="tripDate" type="date"></div><div class="field"><label>Peserta</label><input id="tripPax" type="number" min="1" value="35"></div></div><button class="btn btn-g" style="width:100%;margin-top:14px" onclick="searchPackages()">Lihat Paket & Harga</button></div></div></section>
