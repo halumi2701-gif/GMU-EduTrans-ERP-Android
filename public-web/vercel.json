@@ -19,6 +19,14 @@
   ],
   "rewrites": [
     {
+      "source": "/edutrain",
+      "destination": "/"
+    },
+    {
+      "source": "/edutrain/:path*",
+      "destination": "/"
+    },
+    {
       "source": "/jelajah",
       "destination": "/"
     },
