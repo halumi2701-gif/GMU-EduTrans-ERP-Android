@@ -41,6 +41,30 @@
     {
       "source": "/booking/checkout",
       "destination": "/"
+    },
+    {
+      "source": "/tentang",
+      "destination": "/"
+    },
+    {
+      "source": "/portofolio",
+      "destination": "/"
+    },
+    {
+      "source": "/kemitraan",
+      "destination": "/"
+    },
+    {
+      "source": "/berita",
+      "destination": "/"
+    },
+    {
+      "source": "/kontak",
+      "destination": "/"
+    },
+    {
+      "source": "/recruitment",
+      "destination": "/recruitment.html"
     }
   ]
 }
