@@ -65,6 +65,34 @@
     {
       "source": "/recruitment",
       "destination": "/recruitment.html"
+    },
+    {
+      "source": "/wilayah",
+      "destination": "/"
+    },
+    {
+      "source": "/destinasi",
+      "destination": "/"
+    },
+    {
+      "source": "/klien-mitra",
+      "destination": "/"
+    },
+    {
+      "source": "/testimoni",
+      "destination": "/"
+    },
+    {
+      "source": "/faq",
+      "destination": "/"
+    },
+    {
+      "source": "/legal/privasi",
+      "destination": "/"
+    },
+    {
+      "source": "/legal/syarat-ketentuan",
+      "destination": "/"
     }
   ]
 }
