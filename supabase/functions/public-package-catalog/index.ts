@@ -137,6 +137,8 @@ Deno.serve(async (req:Request) => {
             max_pax:t.max_pricing_pax==null?null:Number(t.max_pricing_pax),
             unit_price:Number(t.unit_price||0)
           })),
+          quote_required:pax!==null && pax>0 && pax<25 && String(x.package_code||"").startsWith("EDUTRAIN-EDU-"),
+          price_label:(pax!==null && pax>0 && pax<25 && String(x.package_code||"").startsWith("EDUTRAIN-EDU-"))?"Penawaran khusus untuk 20–24 peserta":null,
           estimated_total:pax!==null&&pax>0?((()=>{const t=applicableTier(String(x.package_code));return t?Number(t.unit_price):Number(x.price_per_pax||0)})()*pax):null
         };
       });
