@@ -96,7 +96,7 @@
         <div id="forgotStatus" class="err"></div>
         <p class="note">Link reset dikirim melalui email. Setelah membuka link, buat password baru di halaman ERP.</p>
       </form>
-    <div class="notice" style="margin-top:14px">Pendaftaran akun publik dinonaktifkan. Akun staf hanya dibuat oleh <b>Owner</b> dari menu <b>User & Role</b>.</div><details class="setup" id="setupBox"><summary>Konfigurasi Supabase — sudah terhubung</summary><p class="note">Project Supabase GMU sudah dipasang sebagai konfigurasi default. Bagian ini hanya diperlukan jika nanti project dipindahkan. Jangan pernah memasukkan service-role key.</p><div class="field"><label>Supabase Project URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Anon / Publishable Key</label><textarea id="cfgKey" rows="4"></textarea></div><button class="btn ghost" type="button" onclick="saveConfig()">Simpan Konfigurasi</button><span id="cfgStatus" class="note"></span></details></div></div></section><div id="app" class="app hidden"><aside class="side" id="side"><div class="brand"><img src="https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"><div><h1>GMU EduTrans</h1><small>ERP v21 Online</small></div></div><div class="me"><b id="meName">-</b><span id="meRole">-</span></div><div class="nav" id="nav"><button data-page="dashboard">⌂ &nbsp; Dashboard</button><button data-page="bookings">▣ &nbsp; Booking</button><button data-page="customers">◎ &nbsp; Customer</button><button data-page="finance">Rp &nbsp; Finance</button><button data-page="operation">◆ &nbsp; Trip Operation</button><button data-page="tripcontrol">◈ &nbsp; Trip Control</button><button data-page="tripfolder">▰ &nbsp; Trip Folder</button><button data-page="vendors">▤ &nbsp; Vendor</button><button data-page="workflow">⚑ &nbsp; Workflow Control</button><button data-page="users">♙ &nbsp; User & Role</button><button data-page="migration">⇪ &nbsp; Migrasi v8</button></div><div class="sidefoot">Online database • Supabase Auth • PostgreSQL • RLS • Realtime</div></aside><main class="main"><header class="top"><div style="display:flex;align-items:center;gap:9px"><button id="menu" class="btn ghost mobile">☰</button><div><h2 id="title">Dashboard</h2><small id="today"></small></div></div><div class="topright"><select id="langSelect" class="lang-select" aria-label="Language">
+    <div class="notice" style="margin-top:14px">Pendaftaran akun publik dinonaktifkan. Akun staf hanya dibuat oleh <b>Owner</b> dari menu <b>User & Role</b>.</div><details class="setup" id="setupBox"><summary>Konfigurasi Supabase — sudah terhubung</summary><p class="note">Project Supabase GMU sudah dipasang sebagai konfigurasi default. Bagian ini hanya diperlukan jika nanti project dipindahkan. Jangan pernah memasukkan service-role key.</p><div class="field"><label>Supabase Project URL</label><input id="cfgUrl" placeholder="https://xxxx.supabase.co"></div><div class="field"><label>Anon / Publishable Key</label><textarea id="cfgKey" rows="4"></textarea></div><button class="btn ghost" type="button" onclick="saveConfig()">Simpan Konfigurasi</button><span id="cfgStatus" class="note"></span></details></div></div></section><div id="app" class="app hidden"><aside class="side" id="side"><div class="brand"><img src="https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/gmu-logo"><div><h1>GMU EduTrans</h1><small>ERP v21 Online</small></div></div><div class="me"><b id="meName">-</b><span id="meRole">-</span></div><div class="nav" id="nav"><button data-page="dashboard">⌂ &nbsp; Dashboard</button><button data-page="bookings">▣ &nbsp; Booking</button><button data-page="customers">◎ &nbsp; Customer</button><button data-page="finance">Rp &nbsp; Finance</button><button data-page="operation">◆ &nbsp; Trip Operation</button><button data-page="tripcontrol">◈ &nbsp; Trip Control</button><button data-page="tripfolder">▰ &nbsp; Trip Folder</button><button data-page="boarding">▣ &nbsp; E-Boarding Pass</button><button data-page="vendors">▤ &nbsp; Vendor</button><button data-page="workflow">⚑ &nbsp; Workflow Control</button><button data-page="users">♙ &nbsp; User & Role</button><button data-page="migration">⇪ &nbsp; Migrasi v8</button></div><div class="sidefoot">Online database • Supabase Auth • PostgreSQL • RLS • Realtime</div></aside><main class="main"><header class="top"><div style="display:flex;align-items:center;gap:9px"><button id="menu" class="btn ghost mobile">☰</button><div><h2 id="title">Dashboard</h2><small id="today"></small></div></div><div class="topright"><select id="langSelect" class="lang-select" aria-label="Language">
 <option value="id">🇮🇩 Indonesia</option>
 <option value="en">🇬🇧 English</option>
 <option value="su">🟩 Sunda</option>
@@ -119,6 +119,68 @@
   </div>
   <div class="toolbar"><input id="tripFolderSearch" class="search" placeholder="Cari folder trip..." oninput="renderTripFolder()"></div>
   <div class="wrap"><table><thead><tr><th>Booking</th><th>Customer</th><th>Program</th><th>Tanggal</th><th>Kelengkapan</th><th>Dokumen</th><th>Aksi</th></tr></thead><tbody id="tripFolderBody"></tbody></table></div>
+</div>
+</section><section id="boarding" class="page">
+<style>
+#boarding .eb-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:14px}
+#boarding .eb-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+#boarding .eb-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#boarding .eb-fields label{display:grid;gap:5px;font-size:11px;font-weight:800;color:var(--muted)}
+#boarding .eb-fields input,#boarding .eb-fields select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff}
+#boarding .eb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#boarding .eb-status{padding:10px;border-radius:10px;background:#f1f7f3;color:#176b4b;font-size:12px;margin:10px 0}
+#boarding .eb-status.warn{background:#fff7df;color:#815f00}
+#boarding table{width:100%;border-collapse:collapse;font-size:11px}
+#boarding th,#boarding td{padding:9px;border-bottom:1px solid var(--line);text-align:left}
+#boarding .eb-muted{font-size:11px;color:var(--muted);line-height:1.5}
+#boarding .eb-check{display:flex;gap:8px;align-items:flex-start;font-size:11px;margin-top:12px}
+@media(max-width:850px){#boarding .eb-grid{grid-template-columns:1fr}}
+@media(max-width:560px){#boarding .eb-fields{grid-template-columns:1fr}}
+</style>
+<div class="card section">
+ <div class="head"><div><h3>E-Boarding Pass · KA Siliwangi</h3><p>Konfirmasi jadwal, penerbitan tiket peserta, dan validasi QR keberangkatan.</p></div><button class="btn ghost" onclick="ebLoadBookings()">↻ Refresh</button></div>
+ <div class="metrics" id="ebMetrics"></div>
+ <div class="eb-grid">
+  <div>
+   <div class="eb-panel">
+    <h3 style="margin-top:0">1. Pilih Booking</h3>
+    <div class="field"><label>Cari booking</label><input id="ebSearch" placeholder="Nomor booking, sekolah, atau program" oninput="ebRenderBookings()"></div>
+    <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Booking</th><th>Customer</th><th>Tanggal</th><th>Pax</th><th>Status</th><th></th></tr></thead><tbody id="ebBookingRows"><tr><td colspan="6">Memuat booking...</td></tr></tbody></table></div>
+   </div>
+   <div class="eb-panel">
+    <h3 style="margin-top:0">2. Konfirmasi Jadwal Kereta</h3>
+    <div id="ebSelectedInfo" class="eb-muted">Pilih booking untuk memulai.</div>
+    <div class="eb-fields" style="margin-top:12px">
+     <label>Tanggal perjalanan<input id="ebTripDate" type="date"></label>
+     <label>Jenis perjalanan<select id="ebLeg"><option value="OUTBOUND">Pergi</option><option value="RETURN">Pulang</option></select></label>
+     <label>Stasiun asal<select id="ebFrom"></select></label>
+     <label>Stasiun tujuan<select id="ebTo"></select></label>
+     <label style="grid-column:1/-1">Jadwal KA Siliwangi<select id="ebTrain"></select></label>
+    </div>
+    <label class="eb-check"><input id="ebOperatorConfirmed" type="checkbox"><span>Saya telah mencocokkan jadwal ini dengan konfirmasi operator/KAI untuk tanggal perjalanan tersebut. Saya memahami jadwal master hanya acuan awal.</span></label>
+    <div class="eb-actions"><button class="btn primary" onclick="ebConfirmSchedule()">Simpan & Konfirmasi Jadwal</button></div>
+    <div id="ebScheduleStatus" class="eb-status warn">Jadwal belum dikonfirmasi.</div>
+   </div>
+  </div>
+  <div>
+   <div class="eb-panel">
+    <h3 style="margin-top:0">3. Penerbitan Tiket</h3>
+    <p class="eb-muted">Tiket hanya diterbitkan jika quotation diterima, booking berstatus sesuai ketentuan, dan seluruh pembayaran telah diverifikasi Finance serta lunas.</p>
+    <div id="ebIssueGate" class="eb-status warn">Pilih booking dan konfirmasi jadwal terlebih dahulu.</div>
+    <div class="eb-actions"><button class="btn gold" id="ebIssueBtn" onclick="ebIssue()" disabled>Terbitkan E-Boarding Pass</button><button class="btn ghost" onclick="ebLoadPasses()">Muat Ulang Tiket</button></div>
+    <div id="ebPassList" style="margin-top:12px;overflow:auto"></div>
+   </div>
+   <div class="eb-panel">
+    <h3 style="margin-top:0">4. Validasi QR</h3>
+    <p class="eb-muted">Petugas memasukkan token hasil pemindaian QR penumpang. QR hanya dapat digunakan sekali dan hanya aktif 60 menit sebelum keberangkatan sampai waktu berangkat.</p>
+    <div class="field"><label>QR token / hasil scan</label><input id="ebScanToken" autocomplete="off" placeholder="Pindai atau tempel token QR"></div>
+    <div class="field"><label>Stasiun pemeriksaan</label><select id="ebScanStation"></select></div>
+    <div class="eb-actions"><button class="btn primary" onclick="ebScan()">Validasi & Check-in</button></div>
+    <div id="ebScanStatus" class="eb-status warn">Menunggu pemindaian.</div>
+   </div>
+  </div>
+ </div>
+ <p class="eb-muted">Sumber jadwal: Master KA Siliwangi GMU EDUTRANS, publikasi Railfans Cianjur × KAI berlaku 1 Desember 2026. Selalu lakukan konfirmasi ulang ke operator sebelum penerbitan tiket.</p>
 </div>
 </section><section id="vendors" class="page"><div class="card section"><div class="head"><div><h3>Vendor</h3><p>Master vendor terpusat</p></div><button id="newVendorBtn" class="btn primary" onclick="openModal('vendorModal')">+ Vendor</button></div><div class="wrap"><table><thead><tr><th>Kode</th><th>Vendor</th><th>Kategori</th><th>PIC</th><th>Kontak</th></tr></thead><tbody id="vendorBody"></tbody></table></div></div></section><section id="workflow" class="page"><div id="workflowMetrics" class="metrics"></div><div class="grid2"><div class="card section"><div class="head"><div><h3>Approval Queue</h3><p>Persetujuan berdasarkan role</p></div></div><div id="approvalList" class="list"></div></div><div class="card section"><div class="head"><div><h3>Deadline SOP</h3><p>H-7 / H-3 / H-1</p></div></div><div id="deadlineList" class="list"></div></div></div><div class="card section"><div class="head"><div><h3>Audit Trail</h3><p>Aktivitas terbaru</p></div></div><div id="auditList"></div></div></section><section id="users" class="page"><div class="card section"><div class="head"><div><h3>User & Role</h3><p>Owner membuat akun staf, menentukan role, dan mengaktifkan/nonaktifkan akses ERP.</p></div><button id="newStaffBtn" class="btn primary" onclick="openModal('staffModal')">+ Akun Staf</button></div><div class="notice">Public registration <b>DITUTUP</b>. Role yang tersedia: Manager, Admin, Sales, Finance, Operation, dan TL.</div><div class="wrap"><table><thead><tr><th>Nama</th><th>Role</th><th>Kontak</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="userBody"></tbody></table></div></div></section><section id="migration" class="page"><div class="card section"><div class="head"><div><h3>Migrasi Backup ERP v8</h3><p>Import data lokal lama ke Supabase v9</p></div></div><p class="note">Fitur ini hanya untuk Owner. Backup JSON v8 akan di-upsert ke tabel online. ID Sales/TL lama dipertahankan sebagai legacy reference; assignment user online dapat dirapikan setelah migrasi.</p><input id="migrationFile" type="file" accept=".json"><button class="btn primary" onclick="migrateV8()">Import ke Database Online</button><div id="migrationStatus" class="note" style="margin-top:12px"></div></div></section></div></main></div><div id="tripFolderModal" class="modal">
 <div class="modalbox" style="width:min(980px,100%)">
@@ -474,7 +536,7 @@ const gmuLangObserver=new MutationObserver(ms=>{
   }
 });
 gmuLangObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
-let data={profiles:[],customers:[],vendors:[],bookings:[],payments:[],trips:[],operationSheets:[],approvals:[],deadlines:[],audit:[],costs:[],manifests:[],rundownItems:[],tripReports:[],evaluations:[]};const $=id=>document.getElementById(id), rupiah=n=>'Rp '+Number(n||0).toLocaleString(localeForLang()), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));const uid=prefix=>prefix+'-'+crypto.randomUUID(), customer=id=>data.customers.find(x=>x.id===id), person=id=>data.profiles.find(x=>x.id===id);const bookingRevenue=b=>Number(b.pax||0)*Number(b.price_per_pax||0);const bookingPaid=id=>data.payments.filter(x=>x.booking_id===id&&x.verified_at!=null).reduce((a,x)=>a+(x.payment_type==='Refund'?-Number(x.amount):Number(x.amount)),0);const bookingCost=id=>data.costs.filter(x=>x.booking_id===id).reduce((a,x)=>a+Number(x.actual_amount||0),0);const fmtDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString(localeForLang(),{day:'2-digit',month:'short',year:'numeric'}):'-';const badge=s=>`<span class="badge ${['Closed','Completed','Approved','Ready'].includes(s)?'ok':['DP','Quotation','Pending','Preparation'].includes(s)?'warn':['Rejected'].includes(s)?'bad':'info'}">${esc(gmuTranslateString(String(s??'')))}</span>`;const role=()=>profile?.role||'';const can=(roles)=>roles.includes(role());const DEFAULT_SUPABASE_URL='https://gtgnwasijweewmaubvyg.supabase.co';const DEFAULT_SUPABASE_KEY='sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW';function cfg(){return {url:localStorage.getItem('gmu_sb_url')||DEFAULT_SUPABASE_URL,key:localStorage.getItem('gmu_sb_key')||DEFAULT_SUPABASE_KEY}}function initClient(){const c=cfg(); if(!c.url||!c.key||!window.supabase)return false; sb=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return true}function saveConfig(){localStorage.setItem('gmu_sb_url',$('cfgUrl').value.trim());localStorage.setItem('gmu_sb_key',$('cfgKey').value.trim());$('cfgStatus').textContent=' Tersimpan. Muat ulang halaman lalu login.'}function hydrateCfg(){const c=cfg();$('cfgUrl').value=c.url;$('cfgKey').value=c.key;if(!c.url||!c.key)$('setupBox').open=true}async function authProfile(user){const {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).single(); if(error)throw error; if(!p.is_active)throw new Error('Akun dinonaktifkan.'); profile=p; return p}async function boot(){hydrateCfg();$('today').textContent=new Date().toLocaleDateString(localeForLang(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});if(!initClient()){ $('loginError').textContent='Konfigurasi Supabase belum diisi.'; return}const {data:{session}}=await sb.auth.getSession();if(session){try{await authProfile(session.user);await enterApp()}catch(e){$('loginError').textContent=e.message}}}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='Memproses...';if(!sb&&!initClient()){ $('loginError').textContent='Isi konfigurasi Supabase dahulu.';return}const {data:r,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value}); if(error){$('loginError').textContent=error.message;return}try{await authProfile(r.user);await enterApp()}catch(e2){$('loginError').textContent='Login berhasil, tetapi tampilan ERP mengalami error: '+e2.message;if(profile){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}}});async function enterApp(){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');$('meName').textContent=profile.full_name;$('meRole').textContent=profile.role;applyRole();try{await loadAll();startRealtime();navTo('dashboard');await audit('LOGIN','session',profile.id,'Login ERP v9')}catch(e){console.error('ERP load error',e);$('connection').textContent='ONLINE • UI ERROR';$('title').textContent='Dashboard';const c=document.querySelector('.content');if(c&&!document.getElementById('uiErrorNotice')){const n=document.createElement('div');n.id='uiErrorNotice';n.className='notice';n.style.borderColor='#f1c7c7';n.style.background='#fff4f4';n.style.color='#a73838';n.textContent='Sesi login tetap aktif. Sebagian tampilan gagal dimuat: '+(e?.message||e);c.prepend(n)}}}async function logout(){if(realtime)await sb.removeChannel(realtime);await sb.auth.signOut();location.reload()}function applyRole(){const pages={Owner:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','vendors','workflow','users','migration'],Manager:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','vendors','workflow'],Admin:['dashboard','bookings','customers','operation','tripcontrol','tripfolder','vendors','workflow'],Sales:['dashboard','bookings','customers','tripcontrol','tripfolder','workflow'],Finance:['dashboard','bookings','finance','workflow'],Operation:['dashboard','bookings','operation','tripcontrol','tripfolder','vendors','workflow'],TL:['dashboard','operation','tripcontrol','tripfolder','workflow']}[role()]||['dashboard'];document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('hidden',!pages.includes(b.dataset.page)));document.querySelectorAll('.financial-only').forEach(el=>el.classList.toggle('hidden',!can(['Owner','Manager'])));$('newBookingBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newCustomerBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newVendorBtn').classList.toggle('hidden',!can(['Owner','Manager','Operation']));$('newStaffBtn')?.classList.toggle('hidden',role()!=='Owner');}let loadAllInFlight=null,loadAllPending=false;
+let data={profiles:[],customers:[],vendors:[],bookings:[],payments:[],trips:[],operationSheets:[],approvals:[],deadlines:[],audit:[],costs:[],manifests:[],rundownItems:[],tripReports:[],evaluations:[]};const $=id=>document.getElementById(id), rupiah=n=>'Rp '+Number(n||0).toLocaleString(localeForLang()), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));const uid=prefix=>prefix+'-'+crypto.randomUUID(), customer=id=>data.customers.find(x=>x.id===id), person=id=>data.profiles.find(x=>x.id===id);const bookingRevenue=b=>Number(b.pax||0)*Number(b.price_per_pax||0);const bookingPaid=id=>data.payments.filter(x=>x.booking_id===id&&x.verified_at!=null).reduce((a,x)=>a+(x.payment_type==='Refund'?-Number(x.amount):Number(x.amount)),0);const bookingCost=id=>data.costs.filter(x=>x.booking_id===id).reduce((a,x)=>a+Number(x.actual_amount||0),0);const fmtDate=d=>d?new Date(d+'T00:00:00').toLocaleDateString(localeForLang(),{day:'2-digit',month:'short',year:'numeric'}):'-';const badge=s=>`<span class="badge ${['Closed','Completed','Approved','Ready'].includes(s)?'ok':['DP','Quotation','Pending','Preparation'].includes(s)?'warn':['Rejected'].includes(s)?'bad':'info'}">${esc(gmuTranslateString(String(s??'')))}</span>`;const role=()=>profile?.role||'';const can=(roles)=>roles.includes(role());const DEFAULT_SUPABASE_URL='https://gtgnwasijweewmaubvyg.supabase.co';const DEFAULT_SUPABASE_KEY='sb_publishable_cbTtSEhcXsHKDdldocSw3Q_bTcfXtaW';function cfg(){return {url:localStorage.getItem('gmu_sb_url')||DEFAULT_SUPABASE_URL,key:localStorage.getItem('gmu_sb_key')||DEFAULT_SUPABASE_KEY}}function initClient(){const c=cfg(); if(!c.url||!c.key||!window.supabase)return false; sb=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return true}function saveConfig(){localStorage.setItem('gmu_sb_url',$('cfgUrl').value.trim());localStorage.setItem('gmu_sb_key',$('cfgKey').value.trim());$('cfgStatus').textContent=' Tersimpan. Muat ulang halaman lalu login.'}function hydrateCfg(){const c=cfg();$('cfgUrl').value=c.url;$('cfgKey').value=c.key;if(!c.url||!c.key)$('setupBox').open=true}async function authProfile(user){const {data:p,error}=await sb.from('profiles').select('*').eq('id',user.id).single(); if(error)throw error; if(!p.is_active)throw new Error('Akun dinonaktifkan.'); profile=p; return p}async function boot(){hydrateCfg();$('today').textContent=new Date().toLocaleDateString(localeForLang(),{weekday:'long',day:'2-digit',month:'long',year:'numeric'});if(!initClient()){ $('loginError').textContent='Konfigurasi Supabase belum diisi.'; return}const {data:{session}}=await sb.auth.getSession();if(session){try{await authProfile(session.user);await enterApp()}catch(e){$('loginError').textContent=e.message}}}$('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='Memproses...';if(!sb&&!initClient()){ $('loginError').textContent='Isi konfigurasi Supabase dahulu.';return}const {data:r,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value}); if(error){$('loginError').textContent=error.message;return}try{await authProfile(r.user);await enterApp()}catch(e2){$('loginError').textContent='Login berhasil, tetapi tampilan ERP mengalami error: '+e2.message;if(profile){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}}});async function enterApp(){$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');$('meName').textContent=profile.full_name;$('meRole').textContent=profile.role;applyRole();try{await loadAll();startRealtime();navTo('dashboard');await audit('LOGIN','session',profile.id,'Login ERP v9')}catch(e){console.error('ERP load error',e);$('connection').textContent='ONLINE • UI ERROR';$('title').textContent='Dashboard';const c=document.querySelector('.content');if(c&&!document.getElementById('uiErrorNotice')){const n=document.createElement('div');n.id='uiErrorNotice';n.className='notice';n.style.borderColor='#f1c7c7';n.style.background='#fff4f4';n.style.color='#a73838';n.textContent='Sesi login tetap aktif. Sebagian tampilan gagal dimuat: '+(e?.message||e);c.prepend(n)}}}async function logout(){if(realtime)await sb.removeChannel(realtime);await sb.auth.signOut();location.reload()}function applyRole(){const pages={Owner:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','boarding','vendors','workflow','users','migration'],Manager:['dashboard','bookings','customers','finance','operation','tripcontrol','tripfolder','boarding','vendors','workflow'],Admin:['dashboard','bookings','customers','operation','tripcontrol','tripfolder','boarding','vendors','workflow'],Sales:['dashboard','bookings','customers','tripcontrol','tripfolder','workflow'],Finance:['dashboard','bookings','finance','workflow'],Operation:['dashboard','bookings','operation','tripcontrol','tripfolder','boarding','vendors','workflow'],TL:['dashboard','operation','tripcontrol','tripfolder','boarding','workflow']}[role()]||['dashboard'];document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('hidden',!pages.includes(b.dataset.page)));document.querySelectorAll('.financial-only').forEach(el=>el.classList.toggle('hidden',!can(['Owner','Manager'])));$('newBookingBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newCustomerBtn').classList.toggle('hidden',!can(['Owner','Manager','Admin','Sales']));$('newVendorBtn').classList.toggle('hidden',!can(['Owner','Manager','Operation']));$('newStaffBtn')?.classList.toggle('hidden',role()!=='Owner');}let loadAllInFlight=null,loadAllPending=false;
 async function loadAll(){
   if(loadAllInFlight){loadAllPending=true;return loadAllInFlight;}
   const task=loadAllRaw();
@@ -564,6 +626,114 @@ boot();</script>
     <!-- gmu-erp-v92-trip-control -->
 <!-- gmu-erp-v93-multilingual -->
 
+<script id="gmu-boarding-erp-v1">
+(function(){
+const EB_API='https://gtgnwasijweewmaubvyg.supabase.co/functions/v1/public-customer-portal';
+const EB_STATIONS=['Cipatat','Cipeuyeum','Ciranjang','Cianjur','Cibeber','Lampegan','Cireungas','Gandasoli','Sukabumi'];
+const EB_TRAINS=[
+{code:'KA 352',stops:[['Sukabumi','-','05.15'],['Gandasoli','05.27','05.29'],['Cireungas','05.38','05.40'],['Lampegan','05.48','05.50'],['Cibeber','06.14','06.16'],['Cianjur','06.41','06.44'],['Ciranjang','06.59','07.01'],['Cipeuyeum','07.11','07.13'],['Cipatat','07.30','-']]},
+{code:'KA 351',stops:[['Cipatat','-','07.55'],['Cipeuyeum','08.11','08.13'],['Ciranjang','08.23','08.25'],['Cianjur','08.41','08.44'],['Cibeber','09.08','09.10'],['Lampegan','09.34','09.36'],['Cireungas','09.44','09.46'],['Gandasoli','09.55','09.57'],['Sukabumi','10.10','-']]},
+{code:'KA 354',stops:[['Sukabumi','-','10.50'],['Gandasoli','11.02','11.04'],['Cireungas','11.13','11.15'],['Lampegan','11.23','11.25'],['Cibeber','11.49','11.51'],['Cianjur','12.16','12.19'],['Ciranjang','12.34','12.36'],['Cipeuyeum','12.46','12.48'],['Cipatat','13.05','-']]},
+{code:'KA 353',stops:[['Cipatat','-','14.00'],['Cipeuyeum','14.16','14.18'],['Ciranjang','14.28','14.30'],['Cianjur','14.46','14.49'],['Cibeber','15.13','15.15'],['Lampegan','15.39','15.41'],['Cireungas','15.49','15.51'],['Gandasoli','16.00','16.02'],['Sukabumi','16.15','-']]},
+{code:'KA 356',stops:[['Sukabumi','-','16.45'],['Gandasoli','16.57','16.59'],['Cireungas','17.08','17.10'],['Lampegan','17.18','17.20'],['Cibeber','17.44','17.46'],['Cianjur','18.11','18.14'],['Ciranjang','18.29','18.31'],['Cipeuyeum','18.41','18.43'],['Cipatat','19.00','-']]},
+{code:'KA 355',stops:[['Cipatat','-','19.30'],['Cipeuyeum','19.46','19.48'],['Ciranjang','19.58','20.00'],['Cianjur','20.16','20.19'],['Cibeber','20.43','20.45'],['Lampegan','21.09','21.11'],['Cireungas','21.19','21.21'],['Gandasoli','21.30','21.32'],['Sukabumi','21.45','-']]}
+];
+let EB_BOOKINGS=[],EB_SELECTED=null,EB_REQUEST=null,EB_PASSES=[];
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rupiah=n=>'Rp'+Number(n||0).toLocaleString('id-ID');
+function ebRoleOK(){return ['Owner','Manager','Manager EduTrans','Director','Direktur','Admin','Operation','TL'].includes(String(profile?.role||''))}
+async function ebHeaders(){const {data:{session}}=await sb.auth.getSession();if(!session?.access_token)throw new Error('Sesi login staf berakhir. Silakan login kembali.');const c=cfg();return {'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':c.key}}
+async function ebAction(action,payload){const h=await ebHeaders();const r=await fetch(EB_API,{method:'POST',headers:h,body:JSON.stringify({action,...payload})});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||j.message||'Permintaan gagal');return j}
+function ebFmtDate(d){return d?new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}):'-'}
+function ebInitSelectors(){
+ $('ebFrom').innerHTML=EB_STATIONS.map(x=>'<option>'+esc(x)+'</option>').join('');
+ $('ebTo').innerHTML=EB_STATIONS.map(x=>'<option>'+esc(x)+'</option>').join('');
+ $('ebScanStation').innerHTML='<option value="">Pilih stasiun pemeriksaan</option>'+EB_STATIONS.map(x=>'<option>'+esc(x)+'</option>').join('');
+ $('ebFrom').value='Sukabumi';$('ebTo').value='Cianjur';
+ $('ebFrom').onchange=ebUpdateTrainOptions;$('ebTo').onchange=ebUpdateTrainOptions;$('ebTripDate').onchange=ebUpdateTrainOptions;
+ ebUpdateTrainOptions();
+}
+function ebOptions(from,to){
+ return EB_TRAINS.map(t=>{const i=t.stops.findIndex(x=>x[0]===from),j=t.stops.findIndex(x=>x[0]===to);if(i<0||j<0||i>=j)return null;return{code:t.code,from,to,depart:t.stops[i][2]!=='-'?t.stops[i][2]:t.stops[i][1],arrive:t.stops[j][1]!=='-'?t.stops[j][1]:t.stops[j][2]}}).filter(Boolean)
+}
+function ebUpdateTrainOptions(){
+ const opts=ebOptions($('ebFrom').value,$('ebTo').value);
+ $('ebTrain').innerHTML=opts.length?opts.map((x,i)=>'<option value="'+i+'">'+esc(x.code+' • '+x.from+' '+x.depart+' → '+x.to+' '+x.arrive)+'</option>').join(''):'<option value="">Tidak ada jadwal untuk arah ini</option>';
+}
+function ebCurrentTrain(){const a=ebOptions($('ebFrom').value,$('ebTo').value);return a[Number($('ebTrain').value)]||null}
+async function ebLoadBookings(){
+ if(!ebRoleOK())throw new Error('Role akun tidak memiliki akses E-Boarding Pass.');
+ const {data,error}=await sb.from('bookings').select('*').order('trip_date',{ascending:true});if(error)throw error;
+ EB_BOOKINGS=data||[];
+ const customerIds=[...new Set(EB_BOOKINGS.map(x=>x.customer_id).filter(Boolean))];
+ let cust=[];if(customerIds.length){const q=await sb.from('customers').select('id,name').in('id',customerIds);if(!q.error)cust=q.data||[]}
+ EB_BOOKINGS.forEach(b=>b._customer=cust.find(c=>String(c.id)===String(b.customer_id))?.name||'');
+ ebRenderBookings();$('ebMetrics').innerHTML='<div class="metric"><small>Total booking</small><b>'+EB_BOOKINGS.length+'</b></div><div class="metric"><small>Perjalanan KA Siliwangi</small><b>'+EB_BOOKINGS.filter(b=>/siliwangi|edutrain/i.test(b.program_name||'')).length+'</b></div><div class="metric"><small>Booking dipilih</small><b>'+(EB_SELECTED?'1':'0')+'</b></div>';
+}
+function ebRenderBookings(){
+ const q=String($('ebSearch')?.value||'').toLowerCase();
+ const list=EB_BOOKINGS.filter(b=>[b.booking_no,b.program_name,b._customer,b.id].some(x=>String(x||'').toLowerCase().includes(q)));
+ $('ebBookingRows').innerHTML=list.length?list.map(b=>'<tr><td><b>'+esc(b.booking_no||b.id)+'</b></td><td>'+esc(b._customer||'-')+'</td><td>'+esc(ebFmtDate(b.trip_date))+'</td><td>'+Number(b.pax||0)+'</td><td>'+esc(b.status||'-')+'</td><td><button class="btn ghost" onclick="ebSelectBooking(\''+esc(b.id)+'\')">Pilih</button></td></tr>').join(''):'<tr><td colspan="6">Tidak ada booking yang cocok.</td></tr>';
+}
+async function ebSelectBooking(id){
+ EB_SELECTED=EB_BOOKINGS.find(x=>String(x.id)===String(id));if(!EB_SELECTED)return;
+ $('ebTripDate').value=EB_SELECTED.trip_date||'';
+ $('ebSelectedInfo').innerHTML='<b>'+esc(EB_SELECTED.booking_no||EB_SELECTED.id)+'</b> · '+esc(EB_SELECTED._customer||'')+'<br>'+esc(EB_SELECTED.program_name||'')+' · '+Number(EB_SELECTED.pax||0)+' peserta · '+esc(EB_SELECTED.status||'');
+ $('ebIssueGate').textContent='Jadwal belum dikonfirmasi untuk booking ini.';$('ebIssueBtn').disabled=true;
+ try{
+  const req=await sb.from('booking_requests').select('outbound_from,outbound_to,return_from,return_to,outbound_train,return_train,trip_date').eq('converted_booking_id',String(id)).maybeSingle();
+  EB_REQUEST=req.data||null;
+  if(EB_REQUEST){$('ebFrom').value=EB_REQUEST.outbound_from||'Sukabumi';$('ebTo').value=EB_REQUEST.outbound_to||'Cianjur';}
+  ebUpdateTrainOptions();
+  await ebLoadPasses();
+  $('ebScheduleStatus').textContent='Booking dipilih. Pastikan rute dan jadwal sesuai konfirmasi operator.';$('ebScheduleStatus').className='eb-status warn';
+ }catch(e){$('ebScheduleStatus').textContent=e.message}
+}
+function ebDateTime(date,time){if(!date||!time||time==='-')return null;const [h,m]=time.split('.').map(Number);return new Date(date+'T'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':00+07:00').toISOString()}
+async function ebConfirmSchedule(){
+ try{
+  if(!EB_SELECTED)throw new Error('Pilih booking terlebih dahulu.');
+  if(!$('ebOperatorConfirmed').checked)throw new Error('Centang konfirmasi operator setelah jadwal diverifikasi.');
+  const train=ebCurrentTrain();if(!train)throw new Error('Tidak ada jadwal yang cocok dengan rute ini.');
+  const date=$('ebTripDate').value;if(!date)throw new Error('Tanggal perjalanan wajib diisi.');
+  const dep=ebDateTime(date,train.depart),arr=ebDateTime(date,train.arrive);
+  if(!dep)throw new Error('Waktu keberangkatan tidak tersedia.');
+  const r=await ebAction('boarding_confirm_schedule',{booking_id:String(EB_SELECTED.id),journey_leg:$('ebLeg').value,train_code:train.code,origin_station:train.from,destination_station:train.to,departure_at:dep,arrival_at:arr});
+  $('ebScheduleStatus').textContent='Jadwal dikonfirmasi. '+r.count+' tiket peserta/pendamping masuk antrean penerbitan.';$('ebScheduleStatus').className='eb-status';
+  await ebLoadPasses();
+ }catch(e){$('ebScheduleStatus').textContent=e.message;$('ebScheduleStatus').className='eb-status warn'}
+}
+async function ebIssue(){
+ try{if(!EB_SELECTED)throw new Error('Pilih booking terlebih dahulu.');if(!confirm('Terbitkan E-Boarding Pass hanya setelah pelunasan diverifikasi Finance?'))return;
+ const r=await ebAction('boarding_issue',{booking_id:String(EB_SELECTED.id)});
+ $('ebIssueGate').textContent='Penerbitan berhasil: '+r.issued_count+' tiket. Total lunas terverifikasi '+rupiah(r.paid_amount)+' / '+rupiah(r.total_amount);$('ebIssueGate').className='eb-status';await ebLoadPasses();
+ }catch(e){$('ebIssueGate').textContent=e.message;$('ebIssueGate').className='eb-status warn';}
+}
+async function ebLoadPasses(){
+ if(!EB_SELECTED)return;
+ const {data,error}=await sb.from('railway_boarding_passes').select('id,journey_leg,train_code,origin_station,destination_station,departure_at,status,valid_from,scanned_at').eq('booking_id',String(EB_SELECTED.id)).order('departure_at');
+ if(error){$('ebPassList').textContent=error.message;return}
+ EB_PASSES=data||[];
+ $('ebPassList').innerHTML=EB_PASSES.length?'<table><thead><tr><th>Leg</th><th>KA</th><th>Rute</th><th>Berangkat</th><th>Status</th></tr></thead><tbody>'+EB_PASSES.map(x=>'<tr><td>'+esc(x.journey_leg)+'</td><td>'+esc(x.train_code)+'</td><td>'+esc(x.origin_station+' → '+x.destination_station)+'</td><td>'+new Date(x.departure_at).toLocaleString('id-ID')+'</td><td>'+esc(x.status)+'</td></tr>').join('')+'</tbody></table>':'<p class="eb-muted">Belum ada tiket untuk booking ini.</p>';
+ const pending=EB_PASSES.some(x=>x.status==='PENDING'),issued=EB_PASSES.some(x=>x.status==='ISSUED');
+ $('ebIssueBtn').disabled=!pending;
+ if(issued)$('ebIssueGate').textContent='Sudah ada tiket terbit. Periksa daftar tiket di bawah.';
+ else if(pending)$('ebIssueGate').textContent='Jadwal telah dikonfirmasi. Klik terbitkan; server akan memeriksa pelunasan, quotation, dan status booking.';
+}
+async function ebScan(){
+ try{const token=$('ebScanToken').value.trim();if(!token)throw new Error('QR token belum diisi.');
+ const r=await ebAction('boarding_scan',{qr_token:token,scan_station:$('ebScanStation').value});
+ $('ebScanStatus').textContent='CHECK-IN BERHASIL · '+(r.passenger?.participant_name||'Peserta')+' · '+(r.train_code||'')+' · '+(r.origin_station||'')+' → '+(r.destination_station||'');$('ebScanStatus').className='eb-status';$('ebScanToken').value='';
+ }catch(e){$('ebScanStatus').textContent=e.message;$('ebScanStatus').className='eb-status warn'}
+}
+window.ebLoadBookings=()=>ebLoadBookings().catch(e=>{$('ebBookingRows').innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'});
+window.ebRenderBookings=ebRenderBookings;window.ebSelectBooking=ebSelectBooking;window.ebConfirmSchedule=ebConfirmSchedule;window.ebIssue=ebIssue;window.ebLoadPasses=ebLoadPasses;window.ebScan=ebScan;
+document.addEventListener('click',e=>{const b=e.target.closest('#nav button[data-page="boarding"]');if(b){setTimeout(()=>ebLoadBookings(),0)}});
+document.addEventListener('DOMContentLoaded',ebInitSelectors);
+if(document.readyState!=='loading')ebInitSelectors();
+})();
+</script>
 <script src="./production-bundle-v115.js" defer></script>
 <!-- gmu-company-autopilot-v21-additive -->
 </body></html>
