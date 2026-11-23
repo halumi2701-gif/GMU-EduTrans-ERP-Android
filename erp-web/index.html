@@ -173,7 +173,7 @@
    <div class="eb-panel">
     <h3 style="margin-top:0">4. Validasi QR</h3>
     <p class="eb-muted">Petugas memasukkan token hasil pemindaian QR penumpang. QR hanya dapat digunakan sekali dan hanya aktif 60 menit sebelum keberangkatan sampai waktu berangkat.</p>
-    <div class="field"><label>QR token / hasil scan</label><input id="ebScanToken" autocomplete="off" placeholder="Pindai atau tempel token QR"></div>
+    <div class="field"><label>QR token / hasil scan</label><input id="ebScanToken" autocomplete="off" placeholder="Pindai atau tempel token QR"></div><div class="eb-actions"><button class="btn ghost" type="button" onclick="ebStartCamera()">Aktifkan Kamera QR</button><button class="btn ghost" type="button" onclick="ebStopCamera()">Matikan Kamera</button></div><video id="ebCamera" playsinline muted style="display:none;width:100%;max-height:260px;object-fit:cover;border-radius:12px;margin-top:10px;background:#111"></video>
     <div class="field"><label>Stasiun pemeriksaan</label><select id="ebScanStation"></select></div>
     <div class="eb-actions"><button class="btn primary" onclick="ebScan()">Validasi & Check-in</button></div>
     <div id="ebScanStatus" class="eb-status warn">Menunggu pemindaian.</div>
@@ -729,6 +729,20 @@ async function ebScan(){
 }
 window.ebLoadBookings=()=>ebLoadBookings().catch(e=>{$('ebBookingRows').innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'});
 window.ebRenderBookings=ebRenderBookings;window.ebSelectBooking=ebSelectBooking;window.ebConfirmSchedule=ebConfirmSchedule;window.ebIssue=ebIssue;window.ebLoadPasses=ebLoadPasses;window.ebScan=ebScan;
+let ebStream=null,ebCameraLoop=0,ebDetector=null;
+window.ebStopCamera=function(){if(ebCameraLoop)cancelAnimationFrame(ebCameraLoop);ebCameraLoop=0;if(ebStream)ebStream.getTracks().forEach(t=>t.stop());ebStream=null;const v=$('ebCamera');if(v){v.pause();v.srcObject=null;v.style.display='none'}};
+window.ebStartCamera=async function(){
+ try{
+  if(!('BarcodeDetector' in window))throw new Error('Browser belum mendukung pemindaian QR kamera. Gunakan Chrome terbaru atau masukkan token hasil scan secara manual.');
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Akses kamera tidak tersedia. Pastikan ERP dibuka melalui HTTPS.');
+  ebDetector=new BarcodeDetector({formats:['qr_code']});
+  ebStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  const v=$('ebCamera');v.srcObject=ebStream;v.style.display='block';await v.play();
+  const scan=async()=>{if(!ebStream)return;try{const codes=await ebDetector.detect(v);if(codes.length&&codes[0].rawValue){$('ebScanToken').value=codes[0].rawValue;window.ebStopCamera();await ebScan();return}}catch(e){}ebCameraLoop=requestAnimationFrame(scan)};
+  scan();
+ }catch(e){$('ebScanStatus').textContent=e.message;$('ebScanStatus').className='eb-status warn'}
+};
+$('ebLeg').addEventListener('change',function(){if(!EB_REQUEST)return;const a=this.value==='RETURN'?EB_REQUEST.return_from:EB_REQUEST.outbound_from,b=this.value==='RETURN'?EB_REQUEST.return_to:EB_REQUEST.outbound_to;if(a&&b){$('ebFrom').value=a;$('ebTo').value=b;ebUpdateTrainOptions()}});
 document.addEventListener('click',e=>{const b=e.target.closest('#nav button[data-page="boarding"]');if(b){setTimeout(()=>ebLoadBookings(),0)}});
 document.addEventListener('DOMContentLoaded',ebInitSelectors);
 if(document.readyState!=='loading')ebInitSelectors();
