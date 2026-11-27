@@ -64,7 +64,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <div class="wide"><label class="req">Posisi utama yang dilamar</label>
 <select name="primary_position" id="position" required>
 <option value="">Pilih posisi</option>
-<option>Admin Part Time</option><option>Finance Part Time</option><option>Marketing & Sales</option>
+<option>Admin Part Time</option><option>Finance Part Time</option><option value="Marketing & Sales">Marketing Freelance (Marketing &amp; Sales)</option>
 <option>Operasional Freelance</option><option>TL / MC / Edukator</option><option>Dokumentasi Freelance</option><option>Helper Freelance</option>
 </select></div>
 <div class="wide"><label>Posisi alternatif</label>
@@ -86,7 +86,16 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <label class="req">Bagaimana menjaga kerahasiaan data keuangan?</label><textarea name="fin_confidentiality"></textarea>
 </div>
 
-<div class="role" data-role="Marketing & Sales"><h2>3. Pertanyaan Marketing & Sales</h2>
+<div class="role" data-role="Marketing & Sales"><h2>3. Pendaftaran Marketing Freelance</h2>
+<div class="notice"><strong>Skema komisi:</strong> Rp5.000 untuk setiap peserta yang terdaftar melalui marketing dan telah melakukan pembayaran yang tervalidasi. Posisi ini berbasis komisi, <strong>tanpa gaji pokok</strong>; jumlah penghasilan bergantung pada hasil penjualan dan tidak dijamin.</div>
+<label class="req">Ceritakan pengalaman mencari calon customer atau menjual produk/jasa</label><textarea name="sales_experience"></textarea>
+<label class="req">Melalui jaringan apa Anda bisa menjangkau calon customer? (contoh: sekolah, guru, komunitas, orang tua, atau media sosial)</label><textarea name="sales_network"></textarea>
+<label class="req">Bagaimana strategi Anda mendapatkan calon customer pertama?</label><textarea name="sales_first"></textarea>
+<label class="req">Bersedia mencari calon customer sendiri melalui WhatsApp, telepon, dan canvassing?</label><select name="sales_prospect"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
+<label class="req">Jika 30 calon customer belum merespons, apa langkah berikutnya?</label><textarea name="sales_followup"></textarea>
+<label class="req">Bagaimana merespons penolakan?</label><textarea name="sales_rejection"></textarea>
+<label class="req">Mengapa tertarik menjadi Marketing Freelance GMU EduTrans?</label><textarea name="sales_motivation"></textarea>
+</div>
 <label class="req">Bersedia mencari calon customer sendiri melalui WhatsApp, telepon, dan canvassing?</label><select name="sales_prospect"><option value="">Pilih</option><option>Ya</option><option>Tidak</option></select>
 <label class="req">Jika 30 calon customer belum merespons, apa langkah berikutnya?</label><textarea name="sales_followup"></textarea>
 <label class="req">Bagaimana merespons penolakan?</label><textarea name="sales_rejection"></textarea>
