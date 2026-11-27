@@ -38,8 +38,8 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <div class="notice"><strong>Kualifikasi umum:</strong> pendidikan minimal SMA/SMK/MA sederajat. Pengalaman kerja relevan minimal sekitar 1 tahun lebih disukai untuk Admin, Finance, dan Marketing & Sales; fresh graduate tetap dapat dipertimbangkan bila kompetensinya sesuai. Untuk posisi freelance crew, pengalaman event, pendidikan, pelayanan, dokumentasi, atau kegiatan lapangan menjadi nilai tambah. Domisili Cianjur dan sekitarnya diutamakan.</div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px" class="vacancy-summary">
   <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Admin & Finance</strong><div class="small">Part Time • teliti • spreadsheet • administrasi data/keuangan</div></div>
-  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Marketing & Sales</strong><div class="small">Target Based • prospecting • follow-up • closing</div></div>
-  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Freelance Crew</strong><div class="small">Operasional • TL/MC/Edukator • Dokumentasi • Helper</div></div>
+  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Marketing Freelance</strong><div class="small">Komisi • prospecting • follow-up • closing</div></div>
+  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Koordinator & Crew</strong><div class="small">Koordinator Area • Edukator/Tour Leader • Operasional • Helper</div></div>
 </div>
 <form id="recruitForm">
 <input class="hp" name="website" tabindex="-1" autocomplete="off">
@@ -64,11 +64,10 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <div class="wide"><label class="req">Posisi utama yang dilamar</label>
 <select name="primary_position" id="position" required>
 <option value="">Pilih posisi</option>
-<option>Admin Part Time</option><option>Finance Part Time</option><option value="Marketing & Sales">Marketing Freelance (Marketing &amp; Sales)</option>
-<option>Operasional Freelance</option><option>TL / MC / Edukator</option><option>Dokumentasi Freelance</option><option>Helper Freelance</option>
+<option value="Marketing & Sales">Marketing Freelance</option><option>Koordinator Area</option><option>TL / MC / Edukator</option><option>Operasional Freelance</option><option>Helper Freelance</option>
 </select></div>
 <div class="wide"><label>Posisi alternatif</label>
-<select name="alternate_position"><option>Tidak ada</option><option>Admin Part Time</option><option>Finance Part Time</option><option>Marketing & Sales</option><option>Operasional Freelance</option><option>TL / MC / Edukator</option><option>Dokumentasi Freelance</option><option>Helper Freelance</option></select></div>
+<select name="alternate_position"><option>Tidak ada</option><option>Marketing Freelance</option><option>Koordinator Area</option><option>TL / MC / Edukator</option><option>Operasional Freelance</option><option>Helper Freelance</option></select></div>
 </div>
 <div id="roleQualification" class="role-qual" aria-live="polite"></div>
 
@@ -102,7 +101,7 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <label class="req">Jelaskan strategi mendapatkan customer pertama</label><textarea name="sales_first"></textarea>
 </div>
 
-<div class="role" data-role="Operasional Freelance"><h2>3. Pertanyaan Operasional</h2>
+<div class="role" data-role="Koordinator Area"><h2>3. Pertanyaan Koordinator Area</h2>\n<label class="req">Ceritakan pengalaman mengoordinasikan tim atau kegiatan</label><textarea name="area_experience"></textarea>\n<label class="req">Bagaimana membagi tugas dan memastikan tim menjalankan tugasnya?</label><textarea name="area_team"></textarea>\n<label class="req">Apa langkah Anda jika terjadi kendala di lapangan?</label><textarea name="area_issue"></textarea>\n</div>\n\n<div class="role" data-role="Operasional Freelance"><h2>3. Pertanyaan Operasional</h2>
 <label class="req">Bagaimana memastikan perlengkapan kegiatan tidak tertinggal?</label><textarea name="ops_checklist"></textarea>
 <label class="req">Apa tindakan saat rundown berubah mendadak?</label><textarea name="ops_change"></textarea>
 <label class="req">Bagaimana jika instruksi koordinator belum jelas?</label><textarea name="ops_instruction"></textarea>
@@ -167,6 +166,7 @@ document.getElementById("startedAt").value=new Date().toISOString();
 const submissionId=(globalThis.crypto&&crypto.randomUUID)?crypto.randomUUID():("sub-"+Date.now()+"-"+Math.random().toString(36).slice(2,12));
 
 const QUALIFICATIONS={
+  "Koordinator Area":["Pendidikan minimal SMA/SMK/MA sederajat.","Pengalaman koordinasi tim, event, wisata, atau kegiatan sekolah menjadi nilai tambah.","Mampu mengatur jadwal, komunikasi tim, dan menyelesaikan kendala lapangan.","Bersedia mobile sesuai area penugasan dan mengikuti SOP GMU EduTrans."],
   "Admin Part Time":["Pendidikan minimal SMA/SMK/MA sederajat.","Pengalaman administrasi sekitar 1 tahun lebih disukai; fresh graduate dengan kemampuan sesuai tetap dapat dipertimbangkan.","Mampu menggunakan laptop, Google Sheets/Excel, Google Drive, dan aplikasi digital dasar.","Teliti, rapi, disiplin, serta mampu menjaga kerahasiaan data."],
   "Finance Part Time":["Pendidikan minimal SMA/SMK/MA sederajat; jurusan Akuntansi/Keuangan menjadi nilai tambah.","Pengalaman finance atau administrasi keuangan sekitar 1 tahun lebih disukai.","Mampu menggunakan spreadsheet dan membuat rekap transaksi sederhana.","Teliti terhadap angka, bertanggung jawab, dan mampu menjaga kerahasiaan data keuangan."],
   "Marketing & Sales":["Pendidikan minimal SMA/SMK/MA sederajat.","Pengalaman sales/marketing 6–12 bulan lebih disukai; fresh graduate dengan komunikasi kuat tetap dapat dipertimbangkan.","Siap prospecting melalui WhatsApp, telepon, follow-up, dan kunjungan/canvassing.","Siap bekerja dengan target, mencatat lead, dan melakukan follow-up secara disiplin."],
@@ -175,7 +175,7 @@ const QUALIFICATIONS={
   "Dokumentasi Freelance":["Pendidikan minimal SMA/SMK/MA sederajat.","Memiliki perangkat smartphone/kamera yang layak dan portfolio foto/video.","Pengalaman dokumentasi event/kegiatan menjadi nilai tambah; mampu editing dasar lebih disukai.","Mampu menjaga keamanan file, backup, penamaan folder, dan penyerahan hasil secara rapi."],
   "Helper Freelance":["Pendidikan minimal SMA/SMK/MA sederajat.","Pengalaman kegiatan lapangan, event, pelayanan, atau organisasi menjadi nilai tambah.","Bersedia bekerja on-call sesuai kebutuhan kegiatan, termasuk weekend bila diperlukan.","Sigap, disiplin, mampu mengikuti instruksi, membantu mobilisasi peserta/perlengkapan, dan nyaman bekerja dalam tim."]
 };
-const FREELANCE_POSITIONS=new Set(["Operasional Freelance","TL / MC / Edukator","Dokumentasi Freelance","Helper Freelance"]);
+const FREELANCE_POSITIONS=new Set(["Koordinator Area","Operasional Freelance","TL / MC / Edukator","Helper Freelance"]);
 
 function setRole(){
   document.querySelectorAll(".role").forEach(x=>{
