@@ -11,7 +11,13 @@
 .top{background:linear-gradient(135deg,var(--gd),var(--g));color:#fff;padding:28px 18px 56px}
 .wrap{max-width:860px;margin:auto}.brand{display:flex;gap:14px;align-items:center}.brand img{width:74px;height:74px;object-fit:contain;background:#fff;border-radius:18px;padding:7px}.brand h1{margin:0;font-size:28px}.brand p{margin:6px 0 0;opacity:.92}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 40px rgba(22,80,22,.08);padding:22px;margin:-30px 14px 26px}
-.notice{background:var(--warn);border:1px solid #ead98c;border-radius:12px;padding:12px;font-size:13px;margin-bottom:18px}.role-qual{display:none;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0 2px}.role-qual.show{display:block}.role-qual strong{color:var(--gd)}.role-qual ul{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.55}.conditional-consent{display:none}.conditional-consent.show{display:flex}
+.notice{background:var(--warn);border:1px solid #ead98c;border-radius:12px;padding:12px;font-size:13px;margin-bottom:18px}.role-qual{display:none;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0 2px}.role-qual.show{display:block}
+.vacancies{margin:0 0 24px}.vacancy-intro{font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 14px}
+.vacancy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vacancy-card{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff;display:flex;flex-direction:column;align-items:flex-start}
+.vacancy-card h3{margin:0 0 8px;color:var(--gd);font-size:16px}.vacancy-card p{font-size:13px;line-height:1.5;margin:0 0 10px}
+.vacancy-card .small{margin:0 0 14px}.vacancy-card .btn{margin-top:auto;font-size:12px;padding:10px 12px}
+@media(max-width:640px){.vacancy-grid{grid-template-columns:1fr}}.role-qual strong{color:var(--gd)}.role-qual ul{margin:8px 0 0;padding-left:19px;font-size:13px;line-height:1.55}.conditional-consent{display:none}.conditional-consent.show{display:flex}
 h2{font-size:18px;margin:24px 0 12px;color:var(--gd)}h3{font-size:14px;margin:18px 0 8px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.wide{grid-column:1/-1}
 label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,select,textarea{width:100%;border:1px solid #cfd9cf;border-radius:10px;padding:11px;font:inherit;background:#fff}textarea{min-height:96px;resize:vertical}
@@ -36,11 +42,16 @@ label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}input,selec
 <main class="wrap">
 <div class="card" id="formCard">
 <div class="notice"><strong>Kualifikasi umum:</strong> pendidikan minimal SMA/SMK/MA sederajat. Pengalaman kerja relevan minimal sekitar 1 tahun lebih disukai untuk Admin, Finance, dan Marketing & Sales; fresh graduate tetap dapat dipertimbangkan bila kompetensinya sesuai. Untuk posisi freelance crew, pengalaman event, pendidikan, pelayanan, dokumentasi, atau kegiatan lapangan menjadi nilai tambah. Domisili Cianjur dan sekitarnya diutamakan.</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px" class="vacancy-summary">
-  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Admin & Finance</strong><div class="small">Part Time • teliti • spreadsheet • administrasi data/keuangan</div></div>
-  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Marketing Freelance</strong><div class="small">Komisi • prospecting • follow-up • closing</div></div>
-  <div style="background:#f5faf4;border:1px solid #dfe8df;border-radius:12px;padding:12px"><strong>Koordinator & Crew</strong><div class="small">Koordinator Area • Edukator/Tour Leader • Operasional • Helper</div></div>
-</div>
+<section class="vacancies" aria-labelledby="vacancyTitle">
+<h2 id="vacancyTitle">Karier / Lowongan</h2>
+<p class="vacancy-intro">Temukan posisi yang sesuai dan tumbuh bersama GMU EduTrans. Pilih lowongan untuk melihat kualifikasi dan mengisi lamaran.</p>
+<div class="vacancy-grid">
+<article class="vacancy-card"><h3>Marketing Freelance</h3><p>Mengembangkan calon pelanggan, melakukan follow-up, dan membantu penjualan program wisata edukasi.</p><div class="small">Berbasis komisi • komunikasi dan prospecting</div><button class="btn apply-position" type="button" data-position="Marketing &amp; Sales">Lamar Posisi Ini</button></article>
+<article class="vacancy-card"><h3>Koordinator Area</h3><p>Mengoordinasikan tim dan mitra di area penugasan serta memastikan kegiatan berjalan sesuai rencana.</p><div class="small">Koordinasi tim • komunikasi • kesiapan lapangan</div><button class="btn apply-position" type="button" data-position="Koordinator Area">Lamar Posisi Ini</button></article>
+<article class="vacancy-card"><h3>Edukator / Tour Leader</h3><p>Mendampingi peserta, menyampaikan informasi edukatif, dan menjaga alur serta kenyamanan perjalanan.</p><div class="small">Public speaking • pendampingan peserta</div><button class="btn apply-position" type="button" data-position="TL / MC / Edukator">Lamar Posisi Ini</button></article>
+<article class="vacancy-card"><h3>Operasional</h3><p>Mendukung persiapan perlengkapan, koordinasi teknis, dan kebutuhan kegiatan di lapangan.</p><div class="small">Checklist • ketelitian • kerja tim</div><button class="btn apply-position" type="button" data-position="Operasional Freelance">Lamar Posisi Ini</button></article>
+<article class="vacancy-card"><h3>Helper</h3><p>Membantu kelancaran kegiatan, mobilisasi peserta, dan dukungan perlengkapan sesuai arahan koordinator.</p><div class="small">Sigap • disiplin • kerja tim</div><button class="btn apply-position" type="button" data-position="Helper Freelance">Lamar Posisi Ini</button></article>
+</div></section>
 <form id="recruitForm">
 <input class="hp" name="website" tabindex="-1" autocomplete="off">
 <input type="hidden" name="started_at" id="startedAt">
@@ -200,6 +211,12 @@ function setRole(){
   document.getElementById("progress").style.width=pos.value?"55%":"30%";
 }
 pos.addEventListener("change",setRole);
+document.querySelectorAll(".apply-position").forEach(button=>button.addEventListener("click",()=>{
+  pos.value=button.dataset.position;
+  setRole();
+  document.getElementById("formCard").scrollIntoView({behavior:"smooth",block:"start"});
+  pos.focus({preventScroll:true});
+}));
 setRole();
 
 function obj(fd){const o={};for(const [k,v] of fd.entries())o[k]=v;return o}
