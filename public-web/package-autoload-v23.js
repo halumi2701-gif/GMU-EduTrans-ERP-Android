@@ -13,15 +13,9 @@
     if (health) health.textContent = 'SYNC...';
 
     try {
-      const paxInput = document.getElementById('tripPax');
-      const dateInput = document.getElementById('tripDate');
-      const pax = Number(paxInput?.value || 35);
-      const date = dateInput?.value || '';
-      const qs = new URLSearchParams();
-      if (date) qs.set('trip_date', date);
-      if (pax > 0) qs.set('pax', String(pax));
-
-      const d = await window.api(`public-package-catalog?${qs.toString()}`);
+      // Load the active catalog without booking filters. Filters are applied
+      // only after the visitor searches; the public catalog endpoint supports this base request.
+      const d = await window.api('public-package-catalog');
       window.packages = Array.isArray(d.items) ? d.items : [];
       if (health) health.textContent = `${window.packages.length} ACTIVE`;
       window.GMU_PACKAGE_RENDERER_V23.renderPackageCatalog(cards, window.packages, (id) => {
